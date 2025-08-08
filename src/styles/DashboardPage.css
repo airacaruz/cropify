@@ -1,0 +1,321 @@
+/* DashboardPage.css */
+
+/* Base Styles */
+body {
+    margin: 0; /* gray-100 */
+
+}
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 40px; /* p-4 */
+    box-sizing: border-box; /* Ensures padding doesn't increase total width/height */
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.25rem; /* text-xl */
+    color: #4b5563; /* gray-600 */
+}
+
+/* Topbar/Header */
+.dashboard-topbar {
+    display: flex;
+    justify-content: space-between;
+    height: 4rem; /* h-16 */
+    margin-bottom: 1rem; /* mb-4 */
+}
+
+.dashboard-profile-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* space-x-4 */
+}
+
+.dashboard-admin-name {
+    color: #374151; /* gray-800 */
+    font-weight: 600; /* font-semibold */
+    font-size: 1.125rem; /* text-lg */
+}
+
+.dashboard-profile-circle {
+    position: relative;
+}
+
+.dashboard-profile-avatar {
+    width: 2.5rem; /* w-10 */
+    height: 2.5rem; /* h-10 */
+    border-radius: 9999px; /* rounded-full */
+    object-fit: cover;
+    border: 2px solid #e5e7eb; /* border-2 border-gray-200 */
+}
+
+/* Main Content Area */
+/* DashboardPage.css */
+
+/* ... (previous styles) ... */
+
+/* Main Content Area */
+.dashboard-main-content {
+    flex: 1;
+    padding: 1.5rem; /* p-6 */
+    background-color: #ffffff; /* bg-white */
+    border-radius: 0.5rem; /* rounded-lg */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
+    overflow-y: auto;
+
+    /* ADD THIS LINE for a fixed minimum width, adjust as needed */
+    min-width: 900px; /* Example: This value should be determined by your desired dashboard width */
+
+    /* Or, if you want it to be responsive with a max width for large screens */
+    /* max-width: 1200px; /* Example: To cap the maximum width on very large screens */
+    /* width: 100%; /* Ensure it takes full width up to max-width */
+}
+
+/* ... (rest of your CSS) ... */
+
+
+/* Dashboard Overview Cards */
+.dashboard-overview-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* grid-cols-1 */
+    gap: 1.5rem; /* gap-6 */
+    margin-bottom: 2rem; /* mb-8 */
+}
+
+@media (min-width: 640px) { /* sm breakpoint */
+    .dashboard-overview-grid {
+        grid-template-columns: repeat(2, 1fr); /* sm:grid-cols-2 */
+    }
+}
+
+@media (min-width: 1024px) { /* lg breakpoint */
+    .dashboard-overview-grid {
+        grid-template-columns: repeat(2, 1fr); /* lg:grid-cols-4 */
+    }
+}
+
+.dashboard-overview-card {
+    padding: 40px; /* p-6 */
+    border-radius: 0.5rem; /* rounded-lg */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 300ms ease; /* transition-transform transform hover:scale-105 duration-300 */
+}
+
+.dashboard-overview-card:hover {
+    transform: scale(1.05);
+}
+
+.dashboard-overview-card-title {
+    font-size: 20px; /* text-lg */
+    font-weight: 600; /* font-semibold */
+    margin: 0; /* mb-2 */
+}
+
+.dashboard-overview-card-value {
+    font-size: 1.875rem; /* text-3xl */
+    font-weight: bold;
+    margin: 0;
+}
+
+.dashboard-overview-card-icon {
+    height: 4rem; /* h-12 */
+    width: 4rem; /* w-12 */
+    opacity: 0.75; /* opacity-75 */
+}
+
+/* Specific Navigation Cards */
+.dashboard-navigation-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.dashboard-nav-link {
+    text-decoration: none;
+    color: inherit; /* Inherit color from parent or define explicitly */
+}
+
+.dashboard-nav-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px var(--shadow-light);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    min-height: 120px; /* Ensure a consistent height */
+}
+
+.dashboard-nav-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px var(--shadow-medium);
+}
+
+.dashboard-nav-card .icon {
+    font-size: 2.5em; /* Adjust icon size */
+    margin-bottom: 0.5rem;
+    color: var(--green-primary); /* Icon color */
+}
+
+.dashboard-nav-card span {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--gray-800);
+    text-align: center;
+}
+
+/* Placeholder icons - if you were using a font icon library like Font Awesome,
+   you'd replace these with actual icon classes. For now, a generic style. */
+.dashboard-nav-card .user-icon::before {
+    content: "👥"; /* Unicode character for a user icon */
+    font-size: 2.5em;
+    margin-bottom: 0.5rem;
+    color: var(--green-primary);
+}
+
+/* Recent Activities and Top Users Sections */
+.dashboard-data-sections-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* grid-cols-1 */
+    gap: 1.5rem; /* gap-6 */
+}
+
+@media (min-width: 1024px) { /* lg breakpoint */
+    .dashboard-data-sections-grid {
+        grid-template-columns: repeat(2, 1fr); /* lg:grid-cols-2 */
+    }
+}
+
+.recent-activities-card,
+.top-users-card {
+    background-color: #ffffff; /* bg-white */
+    padding: 1.5rem; /* p-6 */
+    border-radius: 0.5rem; /* rounded-lg */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
+}
+
+.section-title {
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 600; /* font-semibold */
+    color: #374151; /* gray-800 */
+    margin-bottom: 1rem; /* mb-4 */
+}
+
+/* Recent Activities List */
+.activities-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    line-height: 1.5; /* space-y-4 is translated to line-height or individual margins */
+}
+
+.activities-list li:not(:last-child) {
+    margin-bottom: 1rem; /* Equivalent to space-y-4 */
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    color: #374151; /* gray-700 */
+}
+
+.activity-tag {
+    background-color: #E0F2D6;
+    color: #6D8A58;
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 500; /* font-medium */
+    padding: 0.25rem 0.625rem; /* px-2.5 py-0.5 */
+    border-radius: 9999px; /* rounded-full */
+    margin-right: 0.75rem; /* mr-3 */
+    white-space: nowrap; /* Prevent tag from wrapping */
+}
+
+.activity-description {
+    flex: 1;
+    margin-right: 0.5rem; /* Small gap before time */
+}
+
+.activity-time {
+    font-size: 0.875rem; /* text-sm */
+    color: #6b7280; /* gray-500 */
+    white-space: nowrap; /* Prevent time from wrapping */
+}
+
+/* Top Users List (UserRow component) */
+.user-row {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem; /* p-3 */
+    border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
+}
+
+.user-row:last-child {
+    border-bottom: 0; /* last:border-b-0 */
+}
+
+.user-row-avatar {
+    width: 2.5rem; /* w-10 */
+    height: 2.5rem; /* h-10 */
+    border-radius: 9999px; /* rounded-full */
+    object-fit: cover;
+    margin-right: 1rem; /* mr-4 */
+}
+
+.user-row-details {
+    flex: 1;
+}
+
+.user-row-name {
+    font-weight: 600; /* font-semibold */
+    color: #374151; /* gray-800 */
+}
+
+.user-row-email {
+    font-size: 0.875rem; /* text-sm */
+    color: #4b5563; /* gray-600 */
+}
+
+.user-row-role {
+    font-size: 0.875rem; /* text-sm */
+    background-color: #B9D4A7;
+    color: #6D8A58;
+    padding: 0.25rem 0.75rem; /* px-3 py-1 */
+    border-radius: 9999px; /* rounded-full */
+}
+
+/* Custom Background and Text Colors */
+.bg-green-primary {
+    background-color: #8CBA6F;
+}
+
+.bg-green-secondary {
+    background-color: #A3CE8D;
+}
+
+.bg-green-tertiary {
+    background-color: #C5E1B4;
+}
+
+.bg-green-quaternary {
+    background-color: #E0F2D6;
+}
+
+.text-white {
+    color: #ffffff;
+}
+
+.text-gray-800 {
+    color: #374151;
+}

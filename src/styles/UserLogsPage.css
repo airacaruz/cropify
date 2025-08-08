@@ -1,0 +1,39 @@
+.logs-container {
+    padding: 20px;
+
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .tabs {
+    margin-bottom: 15px;
+  }
+  
+  .tab {
+    padding: 10px 20px;
+    border: none;
+    background-color: #eee;
+    margin-right: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  
+  .tab.active {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .tab-content {
+    border-top: 1px solid #ccc;
+    padding-top: 15px;
+  }
+  
+  .log-list ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  
+  .log-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+  }
+  

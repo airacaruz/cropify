@@ -1,0 +1,78 @@
+// src/pages/js/LoginLinkPage.jsx
+
+import React, { useEffect } from "react";
+import {
+  getAuth,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  signOut,
+} from "firebase/auth";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+// ADD THIS IMPORT:
+import { app } from "../../firebase"; // Adjust this path based on your file structure
+
+function LoginLinkPage() {
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const signIn = async () => {
+      const email = window.localStorage.getItem("emailForSignIn");
+      if (!email) {
+        alert("Missing email info. Try again.");
+        navigate("/send-link"); // Or navigate back to your main login page
+        return;
+      }
+
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        try {
+          const result = await signInWithEmailLink(auth, email, window.location.href);
+          const user = result.user;
+
+          // Check if the signed-in user's email is in your 'admins' collection
+          const q = query(collection(db, "admins"), where("email", "==", email));
+          const snapshot = await getDocs(q);
+
+          if (!snapshot.empty) {
+            const adminData = snapshot.docs[0].data();
+            localStorage.setItem("adminName", adminData.name);
+            alert("Welcome back!");
+            navigate("/dashboard"); // Redirect to your dashboard
+          } else {
+            // Not an admin, sign out and redirect
+            alert("Access denied: Not an admin.");
+            await signOut(auth); // Sign out the non-admin user
+            navigate("/"); // Redirect to a page indicating denial or main login
+          }
+        } catch (error) {
+          console.error("Login failed:", error.message);
+          alert("Login failed: " + error.message);
+          // Optional: redirect to a generic error page or back to login
+          navigate("/"); // Go back to the email input page on failure
+        }
+      }
+    };
+
+    signIn();
+    // Dependencies array for useEffect
+  }, [auth, db, navigate]); // Ensure all dependencies are included
+
+  return (
+    <div className="login-container">
+      <div className="login-card">
+        <h1 className="login-title">Verifying...</h1>
+        <p>Please wait while we log you in.</p>
+      </div>
+    </div>
+  );
+}
+
+export default LoginLinkPage;

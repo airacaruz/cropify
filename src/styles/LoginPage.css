@@ -1,0 +1,113 @@
+/* Background */
+/* Reset and background for whole page */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+body.login-page {
+  margin: 0;
+  padding: 0;
+  height: 100px;
+  background-color: #236f10;
+}
+
+.login-container {
+  background-color: #236f10;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Card */
+.login-card {
+  background-color: #e7eee9;
+  padding: 40px;
+  height: 500px;
+  border-radius: 10px;
+  width: 350px;
+  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
+}
+
+/* Headings */
+.login-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: #7C9770;
+  margin-bottom: -10px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+}
+
+.login-subtitle {
+text-align: center;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 30px;
+  font-weight: 500
+}
+
+/* Form Elements */
+.login-form label {
+  display: block;
+  font-weight: 500;
+  color: #2c2c2c;
+  text-align: left;
+}
+
+.login-form input[type="email"],
+.login-form input[type="password"],
+.login-form input[type="text"]{
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* Remember Me */
+.remember-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+/* Signup link */
+.signup-link {
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.signup-link a {
+  color: #1f4d1a;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* Button */
+.login-button {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(to right, #cce6bb, #c7e0c3);
+  color: #1d2f1f;
+  font-weight: bold;
+  border-radius: 6px;
+  border: 1px solid #2e4c2d;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+/* Terms */
+.terms {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+.terms a {
+  color: #849d86;
+  text-decoration: none;
+}

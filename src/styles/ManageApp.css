@@ -1,0 +1,189 @@
+.manage-app-container {
+  padding: 40px;
+  width: 1000px;
+  min-height: 100vh;
+}
+
+.manage-app-container h2 {
+  font-size: 40px;
+  color: #2e7d32;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.header-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.add-btn {
+  background-color: #48ac4e;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+  background-color: #1b5e20;
+}
+
+/* News List */
+.news-list {
+  margin-top: 30px;
+}
+
+.news-item {
+  padding: 16px;
+  border: 1px solid #a5d6a7;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background-color: #f9fef9;
+}
+
+.news-item h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #2e7d32;
+}
+
+.news-item p {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.news-item a {
+  color: #388e3c;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.news-image {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal Form */
+.modal-form {
+  background: #fff;
+  padding: 30px;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #333;
+  box-sizing: border-box;
+}
+
+.modal-form h3 {
+  margin-top: 0;
+  color: #2e7d32;
+}
+
+.modal-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modal-form label {
+  font-weight: bold;
+  display: block;
+}
+
+.modal-form input,
+.modal-form textarea {
+  font-size: 16px;
+  width: 100%;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.modal-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.status-message {
+  margin-top: 10px;
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.modal-buttons button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.modal-buttons button[type="submit"] {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.modal-buttons button[type="submit"]:hover {
+  background-color: #1b5e20;
+}
+
+.modal-buttons button[type="button"] {
+  background-color: #ccc;
+  color: #333;
+}
+
+.modal-buttons button[type="button"]:hover {
+  background-color: #bbb;
+}
+
+/* Media input toggle */
+.media-input-options {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.media-input-options button {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  background-color: #f1f1f1;
+  border-radius: 5px;
+}
+
+.media-input-options button.active {
+  background-color: #a5d6a7;
+  color: white;
+  font-weight: bold;
+}

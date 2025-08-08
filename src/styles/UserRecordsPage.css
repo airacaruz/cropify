@@ -1,0 +1,199 @@
+/* src/styles/UserRecordsPage.css */
+
+.user-records-container {
+  padding: 40px;
+  width: 1000px; /* Adjust as needed, consider responsiveness */
+  min-height: 100vh;
+  margin: 0 auto; /* Center the container */
+  font-family: 'Inter', sans-serif; /* Ensure font is consistent */
+  color: #333;
+}
+
+h2 {
+  color: #2e7d32; /* Green color from AdminRecordsPage.css */
+  font-size: 40px;
+  font-weight: bold;
+  text-align: left;
+  padding-bottom: 20px; /* User's specified padding */
+  margin: 0; /* Reset margin to ensure padding-bottom works as expected */
+}
+
+.tab-buttons {
+  display: flex;
+  justify-content: left; /* Aligns buttons to the left */
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.tab-buttons button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #eee; /* User's specified background */
+  cursor: pointer;
+  border-radius: 8px; /* Rounded corners for consistency */
+  font-size: 16px; /* Consistent font size */
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+  border: 1px solid #bdc3c7; /* Added border for consistency */
+}
+
+.tab-buttons button:hover {
+  background-color: #dfe6e9; /* Lighter grey on hover */
+}
+
+.tab-buttons button.active {
+  background-color: #2e7d32; /* Green for active tab, similar to add-btn in admin */
+  color: white;
+  border-color: #2e7d32;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* More prominent shadow for active */
+}
+
+/* General table styles (for Session, Screen, AND outer Plant Logs table) */
+
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.records-table th,
+.records-table td {
+  padding: 12px 16px;
+  border: 1px solid #a5d6a7; /* Border color from admin table */
+  text-align: left;
+}
+
+.records-table th {
+  background-color: #2e7d32; /* Dark green from admin table header */
+  color: #fff;
+  text-transform: uppercase; /* Match admin table headers */
+  font-size: 14px;
+}
+
+.records-table tbody tr:nth-child(even) {
+  background-color: #f1f8e9; /* Even row background from admin table */
+}
+
+.records-table tbody tr:hover {
+  background-color: #e6f0e6; /* Lighter green on hover for table rows */
+}
+
+/* Plant Logs Section (Outer container for the nested structure) */
+.plant-logs-section {
+  /* This container now just holds the table-wrapper, no direct background/shadow */
+  margin-top: 20px;
+}
+
+.plant-logs-section h3 {
+    color: #2e7d32; /* Dark green for section title */
+    margin-bottom: 20px;
+    font-size: 28px;
+    text-align: center;
+}
+
+/* Styles for expandable table rows (both outer and inner tables) */
+.hoverable-row {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.expand-cell {
+    width: 30px; /* Fixed width for icon column */
+    text-align: center;
+    /* Ensure the content (arrow) is aligned to the left within this cell */
+    padding-left: 5px; /* Adjust as needed for spacing */
+    padding-right: 5px; /* Adjust as needed for spacing */
+}
+
+.expand-cell-header { /* For the header of the expand icon column */
+    width: 30px;
+    text-align: center;
+    padding-left: 5px; /* Adjust as needed for spacing */
+    padding-right: 5px; /* Adjust as needed for spacing */
+}
+
+.expand-icon {
+    font-size: 1.2em;
+    color: #2e7d32; /* Dark green for icon */
+    display: block; /* Ensures it takes up full cell space for centering */
+    text-align: left; /* Aligns the arrow to the left within its cell */
+}
+
+.menu-icon {
+    font-weight: bold;
+    margin-right: 6px; /* Space between icon and text */
+    color: #4c9f4c; /* Green color for the dots */
+    font-size: 1.2em; /* Make it slightly larger if needed */
+    display: inline-block; /* Ensure it behaves like text */
+}
+
+.expanded-row td {
+    background-color: #f9f9f9;
+    padding: 0; /* Remove padding from this cell to control inner content's padding */
+    border-top: 2px solid #2e7d32; /* Separator for expanded content */
+}
+
+/* Styles for the inner table wrapper and inner table */
+.inner-table-wrapper {
+    padding: 15px; /* Padding inside the expanded row */
+    background-color: #f9f9f9; /* Background for the expanded area */
+    border-radius: 8px; /* Rounded corners for the inner content */
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05); /* Subtle inner shadow */
+}
+
+.inner-records-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0; /* Remove default margin-top */
+    border-radius: 8px; /* Rounded corners for the inner table */
+    overflow: hidden; /* Ensures border-radius applies */
+    box-shadow: none; /* Remove outer shadow for inner table */
+}
+
+.inner-records-table th,
+.inner-records-table td {
+    padding: 10px 12px; /* Slightly less padding for inner table */
+    border: 1px solid #d4edda; /* Lighter border for inner table */
+}
+
+.inner-records-table th {
+    background-color: #4CAF50; /* A slightly different green for inner header */
+    color: white;
+}
+
+.inner-records-table tbody tr:nth-child(even) {
+    background-color: #e8f5e9; /* Lighter even row background for inner table */
+}
+
+.inner-records-table tbody tr:hover {
+    background-color: #d4edda; /* Lighter hover for inner table rows */
+}
+
+
+/* Styles for displaying plant details within the expanded row */
+.plant-details-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px 30px; /* Vertical and horizontal gap */
+    padding: 10px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-top: 10px;
+}
+
+.plant-details-display p {
+    margin: 0;
+    /* Enforce two columns by setting flex-basis to just under 50%
+       and letting gap handle the spacing */
+    flex: 1 1 calc(50% - 15px); /* 50% minus half of the horizontal gap (30px / 2 = 15px) */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    min-width: 200px; /* Ensure readability on smaller columns */
+    color: #555;
+    font-size: 0.95em;
+}
+
+.plant-details-display strong {
+    color: #333;
+    margin-right: 5px;
+}

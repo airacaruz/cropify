@@ -1,0 +1,312 @@
+
+
+/* Overall Page Wrapper - sets background image */
+.login-page-wrapper {
+  position: fixed; /* Ensures it covers the entire viewport, ignoring scroll */
+  top: 0;
+  left: 0;
+  width: 100vw; /* 100% of the viewport width */
+  height: 100vh; /* 100% of the viewport height */
+  
+  /* Background Image Properties */
+  background-size: cover;    /* Makes the image fill the screen, cropping if necessary */
+  background-position: center; /* Centers the image within the container */
+  background-repeat: no-repeat; /* Prevents the image from tiling */
+
+  /* Fallback color if the background image fails to load */
+  background-color: #2a3a2d; /* A dark green that complements your image */
+
+  /* Flexbox for layout of top bar and modal overlay */
+  display: flex;
+  flex-direction: column; /* Stacks children (top bar, modal overlay) vertically */
+  align-items: center;   /* Centers children horizontally (e.g., if content has fixed width) */
+  /* For centering the modal, we rely on flex-grow: 1 on the overlay, 
+     so 'justify-content: flex-start;' is appropriate here to keep the top bar at the top. */ 
+  justify-content: flex-start; 
+
+  overflow: hidden; /* Prevents scrollbars if content overflows */
+}
+
+
+/* ------------------------------------------- */
+/* Styles for the Initial Landing View */
+/* ------------------------------------------- */
+.initial-login-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  position: relative;
+  z-index: 2; /* Ensure it's above the background */
+}
+
+.initial-top-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  box-sizing: border-box;
+  z-index: 2; /* Above background */
+}
+
+.initial-logo {
+  height: 75px;
+  /* margin-top: 20px; If you want it consistently pushed down like the login form logo */
+}
+
+.log-in-button {
+  background-color: #6edc5b;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.log-in-button:hover {
+  background-color: #5cb84d;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* ------------------------------------------- */
+/* Styles for the Login Form View (after "Log In" clicked) */
+/* ------------------------------------------- */
+
+/* Full-screen transparent overlay - only shown with login form or magic link message */
+.full-screen-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1; /* Sits above the background image, below login card/top bar */
+}
+
+/* Top bar for the login form (with logo and close button) */
+.login-top-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  box-sizing: border-box;
+  z-index: 3; /* This ensures the logo and 'X' button are above the overlay and login card */
+  position: relative;
+}
+
+/* Styles for the logo in the login form view */
+.login-logo {
+  height: 75px;
+  /* Remove margin-top: 20px; if you want consistent vertical alignment with .initial-logo */
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.close-button:hover {
+  color: #ccc;
+}
+
+/* Overlay for the modal - responsible for centering the login card */
+.login-modal-overlay {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 2; /* Needs to be above .full-screen-overlay (z-index: 1) */
+  position: relative;
+}
+
+/* The white login card (the actual login form container) */
+.login-card1 {
+  background-color: #fff;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  margin-bottom: 100px;
+  
+  /* Removed margin-bottom to allow for true vertical centering by flexbox */
+}
+
+.login-card h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 30px;
+  font-weight: 700;
+}
+
+/* Form Styling */
+.login-card1 form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  position: relative;
+  width: 100%;
+}
+
+.email-input {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 15px 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.email-input::placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+.email-input:focus {
+  border-color: #6edc5b;
+  box-shadow: 0 0 0 3px rgba(110, 220, 91, 0.3);
+}
+
+.next-button {
+  background-color: #6edc5b;
+  color: white;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+.next-button:hover {
+  background-color: #5cb84d;
+  box-shadow: 0 4px 10px rgba(110, 220, 91, 0.4);
+}
+
+.login-message {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #555;
+  text-align: center;
+}
+
+.login-message.error { /* Style for error messages */
+  color: #d32f2f; /* Red color for errors */
+  font-weight: bold;
+}
+
+
+/* ------------------------------------------- */
+/* Styles for the "Magic Link Sent" Message Card */
+/* ------------------------------------------- */
+.magic-link-sent-card {
+  /* Inherits most styles from .login-card for consistency */
+  /* Adjust padding, margin, etc. if needed to differentiate from login-card */
+  padding: 30px; /* Slightly less padding than login-card */
+  text-align: center;
+}
+
+.magic-link-sent-card h4 {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  color: #333;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.magic-link-instruction {
+  font-size: 15px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.sent-email {
+  font-weight: bold;
+  color: #6edc5b; /* Highlight the email address */
+  word-break: break-all; /* Ensures long emails wrap */
+}
+
+.try-different-email-link {
+  color: #6edc5b;
+  text-decoration: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.try-different-email-link:hover {
+  color: #5cb84d;
+  text-decoration: underline;
+}
+
+.resend-button {
+  /* Inherits styles from .next-button for consistent look */
+  margin-top: 15px; /* Space above resend button */
+}
+
+
+/* Basic responsiveness for smaller screens */
+@media (max-width: 768px) {
+  .initial-top-bar,
+  .login-top-bar {
+    padding: 15px 20px;
+  }
+
+  .close-button {
+    font-size: 26px;
+  }
+
+  .login-card,
+  .magic-link-sent-card { /* Apply responsiveness to both card types */
+    padding: 30px 20px;
+    max-width: 90%; /* Allow card to take more width on small screens */
+  }
+
+  .login-card h3,
+  .magic-link-sent-card h4 {
+    font-size: 20px;
+    margin-bottom: 25px;
+  }
+
+  .email-input,
+  .next-button,
+  .log-in-button,
+  .resend-button {
+    padding: 12px 15px;
+    font-size: 15px;
+  }
+
+  .magic-link-instruction {
+    font-size: 14px;
+  }
+}
