@@ -1,10 +1,9 @@
-import { useNavigate } from "react-router-dom";
-import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase"; // import Firebase auth and database
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-
-import "../styles/LoginPage.css";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { auth, db } from "../firebase";
+import "../styles/RegisterPage.css";
 
 function RegisterPage() {
   const [name, setName] = useState("");
@@ -14,41 +13,30 @@ function RegisterPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.body.classList.add("login-page");
+    document.body.classList.add("register-page");
     return () => {
-      document.body.classList.remove("login-page");
+      document.body.classList.remove("register-page");
     };
   }, []);
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
     try {
-      // Step 1: Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      // Step 2: Save extra info to Firestore under "admins" collection
       await setDoc(doc(db, "admins", user.uid), {
-        adminId: user.uid, // <-- Add this line
+        adminId: user.uid,
         name: name,
         role: role,
         email: email,
         createdAt: new Date()
       });
-      
-
       alert("Admin registered successfully!");
-
-      // Clear form
       setName("");
       setRole("");
       setEmail("");
       setPassword("");
-
-      // Redirect to dashboard
       navigate("/dashboard");
-
     } catch (error) {
       console.error(error);
       alert("Failed to register admin: " + error.message);
@@ -56,12 +44,13 @@ function RegisterPage() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h1 className="login-title">Admin Register</h1>
-        <p className="login-subtitle">where the plant begins.</p>
-
-        <form className="login-form" onSubmit={handleRegister}>
+    
+    <div className="register-main-container">
+      <div className="register-card">
+        <div className="back-button" onClick={() => navigate(-1)}>← Back</div>
+        <h1 className="register-title">Admin Register</h1>
+        <p className="register-subtitle">Create a new admin account below.</p>
+        <form className="register-form" onSubmit={handleRegister}>
           <label>Name</label>
           <input
             type="text"
@@ -69,7 +58,6 @@ function RegisterPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-
           <label>Role</label>
           <input
             type="text"
@@ -77,7 +65,6 @@ function RegisterPage() {
             value={role}
             onChange={(e) => setRole(e.target.value)}
           />
-
           <label>Email</label>
           <input
             type="email"
@@ -85,7 +72,6 @@ function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-
           <label>Password</label>
           <input
             type="password"
@@ -93,8 +79,7 @@ function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-
-          <button type="submit" className="login-button">
+          <button type="submit" className="register-btn">
             Register
           </button>
         </form>

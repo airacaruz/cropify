@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { db } from '../../firebase'; // Make sure this import is correct
 import '../../styles/UserRecordsPage.css';
 
@@ -29,7 +29,6 @@ const UserRecordsPage = () => {
               <th>UID</th>
               <th>Name</th>
               <th>Username</th>
-              <th>Email</th>
               <th>Phone Number</th>
             </tr>
           </thead>
@@ -39,7 +38,6 @@ const UserRecordsPage = () => {
                 <td>{user.uid}</td>
                 <td>{user.name || 'N/A'}</td>
                 <td>{user.username || 'N/A'}</td>
-                <td>{user.email || 'N/A'}</td>
                 <td>{user.contact || 'N/A'}</td>
                 
               </tr>

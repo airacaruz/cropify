@@ -1,70 +1,131 @@
 /* General reset for margin and padding */
-  /* Sidebar container */
-  .sidebar {
-    width: 269px; /* Sidebar width */
-    height: 100vh; /* Full viewport height */
-    background-color: #E8F1E7; /* Dark background for the sidebar */
-    position: fixed; /* Keep it fixed on the left */
-    top: 0;
-    left: 0;
-    display: flex;
-    flex-direction: column;
-    /* Space out the logo and links */
-    padding-top: 20px;
-    padding-bottom: 20px;
-    color: #fff; 
-    /* White text color */
-  }
-  
-  /* Logo section */
-  .sidebar .logo {
-    text-align: center;
-    
-  }
-  
-  .sidebar .logo img {
-    width: 150px; /* Adjust logo size */
-    height: auto;
-  }
-  
-  /* Navigation links */
-  nav ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  
-  
-  .navlist li a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 13px 0px;
-    color: black;
-    text-decoration: none;
-    font-weight: 600;
-    border-radius: 20px;
-    justify-content: center;
-    transition: background 0.3s, color 0.3s;
-    margin-left: 10px;
-    margin-right: 10px;
-    margin-bottom: 10px;
-    
-  }
-  .navlist li a:hover {
-    background-color: #cdddcf;
-  }
-  
-  .navlist li.active a {
-    background-color: #4c7029;
-    color: white;
-    font-weight: 700;
-  }
-  /* Hover effect on the links */
- 
-  
-  
-  
+/* Sidebar container - now always a drawer */
+.sidebar {
+  width: 269px;
+  height: 100vh;
+  background-color: #E8F1E7;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  color: #fff;
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
+  transform: translateX(-100%);
+}
+
+.sidebar.drawer.open {
+  transform: translateX(0);
+}
+
+/* Logo section */
+.sidebar .logo {
+  text-align: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+.sidebar .logo img {
+  width: 150px;
+  height: auto;
+}
+
+/* Navigation links */
+nav ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.navlist li a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 0px;
+  color: black;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 20px;
+  justify-content: center;
+  transition: background 0.3s, color 0.3s;
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.navlist li a:hover {
+  background-color: #cdddcf;
+}
+
+.navlist li.active a {
+  background-color: #4c7029;
+  color: white;
+  font-weight: 700;
+}
+
+/* Hamburger menu styles - always visible */
+.hamburger-menu {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001;
+  background: #4c7029;
+  border: none;
+  border-radius: 4px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 40px;
+  height: 40px;
+  justify-content: center;
+  align-items: center;
+}
+
+.hamburger-menu span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background-color: white;
+  transition: 0.3s;
+}
+
+/* Close drawer button - always visible */
+.close-drawer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #4c7029;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Drawer overlay - always available */
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  cursor: pointer;
+}
+
+/* Remove all media queries since drawer applies to all screen sizes */
 .logout-button {
   padding: 10px 20px;
   background-color: #85af5c;

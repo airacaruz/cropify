@@ -1,47 +1,33 @@
-/* DashboardPage.css */
-
-/* Base Styles */
 body {
-    margin: 0; /* gray-100 */
-
+    margin: 0;
 }
 
-.dashboard-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    padding: 40px; /* p-4 */
-    box-sizing: border-box; /* Ensures padding doesn't increase total width/height */
-}
-
-/* Loading State */
 .loading-container {
     display: flex;
     height: 100vh;
     justify-content: center;
     align-items: center;
-    font-size: 1.25rem; /* text-xl */
-    color: #4b5563; /* gray-600 */
+    font-size: 1.25rem;
+    color: #4b5563;
 }
 
-/* Topbar/Header */
 .dashboard-topbar {
     display: flex;
     justify-content: space-between;
-    height: 4rem; /* h-16 */
-    margin-bottom: 1rem; /* mb-4 */
+    height: 4rem;
+    margin-bottom: 1rem;
 }
 
 .dashboard-profile-actions {
     display: flex;
     align-items: center;
-    gap: 1rem; /* space-x-4 */
+    gap: 1rem;
 }
 
 .dashboard-admin-name {
-    color: #374151; /* gray-800 */
-    font-weight: 600; /* font-semibold */
-    font-size: 1.125rem; /* text-lg */
+    color: #374151;
+    font-weight: 600;
+    font-size: 1.125rem;
 }
 
 .dashboard-profile-circle {
@@ -49,66 +35,51 @@ body {
 }
 
 .dashboard-profile-avatar {
-    width: 2.5rem; /* w-10 */
-    height: 2.5rem; /* h-10 */
-    border-radius: 9999px; /* rounded-full */
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
     object-fit: cover;
-    border: 2px solid #e5e7eb; /* border-2 border-gray-200 */
+    border: 2px solid #e5e7eb;
 }
 
-/* Main Content Area */
-/* DashboardPage.css */
-
-/* ... (previous styles) ... */
-
-/* Main Content Area */
 .dashboard-main-content {
-    flex: 1;
-    padding: 1.5rem; /* p-6 */
-    background-color: #ffffff; /* bg-white */
-    border-radius: 0.5rem; /* rounded-lg */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
-    overflow-y: auto;
-
-    /* ADD THIS LINE for a fixed minimum width, adjust as needed */
-    min-width: 900px; /* Example: This value should be determined by your desired dashboard width */
-
-    /* Or, if you want it to be responsive with a max width for large screens */
-    /* max-width: 1200px; /* Example: To cap the maximum width on very large screens */
-    /* width: 100%; /* Ensure it takes full width up to max-width */
+  max-width: 1400px; 
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 }
 
-/* ... (rest of your CSS) ... */
-
-
-/* Dashboard Overview Cards */
 .dashboard-overview-grid {
     display: grid;
-    grid-template-columns: 1fr; /* grid-cols-1 */
-    gap: 1.5rem; /* gap-6 */
-    margin-bottom: 2rem; /* mb-8 */
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
-@media (min-width: 640px) { /* sm breakpoint */
+@media (min-width: 640px) {
     .dashboard-overview-grid {
-        grid-template-columns: repeat(2, 1fr); /* sm:grid-cols-2 */
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (min-width: 1024px) { /* lg breakpoint */
+@media (min-width: 1024px) {
     .dashboard-overview-grid {
-        grid-template-columns: repeat(2, 1fr); /* lg:grid-cols-4 */
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 .dashboard-overview-card {
-    padding: 40px; /* p-6 */
-    border-radius: 0.5rem; /* rounded-lg */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
+    padding: 40px;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: transform 300ms ease; /* transition-transform transform hover:scale-105 duration-300 */
+    transition: transform 300ms ease;
 }
 
 .dashboard-overview-card:hover {
@@ -116,24 +87,23 @@ body {
 }
 
 .dashboard-overview-card-title {
-    font-size: 20px; /* text-lg */
-    font-weight: 600; /* font-semibold */
-    margin: 0; /* mb-2 */
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
 }
 
 .dashboard-overview-card-value {
-    font-size: 1.875rem; /* text-3xl */
+    font-size: 1.875rem;
     font-weight: bold;
     margin: 0;
 }
 
 .dashboard-overview-card-icon {
-    height: 4rem; /* h-12 */
-    width: 4rem; /* w-12 */
-    opacity: 0.75; /* opacity-75 */
+    height: 4rem;
+    width: 4rem;
+    opacity: 0.75;
 }
 
-/* Specific Navigation Cards */
 .dashboard-navigation-cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -142,7 +112,7 @@ body {
 
 .dashboard-nav-link {
     text-decoration: none;
-    color: inherit; /* Inherit color from parent or define explicitly */
+    color: inherit;
 }
 
 .dashboard-nav-card {
@@ -155,7 +125,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 5px var(--shadow-light);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    min-height: 120px; /* Ensure a consistent height */
+    min-height: 120px;
 }
 
 .dashboard-nav-card:hover {
@@ -164,9 +134,9 @@ body {
 }
 
 .dashboard-nav-card .icon {
-    font-size: 2.5em; /* Adjust icon size */
+    font-size: 2.5em;
     margin-bottom: 0.5rem;
-    color: var(--green-primary); /* Icon color */
+    color: var(--green-primary);
 }
 
 .dashboard-nav-card span {
@@ -176,101 +146,96 @@ body {
     text-align: center;
 }
 
-/* Placeholder icons - if you were using a font icon library like Font Awesome,
-   you'd replace these with actual icon classes. For now, a generic style. */
 .dashboard-nav-card .user-icon::before {
-    content: "👥"; /* Unicode character for a user icon */
+    content: "👥";
     font-size: 2.5em;
     margin-bottom: 0.5rem;
     color: var(--green-primary);
 }
 
-/* Recent Activities and Top Users Sections */
 .dashboard-data-sections-grid {
     display: grid;
-    grid-template-columns: 1fr; /* grid-cols-1 */
-    gap: 1.5rem; /* gap-6 */
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
 }
 
-@media (min-width: 1024px) { /* lg breakpoint */
+@media (min-width: 1024px) {
     .dashboard-data-sections-grid {
-        grid-template-columns: repeat(2, 1fr); /* lg:grid-cols-2 */
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 .recent-activities-card,
 .top-users-card {
-    background-color: #ffffff; /* bg-white */
-    padding: 1.5rem; /* p-6 */
-    border-radius: 0.5rem; /* rounded-lg */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .section-title {
-    font-size: 1.25rem; /* text-xl */
-    font-weight: 600; /* font-semibold */
-    color: #374151; /* gray-800 */
-    margin-bottom: 1rem; /* mb-4 */
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 1rem;
 }
 
-/* Recent Activities List */
 .activities-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    line-height: 1.5; /* space-y-4 is translated to line-height or individual margins */
+    line-height: 1.5;
 }
 
 .activities-list li:not(:last-child) {
-    margin-bottom: 1rem; /* Equivalent to space-y-4 */
+    margin-bottom: 1rem;
 }
 
 .activity-item {
     display: flex;
     align-items: center;
-    color: #374151; /* gray-700 */
+    color: #374151;
 }
 
 .activity-tag {
     background-color: #E0F2D6;
     color: #6D8A58;
-    font-size: 0.75rem; /* text-xs */
-    font-weight: 500; /* font-medium */
-    padding: 0.25rem 0.625rem; /* px-2.5 py-0.5 */
-    border-radius: 9999px; /* rounded-full */
-    margin-right: 0.75rem; /* mr-3 */
-    white-space: nowrap; /* Prevent tag from wrapping */
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    margin-right: 0.75rem;
+    white-space: nowrap;
 }
 
 .activity-description {
     flex: 1;
-    margin-right: 0.5rem; /* Small gap before time */
+    margin-right: 0.5rem;
 }
 
 .activity-time {
-    font-size: 0.875rem; /* text-sm */
-    color: #6b7280; /* gray-500 */
-    white-space: nowrap; /* Prevent time from wrapping */
+    font-size: 0.875rem;
+    color: #6b7280;
+    white-space: nowrap;
 }
 
-/* Top Users List (UserRow component) */
 .user-row {
     display: flex;
     align-items: center;
-    padding: 0.75rem; /* p-3 */
-    border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .user-row:last-child {
-    border-bottom: 0; /* last:border-b-0 */
+    border-bottom: 0;
 }
 
 .user-row-avatar {
-    width: 2.5rem; /* w-10 */
-    height: 2.5rem; /* h-10 */
-    border-radius: 9999px; /* rounded-full */
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
     object-fit: cover;
-    margin-right: 1rem; /* mr-4 */
+    margin-right: 1rem;
 }
 
 .user-row-details {
@@ -278,24 +243,23 @@ body {
 }
 
 .user-row-name {
-    font-weight: 600; /* font-semibold */
-    color: #374151; /* gray-800 */
+    font-weight: 600;
+    color: #374151;
 }
 
 .user-row-email {
-    font-size: 0.875rem; /* text-sm */
-    color: #4b5563; /* gray-600 */
+    font-size: 0.875rem;
+    color: #4b5563;
 }
 
 .user-row-role {
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     background-color: #B9D4A7;
     color: #6D8A58;
-    padding: 0.25rem 0.75rem; /* px-3 py-1 */
-    border-radius: 9999px; /* rounded-full */
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
 }
 
-/* Custom Background and Text Colors */
 .bg-green-primary {
     background-color: #8CBA6F;
 }

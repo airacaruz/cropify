@@ -1,9 +1,9 @@
+import { collection, collectionGroup, onSnapshot, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, collectionGroup, query, orderBy } from 'firebase/firestore';
 
+import { useNavigate } from 'react-router-dom';
 import { db } from '../../../firebase';
 import '../../../styles/UserRecordsPage.css'; // This is the CSS file that styles this component
-import { useNavigate } from 'react-router-dom';
 
 const UserLogsPage = () => {
   const [sessionLogs, setSessionLogs] = useState([]);
@@ -135,6 +135,9 @@ const UserLogsPage = () => {
         <button className={activeTab === 'plant' ? 'active' : ''} onClick={() => setActiveTab('plant')}>
           Plant Logs
         </button>
+        <button className={activeTab === 'userrecords' ? 'active' : ''} onClick={() => setActiveTab('userrecords')}>
+          User Records
+        </button>
       </div>
 
       {/* Session Logs Table (unchanged) */}
@@ -144,7 +147,6 @@ const UserLogsPage = () => {
             <thead>
               <tr>
                 <th>Session ID</th>
-                <th>Email</th>
                 <th>Login Date</th>
                 <th>Login Time</th>
                 <th>Logout Date</th>
@@ -155,7 +157,6 @@ const UserLogsPage = () => {
               {sessionLogs.map(log => (
                 <tr key={log.sessionId}>
                   <td>{log.sessionId}</td>
-                  <td>{log.userEmail || '—'}</td>
                   <td>{log.loginTime?.toDate ? log.loginTime.toDate().toLocaleDateString() : '—'}</td>
                   <td>
                     {log.loginTime?.seconds
@@ -228,6 +229,7 @@ const UserLogsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
+                  
                   {plantLogs.map(growerGroup => (
                     <React.Fragment key={growerGroup.growerId}>
                       <tr className="hoverable-row" onClick={() => toggleGrower(growerGroup.growerId)}>
@@ -279,6 +281,7 @@ const UserLogsPage = () => {
                                           </td>
                                         </tr>
                                       )}
+                                      
                                     </React.Fragment>
                                   ))}
                                 </tbody>

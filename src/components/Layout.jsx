@@ -5,7 +5,7 @@ function Layout() {
   return (
     <div>
       <Navbar />
-      <div style={{ marginLeft: '220px', padding: '20px' }}>
+      <div style={{ marginLeft: '0px', padding: '20px' }}>
         <Outlet />
       </div>
     </div>

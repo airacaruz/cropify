@@ -1,0 +1,173 @@
+import { collection, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import LogoutButton from '../../components/LogoutButton';
+import { auth, db } from '../../firebase';
+import '../../styles/AdminRecordsPage.css';
+
+const ManageAdmin = () => {
+  const [admins, setAdmins] = useState([]);
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [editedData, setEditedData] = useState({});
+  const [adminName, setAdminName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("adminName");
+    setAdminName(storedName || "Admin");
+
+    const unsubscribeAuth = auth && auth.onAuthStateChanged
+      ? auth.onAuthStateChanged((user) => {
+          if (!user) {
+            navigate('/', { replace: true });
+          } else {
+            setLoading(false);
+          }
+        })
+      : () => {};
+
+    const unsubscribeAdmins = onSnapshot(collection(db, 'admins'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAdmins(data);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeAdmins();
+    };
+  }, [navigate]);
+
+  const toggleExpand = (id, admin) => {
+    if (expandedRow === id) {
+      setExpandedRow(null);
+    } else {
+      setExpandedRow(id);
+      setEditedData({
+        name: admin.name || '',
+        email: admin.email || '',
+        role: admin.role || ''
+      });
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirm = window.confirm("Are you sure you want to delete this user?");
+    if (!confirm) return;
+    try {
+      await deleteDoc(doc(db, 'admins', id));
+      alert('User deleted successfully!');
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Failed to delete user.");
+    }
+  };
+
+  const handleSave = async (id) => {
+    try {
+      await updateDoc(doc(db, 'admins', id), editedData);
+      alert('User updated successfully!');
+      setExpandedRow(null);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      alert("Failed to update user.");
+    }
+  };
+
+  const handleChange = (e) => {
+    setEditedData({ ...editedData, [e.target.name]: e.target.value });
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="user-records-container">
+      <header className="dashboard-topbar">
+        <h2 className="dashboard-main-title">Manage Admin</h2>
+        <div className="dashboard-profile-actions">
+          <span className="dashboard-admin-name">{adminName}</span>
+          <LogoutButton />
+        </div>
+      </header>
+      <div className="header">
+        <div className="header-buttons">
+          <button className="add-btn" onClick={() => navigate('/register')}>Add Admin</button>
+        </div>
+      </div>
+      <div className="table-wrapper">
+        <table className="records-table">
+          <thead>
+            <tr>
+              <th>Admin ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            {admins.map(admin => (
+              <React.Fragment key={admin.id}>
+                <tr onClick={() => toggleExpand(admin.id, admin)} className="hoverable-row">
+                  <td><span className="menu-icon">⋮</span> {admin.id}</td>
+                  <td>{admin.name || 'N/A'}</td>
+                  <td>{admin.email || 'N/A'}</td>
+                  <td>{admin.role || 'N/A'}</td>
+                </tr>
+                {expandedRow === admin.id && (
+                  <tr className="expanded-row">
+                    <td colSpan="4">
+                      <div className="edit-form">
+                        <label>Edit Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={editedData.name}
+                          onChange={handleChange}
+                        />
+
+                        <label>Edit Email</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={editedData.email}
+                          onChange={handleChange}
+                        />
+
+                        <label>Edit Role</label>
+                        <input
+                          type="text"
+                          name="role"
+                          value={editedData.role}
+                          onChange={handleChange}
+                        />
+
+                        <div className="action-buttons">
+                          <div className="left-buttons">
+                            <button className="save-btn" onClick={() => handleSave(admin.id)}>Save</button>
+                            <button onClick={() => setExpandedRow(null)}>Cancel</button>
+                          </div>
+                          <button className="delete-btn" onClick={() => handleDelete(admin.id)}>Delete User</button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default ManageAdmin;

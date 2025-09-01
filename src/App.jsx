@@ -1,21 +1,22 @@
-import './App.css';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import './App.css';
+import Test from './Test';
 import Layout from './components/Layout';
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRecords from './pages/Dashboard/AdminRecords';
+import AnalyticsPage from './pages/Dashboard/AnalyticsPage';
+import DashboardPage from './pages/Dashboard/DashboardPage';
+import ManageAdmin from './pages/Dashboard/ManageAdmin';
+import ManageAppPage from './pages/Dashboard/ManageAppPage';
+import UserRecordsPage from './pages/Dashboard/UserRecords';
+import SensorLogs from './pages/Dashboard/logs/SensorLogs';
+import UserLogs from './pages/Dashboard/logs/UserLogs';
+import UserReportLogs from './pages/Dashboard/logs/UserReportLogs';
+import UserSessions from './pages/Dashboard/logs/UserSessions';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
-import DashboardPage from './pages/Dashboard/DashboardPage';
-import AnalyticsPage from './pages/Dashboard/AnalyticsPage';
 import RegisterPage from './pages/RegisterPage';
-import Test from './Test';
-import ProtectedRoute from "./components/ProtectedRoute";
-import UserRecordsPage from './pages/Dashboard/UserRecords';
-import UserLogs from './pages/Dashboard/logs/UserLogs';
-import UserSessions from './pages/Dashboard/logs/UserSessions';
-import AdminRecords from './pages/Dashboard/AdminRecords';
-import UserReportLogs from './pages/Dashboard/logs/UserReportLogs';
-import SensorLogs from './pages/Dashboard/logs/SensorLogs';
 import LoginLinkPage from './pages/js/LoginLinkPage';
-import ManageAppPage from './pages/Dashboard/ManageAppPage';
 const routes = [
   {
     path: '/',
@@ -107,6 +108,14 @@ const routes = [
         element: (
           <ProtectedRoute>
             <ManageAppPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'manageadmin',
+        element: (
+          <ProtectedRoute>
+            <ManageAdmin />
           </ProtectedRoute>
         ),
       },
