@@ -1,5 +1,5 @@
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -22,31 +22,31 @@ import {
     YAxis,
 } from 'recharts';
 
+// ---------------- PDF + Insights ----------------
 function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsers) {
     const insights = [];
     if (parseFloat(kpiData.newUsersTrend) < 0) {
-        insights.push("New user growth is down this month. Consider launching a referral or marketing campaign to boost signups.");
+        insights.push("New user growth is down this month. Consider launching a referral or marketing campaign.");
     } else if (parseFloat(kpiData.newUsersTrend) > 10) {
-        insights.push("New user growth is strong! Analyze what worked this month and replicate it in future campaigns.");
+        insights.push("New user growth is strong! Analyze what worked this month and replicate it.");
     } else {
-        insights.push("New user growth is steady. Continue monitoring for any changes.");
+        insights.push("New user growth is steady. Continue monitoring.");
     }
     if (totalUsers !== "..." && !isNaN(activeUsersCount) && parseInt(totalUsers.replace(/,/g, '')) > 0) {
         const activeRatio = activeUsersCount / parseInt(totalUsers.replace(/,/g, ''));
         if (activeRatio > 0.7) {
-            insights.push("A high percentage of users are active. Consider introducing advanced features or loyalty rewards.");
+            insights.push("A high percentage of users are active. Consider advanced features or loyalty rewards.");
         } else if (activeRatio < 0.3) {
-            insights.push("Active user rate is low. Consider sending re-engagement emails or push notifications.");
+            insights.push("Active user rate is low. Try re-engagement campaigns.");
         }
     }
     if (newUsersData.length > 0) {
         const highest = newUsersData.reduce((prev, curr) => (curr.newUsers > prev.newUsers ? curr : prev));
-        insights.push(`Highest new user growth was in ${highest.month}. Review your activities during this period for best practices.`);
+        insights.push(`Highest new user growth was in ${highest.month}. Review your activities then for best practices.`);
     }
     return insights;
 }
 
-// Merged PDF export function: charts + prescriptive
 const exportChartsAndPrescriptivePDF = async ({
     kpiData,
     newUsersData,
@@ -56,7 +56,6 @@ const exportChartsAndPrescriptivePDF = async ({
 }) => {
     const doc = new jsPDF();
 
-    // 1. Add Charts as Image
     const chartElement = document.getElementById('charts-container');
     if (chartElement) {
         const canvas = await html2canvas(chartElement);
@@ -69,7 +68,6 @@ const exportChartsAndPrescriptivePDF = async ({
         doc.addImage(imgData, 'PNG', 10, 28, pageWidth - 20, imgHeight - 20);
     }
 
-    // 2. Add Prescriptive Insights and KPIs on a new page
     doc.addPage();
     doc.setFontSize(18);
     doc.text('Prescriptive Analytics & KPIs', 14, 18);
@@ -107,39 +105,75 @@ const exportChartsAndPrescriptivePDF = async ({
     doc.save('Cropify_Prescriptive_Report.pdf');
 };
 
+// ---------------- Dashboard ----------------
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+    const [role, setRole] = useState(null); 
     const [adminName, setAdminName] = useState("");
+    const [uid, setUid] = useState(null); 
+    const navigate = useNavigate();
 
     // Analytics data
     const [newUsersData, setNewUsersData] = useState([]);
     const [dailyActiveUsersData, setDailyActiveUsersData] = useState([]);
-    const [kpiData, setKpiData] = useState({
-        newUsersCount: 0,
-        newUsersTrend: '0%',
-    });
+    const [kpiData, setKpiData] = useState({ newUsersCount: 0, newUsersTrend: '0%' });
     const [activeUsersCount, setActiveUsersCount] = useState(0);
 
     useEffect(() => {
         const storedName = localStorage.getItem("adminName");
         setAdminName(storedName || "Admin");
 
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 navigate('/', { replace: true });
             } else {
-                setLoading(false);
-                fetchAnalyticsData();
+                try {
+                    setUid(user.uid); 
+                } catch (err) {
+                    console.error("Error setting uid:", err);
+                }
             }
         });
 
         return () => unsubscribe();
     }, [navigate]);
 
+    // separate effect so it only runs when uid is available
+    useEffect(() => {
+        if (!uid) return; // don’t run without a uid
+
+        const fetchRole = async () => {
+            try {
+                const q = query(
+                    collection(db, "admins"), 
+                    where("adminId", "==", uid)
+                );
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const userRole = (data.role || "unknown").toLowerCase();
+                        setRole(userRole);
+                        setAdminName(data.name || "Admin");
+                    });
+                } else {
+                    setRole("unknown");
+                }
+            } catch (err) {
+                console.error("Error fetching role:", err);
+                setRole("unknown");
+            } finally {
+                setLoading(false);
+                fetchAnalyticsData();
+            }
+        };
+
+        fetchRole();
+    }, [uid]);
+
     const fetchAnalyticsData = async () => {
         try {
-            // --- New Users --- 
             const usersCollection = collection(db, 'users');
             const snapshot = await getDocs(usersCollection);
 
@@ -166,12 +200,8 @@ const Dashboard = () => {
                 `${(((lastMonthCount - prevMonthCount) / prevMonthCount) * 100).toFixed(0)}%`;
 
             setNewUsersData(chartData);
-            setKpiData({
-                newUsersCount: lastMonthCount,
-                newUsersTrend: trend,
-            });
+            setKpiData({ newUsersCount: lastMonthCount, newUsersTrend: trend });
 
-            // --- Active Users ---
             const sessionLogs = collection(db, 'user_logs_UserSessions');
             const logSnapshot = await getDocs(sessionLogs);
 
@@ -230,50 +260,68 @@ const Dashboard = () => {
     const prescriptiveInsights = getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, "...");
 
     if (loading) {
-        return (
-            <div className="loading-container">
-                <p>Loading...</p>
-            </div>
-        );
+        return <div className="loading-container"><p>Loading...</p></div>;
     }
 
+    // ---------------- UI ----------------
     return (
         <div className="dashboard-container">
             <header className="dashboard-topbar">
                 <h2 className="dashboard-main-title">Dashboard</h2>
                 <div className="dashboard-profile-actions">
-                    <span className="dashboard-admin-name">{adminName}</span>
+                    <span className="dashboard-admin-name">
+                        {adminName} ({role})
+                    </span>
                     <LogoutButton />
                 </div>
             </header>
 
-            {/* Analytics Section */}
-            <div className="dashboard-analytics-section">
-                <div className="kpi-cards-container">
-                    <div className="kpi-card">
-                        <h4 className="kpi-card-title">New Users (Current Month)</h4>
-                        <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
-                        <p className="kpi-trend">
-                            <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
-                                {parseFloat(kpiData.newUsersTrend) > 0 ? '▲' : '▼'} {kpiData.newUsersTrend}
-                            </span>{' '}
-                            vs. last month
-                        </p>
-                        <p className="kpi-context">*Track your monthly user growth</p>
-                    </div>
-                    <div className="kpi-card">
-                        <h4 className="kpi-card-title">Active Users (All Time)</h4>
-                        <h1 className="kpi-value">{activeUsersCount.toLocaleString()}</h1>
-                        <p className="kpi-trend text-blue">Unique user sessions tracked</p>
-                        <p className="kpi-context">*Based on login sessions per user</p>
-                    </div>
+            {/* Role-based features */}
+            {role === "superadmin" && (
+                <div className="superadmin-section">
+                    <h3>Super Admin Controls</h3>
+                    <p>You can manage roles, credits, and all data.</p>
                 </div>
+            )}
 
-                {/* Charts Container for PDF Export */}
-                <div id="charts-container" className="charts-container">
-                    <div className="chart-card">
-                        <h2 className="chart-title">Monthly New User Acquisition Trend</h2>
-                        <div className="chart-placeholder">
+            {role === "admin" && (
+                <div className="admin-section">
+                    <h3>Admin Controls</h3>
+                    <p>You can view analytics, reports, and sensor data.</p>
+                </div>
+            )}
+
+            {role === "unknown" && (
+                <div className="unknown-section">
+                    <h3>Unauthorized</h3>
+                    <p>You don’t have access. Contact your administrator.</p>
+                </div>
+            )}
+
+            {/* Analytics Section */}
+            {(role === "superadmin" || role === "admin") && (
+                <div className="dashboard-analytics-section">
+                    <div className="kpi-cards-container">
+                        <div className="kpi-card">
+                            <h4 className="kpi-card-title">New Users (Current Month)</h4>
+                            <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
+                            <p className="kpi-trend">
+                                <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
+                                    {parseFloat(kpiData.newUsersTrend) > 0 ? '▲' : '▼'} {kpiData.newUsersTrend}
+                                </span>{' '}
+                                vs. last month
+                            </p>
+                        </div>
+                        <div className="kpi-card">
+                            <h4 className="kpi-card-title">Active Users (All Time)</h4>
+                            <h1 className="kpi-value">{activeUsersCount.toLocaleString()}</h1>
+                            <p className="kpi-trend text-blue">Unique user sessions tracked</p>
+                        </div>
+                    </div>
+
+                    <div id="charts-container" className="charts-container">
+                        <div className="chart-card">
+                            <h2 className="chart-title">Monthly New User Acquisition Trend</h2>
                             <ResponsiveContainer width="100%" height={300}>
                                 <LineChart data={newUsersData}>
                                     <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
@@ -285,24 +333,13 @@ const Dashboard = () => {
                                         dataKey="newUsers"
                                         stroke="#4CAF50"
                                         strokeWidth={3}
-                                        dot={{ r: 4 }}
-                                        activeDot={{ r: 6 }}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                        <p className="chart-summary">
-                            Highest growth was in{' '}
-                            {newUsersData.length > 0
-                                ? newUsersData.reduce((prev, curr) => (curr.newUsers > prev.newUsers ? curr : prev)).month
-                                : 'recent months'}
-                            , with {kpiData.newUsersCount.toLocaleString()} new users.
-                        </p>
-                    </div>
 
-                    <div className="chart-card">
-                        <h2 className="chart-title">Monthly Active Users</h2>
-                        <div className="chart-placeholder">
+                        <div className="chart-card">
+                            <h2 className="chart-title">Monthly Active Users</h2>
                             <ResponsiveContainer width="100%" height={300}>
                                 <BarChart data={dailyActiveUsersData}>
                                     <CartesianGrid strokeDasharray="3 3" />
@@ -313,41 +350,33 @@ const Dashboard = () => {
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
-                        <p className="chart-summary">This chart shows how many unique users logged in each month.</p>
+                    </div>
+
+                    <div style={{ textAlign: 'right', marginTop: '2rem' }}>
+                        <button
+                            style={{
+                                padding: '0.5rem 1rem',
+                                background: '#4CAF50',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: 4,
+                                cursor: 'pointer'
+                            }}
+                            onClick={() =>
+                                exportChartsAndPrescriptivePDF({
+                                    kpiData,
+                                    newUsersData,
+                                    activeUsersCount,
+                                    totalUsers: "...",
+                                    prescriptiveInsights
+                                })
+                            }
+                        >
+                            Export Prescriptive PDF
+                        </button>
                     </div>
                 </div>
-
-                {/* Merged PDF Export Button */}
-                <div style={{ textAlign: 'right', marginTop: '2rem' }}>
-                    <button
-                        style={{
-                            padding: '0.5rem 1rem',
-                            background: '#4CAF50',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer'
-                        }}
-                        onClick={() =>
-                            exportChartsAndPrescriptivePDF({
-                                kpiData,
-                                newUsersData,
-                                activeUsersCount,
-                                totalUsers: "...",
-                                prescriptiveInsights
-                            })
-                        }
-                    >
-                        Export Prescriptive PDF
-                    </button>
-                </div>
-            </div>
-
-            <main className="dashboard-main-content">
-                <div className="dashboard-data-sections-grid">
-                    {/* Add your recent activities or top users here */}
-                </div>
-            </main>
+            )}
         </div>
     );
 };
