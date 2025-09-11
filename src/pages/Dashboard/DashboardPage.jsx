@@ -1,6 +1,9 @@
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getCountFromServer, getDocs } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LogoutButton from '../../components/LogoutButton';
 import { auth, db } from '../../firebase';
@@ -19,45 +22,95 @@ import {
     YAxis,
 } from 'recharts';
 
-// Icons
-const Users = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-         fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-);
-const Package = ({ className }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-         fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="m7.5 4.27 9 5.15"/>
-        <path d="m21 8.62-9-5.15-9 5.15 9 5.15 9-5.15Z"/>
-        <path d="M3.5 12.27v6.88l8.5 4.88 8.5-4.88v-6.88"/>
-        <path d="M12 22.27V12.27"/>
-    </svg>
-);
+function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsers) {
+    const insights = [];
+    if (parseFloat(kpiData.newUsersTrend) < 0) {
+        insights.push("New user growth is down this month. Consider launching a referral or marketing campaign to boost signups.");
+    } else if (parseFloat(kpiData.newUsersTrend) > 10) {
+        insights.push("New user growth is strong! Analyze what worked this month and replicate it in future campaigns.");
+    } else {
+        insights.push("New user growth is steady. Continue monitoring for any changes.");
+    }
+    if (totalUsers !== "..." && !isNaN(activeUsersCount) && parseInt(totalUsers.replace(/,/g, '')) > 0) {
+        const activeRatio = activeUsersCount / parseInt(totalUsers.replace(/,/g, ''));
+        if (activeRatio > 0.7) {
+            insights.push("A high percentage of users are active. Consider introducing advanced features or loyalty rewards.");
+        } else if (activeRatio < 0.3) {
+            insights.push("Active user rate is low. Consider sending re-engagement emails or push notifications.");
+        }
+    }
+    if (newUsersData.length > 0) {
+        const highest = newUsersData.reduce((prev, curr) => (curr.newUsers > prev.newUsers ? curr : prev));
+        insights.push(`Highest new user growth was in ${highest.month}. Review your activities during this period for best practices.`);
+    }
+    return insights;
+}
 
-const DashboardCard = ({ title, value, icon, bgColorClass, textColorClass }) => {
-    return (
-        <div className={`dashboard-overview-card ${bgColorClass} ${textColorClass}`}>
-            <div>
-                <h3 className="dashboard-overview-card-title">{title}</h3>
-                <p className="dashboard-overview-card-value">{value}</p>
-            </div>
-            {icon && React.cloneElement(icon, { className: "dashboard-overview-card-icon" })}
-        </div>
-    );
+// Merged PDF export function: charts + prescriptive
+const exportChartsAndPrescriptivePDF = async ({
+    kpiData,
+    newUsersData,
+    activeUsersCount,
+    totalUsers,
+    prescriptiveInsights
+}) => {
+    const doc = new jsPDF();
+
+    // 1. Add Charts as Image
+    const chartElement = document.getElementById('charts-container');
+    if (chartElement) {
+        const canvas = await html2canvas(chartElement);
+        const imgData = canvas.toDataURL('image/png');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const imgProps = doc.getImageProperties(imgData);
+        const imgHeight = (imgProps.height * pageWidth) / imgProps.width;
+        doc.setFontSize(18);
+        doc.text('Dashboard Analytics Charts', 14, 18);
+        doc.addImage(imgData, 'PNG', 10, 28, pageWidth - 20, imgHeight - 20);
+    }
+
+    // 2. Add Prescriptive Insights and KPIs on a new page
+    doc.addPage();
+    doc.setFontSize(18);
+    doc.text('Prescriptive Analytics & KPIs', 14, 18);
+
+    doc.setFontSize(12);
+    doc.text('KPIs:', 14, 28);
+
+    autoTable(doc, {
+        startY: 32,
+        head: [['Metric', 'Value']],
+        body: [
+            ['New Users (Current Month)', kpiData.newUsersCount],
+            ['New Users Trend', kpiData.newUsersTrend],
+            ['Active Users (All Time)', activeUsersCount],
+            ['Total Users', totalUsers],
+        ],
+        theme: 'grid',
+        styles: { fontSize: 10 },
+    });
+
+    doc.text('Monthly New User Acquisition:', 14, doc.lastAutoTable.finalY + 10);
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 14,
+        head: [['Month', 'New Users']],
+        body: newUsersData.map(row => [row.month, row.newUsers]),
+        theme: 'grid',
+        styles: { fontSize: 10 },
+    });
+
+    doc.text('Prescriptive Insights:', 14, doc.lastAutoTable.finalY + 10);
+    prescriptiveInsights.forEach((insight, idx) => {
+        doc.text(`- ${insight}`, 16, doc.lastAutoTable.finalY + 16 + idx * 8);
+    });
+
+    doc.save('Cropify_Prescriptive_Report.pdf');
 };
 
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const [adminName, setAdminName] = useState("");
-
-    const [totalUsers, setTotalUsers] = useState("...");
-    const [totalActiveUsers, setTotalActiveUsers] = useState("...");
 
     // Analytics data
     const [newUsersData, setNewUsersData] = useState([]);
@@ -77,7 +130,6 @@ const Dashboard = () => {
                 navigate('/', { replace: true });
             } else {
                 setLoading(false);
-                fetchDashboardData();
                 fetchAnalyticsData();
             }
         });
@@ -85,39 +137,9 @@ const Dashboard = () => {
         return () => unsubscribe();
     }, [navigate]);
 
-    const fetchTotalUsersFromFirestore = async () => {
-        try {
-            const usersCollectionRef = collection(db, "users");
-            const totalSnapshot = await getCountFromServer(usersCollectionRef);
-            setTotalUsers(totalSnapshot.data().count.toLocaleString());
-        } catch (error) {
-            console.error("Error fetching total users from Firestore:", error);
-            setTotalUsers("Error");
-        }
-    };
-
-    const fetchTotalActiveUsersFromFirestore = async () => {
-        try {
-            const sessionLogs = collection(db, 'user_logs_UserSessions');
-            const snapshot = await getDocs(sessionLogs);
-
-            const uniqueUsers = new Set();
-            snapshot.forEach((doc) => {
-                const log = doc.data();
-                const userId = log.userId;
-                if (userId) uniqueUsers.add(userId);
-            });
-            setTotalActiveUsers(uniqueUsers.size.toLocaleString());
-        } catch (error) {
-            console.error('Error fetching total active users:', error);
-            setTotalActiveUsers("Error");
-        }
-    };
-
-    // 🔹 Fetch "New Users (Current Month)" + "Active Users (All Time)" from AnalyticsPage logic
     const fetchAnalyticsData = async () => {
         try {
-            // --- New Users ---
+            // --- New Users --- 
             const usersCollection = collection(db, 'users');
             const snapshot = await getDocs(usersCollection);
 
@@ -205,10 +227,7 @@ const Dashboard = () => {
         }
     };
 
-    const fetchDashboardData = async () => {
-        await fetchTotalUsersFromFirestore();
-        await fetchTotalActiveUsersFromFirestore();
-    };
+    const prescriptiveInsights = getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, "...");
 
     if (loading) {
         return (
@@ -228,96 +247,103 @@ const Dashboard = () => {
                 </div>
             </header>
 
+            {/* Analytics Section */}
+            <div className="dashboard-analytics-section">
+                <div className="kpi-cards-container">
+                    <div className="kpi-card">
+                        <h4 className="kpi-card-title">New Users (Current Month)</h4>
+                        <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
+                        <p className="kpi-trend">
+                            <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
+                                {parseFloat(kpiData.newUsersTrend) > 0 ? '▲' : '▼'} {kpiData.newUsersTrend}
+                            </span>{' '}
+                            vs. last month
+                        </p>
+                        <p className="kpi-context">*Track your monthly user growth</p>
+                    </div>
+                    <div className="kpi-card">
+                        <h4 className="kpi-card-title">Active Users (All Time)</h4>
+                        <h1 className="kpi-value">{activeUsersCount.toLocaleString()}</h1>
+                        <p className="kpi-trend text-blue">Unique user sessions tracked</p>
+                        <p className="kpi-context">*Based on login sessions per user</p>
+                    </div>
+                </div>
+
+                {/* Charts Container for PDF Export */}
+                <div id="charts-container" className="charts-container">
+                    <div className="chart-card">
+                        <h2 className="chart-title">Monthly New User Acquisition Trend</h2>
+                        <div className="chart-placeholder">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={newUsersData}>
+                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="newUsers"
+                                        stroke="#4CAF50"
+                                        strokeWidth={3}
+                                        dot={{ r: 4 }}
+                                        activeDot={{ r: 6 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <p className="chart-summary">
+                            Highest growth was in{' '}
+                            {newUsersData.length > 0
+                                ? newUsersData.reduce((prev, curr) => (curr.newUsers > prev.newUsers ? curr : prev)).month
+                                : 'recent months'}
+                            , with {kpiData.newUsersCount.toLocaleString()} new users.
+                        </p>
+                    </div>
+
+                    <div className="chart-card">
+                        <h2 className="chart-title">Monthly Active Users</h2>
+                        <div className="chart-placeholder">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={dailyActiveUsersData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="users" fill="#4CAF50" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <p className="chart-summary">This chart shows how many unique users logged in each month.</p>
+                    </div>
+                </div>
+
+                {/* Merged PDF Export Button */}
+                <div style={{ textAlign: 'right', marginTop: '2rem' }}>
+                    <button
+                        style={{
+                            padding: '0.5rem 1rem',
+                            background: '#4CAF50',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer'
+                        }}
+                        onClick={() =>
+                            exportChartsAndPrescriptivePDF({
+                                kpiData,
+                                newUsersData,
+                                activeUsersCount,
+                                totalUsers: "...",
+                                prescriptiveInsights
+                            })
+                        }
+                    >
+                        Export Prescriptive PDF
+                    </button>
+                </div>
+            </div>
+
             <main className="dashboard-main-content">
-                {/* Dashboard Cards */}
-                <div className="dashboard-overview-grid">
-                    <DashboardCard
-                        title="Total Users"
-                        value={totalUsers}
-                        icon={<Users />}
-                        bgColorClass="bg-green-primary"
-                        textColorClass="text-white"
-                    />
-                    <DashboardCard
-                        title="Total Active Users"
-                        value={totalActiveUsers}
-                        icon={<Package />}
-                        bgColorClass="bg-green-secondary"
-                        textColorClass="text-gray-800"
-                    />
-                </div>
-
-                {/* Analytics Section */}
-                <div className="dashboard-analytics-section">
-                    <div className="kpi-cards-container">
-                        <div className="kpi-card">
-                            <h4 className="kpi-card-title">New Users (Current Month)</h4>
-                            <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
-                            <p className="kpi-trend">
-                                <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
-                                    {parseFloat(kpiData.newUsersTrend) > 0 ? '▲' : '▼'} {kpiData.newUsersTrend}
-                                </span>{' '}
-                                vs. last month
-                            </p>
-                            <p className="kpi-context">*Track your monthly user growth</p>
-                        </div>
-                        <div className="kpi-card">
-                            <h4 className="kpi-card-title">Active Users (All Time)</h4>
-                            <h1 className="kpi-value">{activeUsersCount.toLocaleString()}</h1>
-                            <p className="kpi-trend text-blue">Unique user sessions tracked</p>
-                            <p className="kpi-context">*Based on login sessions per user</p>
-                        </div>
-                    </div>
-
-                    <div className="charts-container">
-                        <div className="chart-card">
-                            <h2 className="chart-title">Monthly New User Acquisition Trend</h2>
-                            <div className="chart-placeholder">
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={newUsersData}>
-                                        <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                        <XAxis dataKey="month" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="newUsers"
-                                            stroke="#4CAF50"
-                                            strokeWidth={3}
-                                            dot={{ r: 4 }}
-                                            activeDot={{ r: 6 }}
-                                        />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <p className="chart-summary">
-                                Highest growth was in{' '}
-                                {newUsersData.length > 0
-                                    ? newUsersData.reduce((prev, curr) => (curr.newUsers > prev.newUsers ? curr : prev)).month
-                                    : 'recent months'}
-                                , with {kpiData.newUsersCount.toLocaleString()} new users.
-                            </p>
-                        </div>
-
-                        <div className="chart-card">
-                            <h2 className="chart-title">Monthly Active Users</h2>
-                            <div className="chart-placeholder">
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={dailyActiveUsersData}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="month" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Bar dataKey="users" fill="#4CAF50" radius={[4, 4, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <p className="chart-summary">This chart shows how many unique users logged in each month.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Recent Activities and Top Users Sections */}
                 <div className="dashboard-data-sections-grid">
                     {/* Add your recent activities or top users here */}
                 </div>

@@ -39,7 +39,7 @@ function Navbar() {
             onClick={closeDrawer}
             aria-label="Close navigation"
           >
-            ×
+           
           </button>
         </div>
         <nav>
@@ -55,9 +55,6 @@ function Navbar() {
             </li>
             <li className={location.pathname === '/sensorlogs' ? 'active' : ''}>
               <Link to="/sensorlogs" onClick={handleLinkClick}>SENSOR LOGS</Link>
-            </li>
-            <li className={location.pathname === '/manageadmin' ? 'active' : ''}>
-              <Link to="/manageadmin" onClick={handleLinkClick}>MANAGE ADMIN</Link>
             </li>
             <li className={location.pathname === '/manageapp' ? 'active' : ''}>
               <Link to="/manageapp" onClick={handleLinkClick}>MANAGE APP</Link>
