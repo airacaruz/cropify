@@ -1,14 +1,14 @@
 import { collection, collectionGroup, onSnapshot, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../../firebase';
-import '../../../styles/UserRecordsPage.css'; // This is the CSS file that styles this component
+import '../../../styles/UserRecordsPage.css';
 
 const UserLogsPage = () => {
   const [sessionLogs, setSessionLogs] = useState([]);
   const [screenLogs, setScreenLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('login');
+  const [users, setUsers] = useState([]); // <-- Add this for user records
   const navigate = useNavigate();
 
   // State to hold grouped plant data
@@ -21,7 +21,6 @@ const UserLogsPage = () => {
   // Function to toggle grower expansion
   const toggleGrower = (growerId) => {
     setExpandedGrowerId(prevId => (prevId === growerId ? null : growerId));
-    // Collapse any expanded plant when a new grower is toggled
     setExpandedPlantId(null);
   };
 
@@ -30,29 +29,29 @@ const UserLogsPage = () => {
     setExpandedPlantId(prevId => (prevId === plantId ? null : plantId));
   };
 
+  // Fetch user records for the User Records tab
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setUsers(data);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
-    // IMPORTANT: For collectionGroup queries, you MUST create an index in your Firestore console.
-    // Go to Firebase Console -> Firestore Database -> Indexes tab.
-    // Create a new index with:
-    // Collection ID: 'plants' (or whatever your exact subcollection name is)
-    // Query Scope: 'Collection group'
-    // Fields: You can leave blank, or add 'name' (Ascending) if you want to sort plants by name.
-
-    // Optional: Add orderBy to the query for consistent sorting of plants
     const plantsQuery = query(collectionGroup(db, 'plants'));
-
     const unsubscribe = onSnapshot(plantsQuery, (snapshot) => {
       const allPlants = snapshot.docs.map(doc => {
         const parentGrowerRef = doc.ref.parent.parent;
         return {
-          id: doc.id, // This is the plant ID
-          parentGrowerId: parentGrowerRef ? parentGrowerRef.id : 'N/A', // Get the grower's userId
-          ...doc.data(), // Spread all plant details
+          id: doc.id,
+          parentGrowerId: parentGrowerRef ? parentGrowerRef.id : 'N/A',
+          ...doc.data(),
         };
       });
-
-      // Group plants by parentGrowerId
       const groupedPlants = allPlants.reduce((acc, plant) => {
         const growerId = plant.parentGrowerId;
         if (!acc[growerId]) {
@@ -61,44 +60,33 @@ const UserLogsPage = () => {
         acc[growerId].push(plant);
         return acc;
       }, {});
-
-      // Convert the grouped object into an array for easier rendering
       const finalGroupedData = Object.keys(groupedPlants).map(growerId => ({
         growerId,
         plants: groupedPlants[growerId],
       }));
-
       setPlantLogs(finalGroupedData);
     }, (error) => {
       console.error("Error fetching plant logs:", error);
-      // You might want to set an error state here to display to the user
     });
-
     return () => unsubscribe();
-  }, []); // Empty dependency array means this effect runs once on mount
+  }, []);
 
-
-  // Session logs listener (unchanged from your original code)
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'user_logs_UserSessions'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         sessionId: doc.id,
         ...doc.data(),
       }));
-
       const sortedData = data.sort((a, b) => {
         const timeA = a.loginTime?.seconds || 0;
         const timeB = b.loginTime?.seconds || 0;
         return timeB - timeA;
       });
-
       setSessionLogs(sortedData);
     });
-
     return () => unsubscribe();
   }, []);
 
-  // Screen logs listener (unchanged from your original code)
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'user_logs_ScreenVisited'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({
@@ -107,16 +95,13 @@ const UserLogsPage = () => {
         screenName: doc.data().screenName || 'N/A',
         timestamp: doc.data().timestamp,
       }));
-
       const sortedData = data.sort((a, b) => {
         const timeA = a.timestamp?.seconds || 0;
         const timeB = b.timestamp?.seconds || 0;
         return timeB - timeA;
       });
-
       setScreenLogs(sortedData);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -140,9 +125,9 @@ const UserLogsPage = () => {
         </button>
       </div>
 
-      {/* Session Logs Table (unchanged) */}
+      {/* Session Logs Table */}
       {activeTab === 'login' && (
-        <div className="table-wrapper"> {/* Added table-wrapper for consistent styling */}
+        <div className="table-wrapper">
           <table className="records-table">
             <thead>
               <tr>
@@ -184,9 +169,9 @@ const UserLogsPage = () => {
         </div>
       )}
 
-      {/* Screen Logs Table (unchanged) */}
+      {/* Screen Logs Table */}
       {activeTab === 'screen' && (
-        <div className="table-wrapper"> {/* Added table-wrapper for consistent styling */}
+        <div className="table-wrapper">
           <table className="records-table">
             <thead>
               <tr>
@@ -214,26 +199,25 @@ const UserLogsPage = () => {
         </div>
       )}
 
-      {/* Plant Logs Section (Nested Expandable Tables) */}
+      {/* Plant Logs Section */}
       {activeTab === 'plant' && (
         <div className="plant-logs-section">
           {plantLogs.length === 0 ? (
             <p>No plant logs found.</p>
           ) : (
-            <div className="table-wrapper"> {/* Outer table-wrapper for consistent styling */}
+            <div className="table-wrapper">
               <table className="records-table">
                 <thead>
                   <tr>
-                    <th className="expand-cell-header"></th> {/* Header for expand icon - NOW FIRST */}
+                    <th className="expand-cell-header"></th>
                     <th>User ID</th>
                   </tr>
                 </thead>
                 <tbody>
-                  
                   {plantLogs.map(growerGroup => (
                     <React.Fragment key={growerGroup.growerId}>
                       <tr className="hoverable-row" onClick={() => toggleGrower(growerGroup.growerId)}>
-                        <td className="expand-cell"> {/* Cell for expand icon - NOW FIRST */}
+                        <td className="expand-cell">
                           <span className="expand-icon">
                             {expandedGrowerId === growerGroup.growerId ? '▲' : '▼'}
                           </span>
@@ -242,38 +226,36 @@ const UserLogsPage = () => {
                       </tr>
                       {expandedGrowerId === growerGroup.growerId && (
                         <tr className="expanded-row">
-                          <td colSpan="2"> {/* colSpan matches outer table columns */}
-                            <div className="inner-table-wrapper"> {/* New wrapper for inner table */}
-                              <table className="records-table inner-records-table"> {/* Inner table for plants */}
+                          <td colSpan="2">
+                            <div className="inner-table-wrapper">
+                              <table className="records-table inner-records-table">
                                 <thead>
                                   <tr>
-                                    <th></th> {/* For 3 dots icon - NOW FIRST */}
+                                    <th></th>
                                     <th>Plant Name</th>
                                     <th>Plant Type</th>
                                     <th>Plant ID</th>
-                                    {/* Add other common plant fields here */}
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {growerGroup.plants.map(plant => (
                                     <React.Fragment key={plant.id}>
                                       <tr className="hoverable-row" onClick={() => togglePlant(plant.id)}>
-                                        <td><span className="menu-icon">⋮</span></td> {/* 3 dots icon - NOW FIRST */}
+                                        <td><span className="menu-icon">⋮</span></td>
                                         <td>{plant.name || 'N/A'}</td>
                                         <td>{plant.type || 'N/A'}</td>
                                         <td>{plant.id}</td>
                                       </tr>
                                       {expandedPlantId === plant.id && (
                                         <tr className="expanded-row">
-                                          <td colSpan="4"> {/* colSpan matches inner table columns */}
+                                          <td colSpan="4">
                                             <div className="plant-details-display">
-                                              {/* Detailed plant info - MODIFIED HERE */}
                                               <p><strong>Plant Name:</strong> {plant.name || 'N/A'}</p>
                                               <p><strong>Plant ID:</strong> {plant.id}</p>
-                                              <p><strong>Sensor ID:</strong> {plant.sensorId || 'N/A'}</p> {/* Assuming 'sensorId' field */}
+                                              <p><strong>Sensor ID:</strong> {plant.sensorId || 'N/A'}</p>
                                               <p><strong>Plant Type:</strong> {plant.type || 'N/A'}</p>
                                               <p><strong>Date Added:</strong>
-                                                {plant.timestamp?.toDate // Assuming 'timestamp' is the date added
+                                                {plant.timestamp?.toDate
                                                   ? plant.timestamp.toDate().toLocaleDateString()
                                                   : 'N/A'}
                                               </p>
@@ -281,7 +263,6 @@ const UserLogsPage = () => {
                                           </td>
                                         </tr>
                                       )}
-                                      
                                     </React.Fragment>
                                   ))}
                                 </tbody>
@@ -296,6 +277,32 @@ const UserLogsPage = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* User Records Table */}
+      {activeTab === 'userrecords' && (
+        <div className="table-wrapper">
+          <table className="records-table">
+            <thead>
+              <tr>
+                <th>UID</th>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Phone Number</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.uid}>
+                  <td>{user.uid}</td>
+                  <td>{user.name || 'N/A'}</td>
+                  <td>{user.username || 'N/A'}</td>
+                  <td>{user.contact || 'N/A'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

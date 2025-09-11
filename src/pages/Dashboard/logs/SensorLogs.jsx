@@ -3,7 +3,8 @@ import '../../../styles/UserRecordsPage.css'; // Reusing styles
 
 const SensorLogsPage = () => {
   const [activeTab, setActiveTab] = useState('kits');
-  const [expandedRow, setExpandedRow] = useState(null);
+  const [expandedKitRow, setExpandedKitRow] = useState(null);
+  const [expandedSessionRow, setExpandedSessionRow] = useState(null);
 
   // Hardcoded Sensor Kits
   const sensorKits = [
@@ -37,8 +38,12 @@ const SensorLogsPage = () => {
     },
   ];
 
-  const toggleExpand = (index) => {
-    setExpandedRow(expandedRow === index ? null : index);
+  const toggleKitExpand = (index) => {
+    setExpandedKitRow(expandedKitRow === index ? null : index);
+  };
+
+  const toggleSessionExpand = (index) => {
+    setExpandedSessionRow(expandedSessionRow === index ? null : index);
   };
 
   return (
@@ -52,7 +57,12 @@ const SensorLogsPage = () => {
         >
           Sensor Kits
         </button>
-        {/* x */}
+        <button
+          className={activeTab === 'sessions' ? 'active' : ''}
+          onClick={() => setActiveTab('sessions')}
+        >
+          Sensor Sessions
+        </button>
       </div>
 
       {/* Sensor Kits Table */}
@@ -68,19 +78,19 @@ const SensorLogsPage = () => {
           <tbody>
             {sensorKits.map((kit, index) => (
               <React.Fragment key={index}>
-                <tr onClick={() => toggleExpand(index)} className="hoverable-row">
+                <tr onClick={() => toggleKitExpand(index)} className="hoverable-row">
                   <td><span className="menu-icon">⋮</span> {kit.id}</td>
                   <td>{kit.isActive ? 'Yes' : 'No'}</td>
                   <td>{kit.uid}</td>
                 </tr>
-                {expandedRow === index && (
+                {expandedKitRow === index && (
                   <tr className="expanded-row">
                     <td colSpan="3">
                       <div className="view-only-details">
                         <p><strong>Sensor Kit ID:</strong> {kit.id}</p>
                         <p><strong>Active:</strong> {kit.isActive ? 'Yes' : 'No'}</p>
                         <p><strong>UID:</strong> {kit.uid}</p>
-                        <button onClick={() => setExpandedRow(null)}>Close</button>
+                        <button onClick={() => setExpandedKitRow(null)}>Close</button>
                       </div>
                     </td>
                   </tr>
@@ -91,7 +101,7 @@ const SensorLogsPage = () => {
         </table>
       )}
 
-      {/* Sensor Sessions Table
+      {/* Sensor Sessions Table */}
       {activeTab === 'sessions' && (
         <table className="records-table">
           <thead>
@@ -110,7 +120,7 @@ const SensorLogsPage = () => {
           <tbody>
             {sensorSessions.map((session, index) => (
               <React.Fragment key={index}>
-                <tr onClick={() => toggleExpand(index)} className="hoverable-row">
+                <tr onClick={() => toggleSessionExpand(index)} className="hoverable-row">
                   <td><span className="menu-icon">⋮</span> {session.skid}</td>
                   <td>{session.uid}</td>
                   <td>{session.sensorType}</td>
@@ -121,7 +131,7 @@ const SensorLogsPage = () => {
                   <td>{session.humidity}</td>
                   <td>{session.timestamp}</td>
                 </tr>
-                {expandedRow === index && (
+                {expandedSessionRow === index && (
                   <tr className="expanded-row">
                     <td colSpan="9">
                       <div className="view-only-details">
@@ -134,7 +144,7 @@ const SensorLogsPage = () => {
                         <p><strong>Air Temp:</strong> {session.airTemp} °C</p>
                         <p><strong>Humidity:</strong> {session.humidity} %</p>
                         <p><strong>Timestamp:</strong> {session.timestamp}</p>
-                        <button onClick={() => setExpandedRow(null)}>Close</button>
+                        <button onClick={() => setExpandedSessionRow(null)}>Close</button>
                       </div>
                     </td>
                   </tr>
@@ -143,7 +153,7 @@ const SensorLogsPage = () => {
             ))}
           </tbody>
         </table>
-      )} */}
+      )}
     </div>
   );
 };
