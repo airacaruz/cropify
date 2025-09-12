@@ -1,5 +1,5 @@
 .analytics-page-container {
-  padding: 40px;
+  padding: 0px;
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   color: #333;
@@ -104,3 +104,4 @@
   margin-top: 10px;
   color: #666;
 }
+

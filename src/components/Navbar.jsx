@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import logo from '../assets/images/cropifytextlogo.png';
 import '../styles/Navbar.css';
 
-function Navbar() {
+// Accept role as a prop
+function Navbar({ role }) {
   const location = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -39,7 +40,6 @@ function Navbar() {
             onClick={closeDrawer}
             aria-label="Close navigation"
           >
-           
           </button>
         </div>
         <nav>
@@ -56,9 +56,17 @@ function Navbar() {
             <li className={location.pathname === '/sensorlogs' ? 'active' : ''}>
               <Link to="/sensorlogs" onClick={handleLinkClick}>SENSOR LOGS</Link>
             </li>
-            <li className={location.pathname === '/manageapp' ? 'active' : ''}>
-              <Link to="/manageapp" onClick={handleLinkClick}>MANAGE APP</Link>
-            </li>
+            {/* Only show these links for superadmin */}
+            {role === 'superadmin' && (
+              <>
+                <li className={location.pathname === '/manageadmin' ? 'active' : ''}>
+                  <Link to="/manageadmin" onClick={handleLinkClick}>MANAGE ADMIN</Link>
+                </li>
+                <li className={location.pathname === '/manageapp' ? 'active' : ''}>
+                  <Link to="/manageapp" onClick={handleLinkClick}>MANAGE APP</Link>
+                </li>
+              </>
+            )}
           </ul>
         </nav>
       </div>

@@ -1,241 +1,271 @@
-import React, { useState, useEffect } from 'react';
-import { db, analytics } from '../../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
-import { logEvent } from 'firebase/analytics';
-import '../../styles/AnalyticsPage.css';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LineChart,
+  CartesianGrid,
   Line,
-  BarChart,
-  Bar,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from 'recharts';
+import { auth, db } from '../../firebase';
+import '../../styles/AnalyticsPage.css';
 
 function AnalyticsPage() {
-  const [newUsersData, setNewUsersData] = useState([]);
-  const [dailyActiveUsersData, setDailyActiveUsersData] = useState([]);
-  const [kpiData, setKpiData] = useState({
-    newUsersCount: 0,
-    newUsersTrend: '0%',
-  });
-  const [activeUsersCount, setActiveUsersCount] = useState(0);
-
+  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState(null); 
+  const [adminName, setAdminName] = useState("");
+  const [uid, setUid] = useState(null); 
   const navigate = useNavigate();
 
+  // Sensor data state
+  const [sensorSessions, setSensorSessions] = useState([]);
+
+  // Example hardcoded sensor data for demo/testing
+  const hardcodedSessions = [
+    {
+      id: 'demo1',
+      timestamp: '2025-06-01T08:00:00',
+      ph: 6.8,
+      tds: 750,
+      waterTemp: 22,
+      airTemp: 27,
+      humidity: 60,
+    },
+    {
+      id: 'demo2',
+      timestamp: '2025-06-02T08:00:00',
+      ph: 7.0,
+      tds: 800,
+      waterTemp: 23,
+      airTemp: 28,
+      humidity: 65,
+    },
+    {
+      id: 'demo3',
+      timestamp: '2025-06-03T08:00:00',
+      ph: 6.7,
+      tds: 780,
+      waterTemp: 21,
+      airTemp: 26,
+      humidity: 63,
+    },
+  ];
+
   useEffect(() => {
-    logEvent(analytics, 'page_view', {
-      page_title: 'AnalyticsPage',
-      page_location: window.location.href,
+    const storedName = localStorage.getItem("adminName");
+    setAdminName(storedName || "Admin");
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate("/", { replace: true });
+      } else {
+        setUid(user.uid);
+        // Fetch role from Firestore
+        const adminsRef = collection(db, "admins");
+        const adminsSnapshot = await getDocs(adminsRef);
+        let found = false;
+        adminsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.adminId === user.uid) {
+            setRole(data.role || "unknown");
+            setAdminName(data.name || "Admin");
+            found = true;
+          }
+        });
+        if (!found) setRole("unknown");
+        setLoading(false);
+      }
     });
 
-    const fetchNewUsers = async () => {
+    return () => unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (role !== "superadmin") return;
+
+    // Fetch sensor sessions from Firestore
+    const fetchSensorSessions = async () => {
       try {
-        const usersCollection = collection(db, 'users');
-        const snapshot = await getDocs(usersCollection);
-
-        const userCountsByMonth = {};
-        snapshot.forEach((doc) => {
-          const user = doc.data();
-          const createdAt = user.createdAt?.toDate?.();
-          if (!createdAt) return;
-
-          const month = createdAt.toLocaleString('default', { month: 'short' });
-          userCountsByMonth[month] = (userCountsByMonth[month] || 0) + 1;
+        const snapshot = await getDocs(collection(db, 'sensor_sessions'));
+        const sessions = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            timestamp: data.timestamp?.toDate
+              ? data.timestamp.toDate().toISOString()
+              : data.timestamp,
+            ph: data.ph,
+            tds: data.tds,
+            waterTemp: data.waterTemp,
+            airTemp: data.airTemp,
+            humidity: data.humidity,
+          };
         });
-
-        const orderedMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const chartData = orderedMonths.map((month) => ({
-          month,
-          newUsers: userCountsByMonth[month] || 0,
-        }));
-
-        const currentMonthIndex = new Date().getMonth();
-        const lastMonthCount = chartData[currentMonthIndex]?.newUsers || 0;
-        const prevMonthCount = chartData[currentMonthIndex - 1]?.newUsers || 0;
-        const trend =
-          prevMonthCount === 0 ? '0%' : `${(((lastMonthCount - prevMonthCount) / prevMonthCount) * 100).toFixed(0)}%`;
-
-        setNewUsersData(chartData);
-        setKpiData({
-          newUsersCount: lastMonthCount,
-          newUsersTrend: trend,
-        });
-
-        logEvent(analytics, 'new_user_kpi', {
-          count: lastMonthCount,
-          trend,
-        });
+        // Combine Firestore and hardcoded sessions
+        const allSessions = [...sessions, ...hardcodedSessions];
+        // Sort by timestamp ascending
+        allSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        setSensorSessions(allSessions);
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error("Error fetching sensor sessions:", error);
+        setSensorSessions(hardcodedSessions);
       }
     };
 
-    const fetchActiveUsers = async () => {
-      try {
-        const sessionLogs = collection(db, 'user_logs_UserSessions');
-        const snapshot = await getDocs(sessionLogs);
+    fetchSensorSessions();
+  }, [role]);
 
-        const monthlyUserMap = {};
+  if (loading) {
+    return <div className="loading-container"><p>Loading...</p></div>;
+  }
 
-        snapshot.forEach((doc) => {
-          const log = doc.data();
-          const loginTime = log.loginTime;
-          const userId = log.userId;
+  if (role !== "superadmin") {
+    return (
+      <div className="loading-container">
+        <p>Access denied. Only superadmin can view this page.</p>
+      </div>
+    );
+  }
 
-          if (!loginTime || !userId) return;
+  // Prepare data for charts
+  const chartData = sensorSessions.map(session => ({
+    timestamp: session.timestamp,
+    ph: session.ph,
+    tds: session.tds,
+    waterTemp: session.waterTemp,
+    airTemp: session.airTemp,
+    humidity: session.humidity,
+  }));
 
-          let parsedDate;
-          if (typeof loginTime.toDate === 'function') {
-            parsedDate = loginTime.toDate();
-          } else if (typeof loginTime === 'string') {
-            parsedDate = new Date(loginTime.replace(' at ', ' '));
-          } else {
-            parsedDate = new Date(loginTime);
-          }
-
-          if (isNaN(parsedDate)) return;
-
-          const month = parsedDate.toLocaleString('default', { month: 'short' });
-          const year = parsedDate.getFullYear();
-          const monthYear = `${month} ${year}`;
-
-          if (!monthlyUserMap[monthYear]) {
-            monthlyUserMap[monthYear] = new Set();
-          }
-
-          monthlyUserMap[monthYear].add(userId);
-        });
-
-        // Get all months in the year(s) present in data for consistent x-axis
-        // First, find range of years in data
-        const years = new Set();
-        Object.keys(monthlyUserMap).forEach((monthYear) => {
-          const year = parseInt(monthYear.split(' ')[1], 10);
-          years.add(year);
-        });
-        const orderedYears = Array.from(years).sort();
-
-        const orderedMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-        // Prepare full month-year combinations with zero users where no data exists
-        const fullMonthYearList = [];
-        orderedYears.forEach((year) => {
-          orderedMonths.forEach((month) => {
-            fullMonthYearList.push(`${month} ${year}`);
-          });
-        });
-
-        const monthlyActiveUsersArray = fullMonthYearList.map((monthYear) => {
-  const [month] = monthYear.split(' ');
-  return {
-    month,
-    users: monthlyUserMap[monthYear] ? monthlyUserMap[monthYear].size : 0,
-  };
-});
-
-
-        // Sort by date to be safe (though it's already ordered by construction)
-        monthlyActiveUsersArray.sort((a, b) => {
-          const [aMonth, aYear] = a.month.split(' ');
-          const [bMonth, bYear] = b.month.split(' ');
-          const aDate = new Date(`${aMonth} 1, ${aYear}`);
-          const bDate = new Date(`${bMonth} 1, ${bYear}`);
-          return aDate - bDate;
-        });
-
-        setDailyActiveUsersData(monthlyActiveUsersArray);
-
-        // Count unique users overall in snapshot
-        setActiveUsersCount(new Set(snapshot.docs.map((d) => d.data().userId)).size);
-      } catch (error) {
-        console.error('Error fetching active users:', error);
-      }
-    };
-
-    fetchNewUsers();
-    fetchActiveUsers();
-  }, []);
-
-  console.log('Monthly Active Users:', dailyActiveUsersData);
+  // Example KPIs (you can compute averages, min/max, etc.)
+  const latest = chartData[chartData.length - 1] || {};
+  const kpiCards = [
+    {
+      title: "Latest pH",
+      value: latest.ph ?? "—",
+      context: "Most recent pH reading",
+    },
+    {
+      title: "Latest TDS (ppm)",
+      value: latest.tds ?? "—",
+      context: "Most recent TDS reading",
+    },
+    {
+      title: "Latest Water Temp (°C)",
+      value: latest.waterTemp ?? "—",
+      context: "Most recent water temperature",
+    },
+    {
+      title: "Latest Air Temp (°C)",
+      value: latest.airTemp ?? "—",
+      context: "Most recent air temperature",
+    },
+    {
+      title: "Latest Humidity (%)",
+      value: latest.humidity ?? "—",
+      context: "Most recent humidity reading",
+    },
+  ];
 
   return (
     <div className="analytics-page-container">
       <div className="back-button" onClick={() => navigate(-1)}>
         ← Back
       </div>
-
-      <h2>Analytics</h2>
+      <h2>Sensor Analytics</h2>
+      <div className="admin-greeting">
+        <p>Welcome, {adminName}!</p>
+      </div>
 
       <div className="kpi-cards-container">
-        <div className="kpi-card">
-          <h4 className="kpi-card-title">New Users (Current Month)</h4>
-          <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
-          <p className="kpi-trend">
-            <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
-              {parseFloat(kpiData.newUsersTrend) > 0 ? '▲' : '▼'} {kpiData.newUsersTrend}
-            </span>{' '}
-            vs. last month
-          </p>
-          <p className="kpi-context">Track your monthly user growth</p>
-        </div>
-
-        <div className="kpi-card">
-          <h4 className="kpi-card-title">Active Users (All Time)</h4>
-          <h1 className="kpi-value">{activeUsersCount.toLocaleString()}</h1>
-          <p className="kpi-trend text-blue">Unique user sessions tracked</p>
-          <p className="kpi-context">Based on login sessions per user</p>
-        </div>
+        {kpiCards.map((kpi, idx) => (
+          <div className="kpi-card" key={idx}>
+            <h4 className="kpi-card-title">{kpi.title}</h4>
+            <h1 className="kpi-value">{kpi.value}</h1>
+            <p className="kpi-context">{kpi.context}</p>
+          </div>
+        ))}
       </div>
 
       <div className="charts-container">
         <div className="chart-card">
-          <h2 className="chart-title">Monthly New User Acquisition Trend</h2>
+          <h2 className="chart-title">pH Over Time</h2>
           <div className="chart-placeholder">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={newUsersData}>
+              <LineChart data={chartData}>
                 <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="timestamp" />
+                <YAxis domain={['auto', 'auto']} />
                 <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="newUsers"
-                  stroke="#4CAF50"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
+                <Line type="monotone" dataKey="ph" stroke="#4CAF50" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="chart-summary">
-            Highest growth was in{' '}
-            {newUsersData.length > 0
-              ? newUsersData.reduce((prev, curr) => (curr.newUsers > prev.newUsers ? curr : prev)).month
-              : 'recent months'}
-            , with {kpiData.newUsersCount.toLocaleString()} new users.
-          </p>
+          <p className="chart-summary">Historical pH readings from sensors.</p>
         </div>
-
         <div className="chart-card">
-          <h2 className="chart-title">Monthly Active Users</h2>
+          <h2 className="chart-title">TDS (ppm) Over Time</h2>
           <div className="chart-placeholder">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dailyActiveUsersData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+              <LineChart data={chartData}>
+                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+                <XAxis dataKey="timestamp" />
+                <YAxis domain={['auto', 'auto']} />
                 <Tooltip />
-                <Bar dataKey="users" fill="#4CAF50" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Line type="monotone" dataKey="tds" stroke="#2196F3" strokeWidth={3} dot={{ r: 4 }} />
+              </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="chart-summary">This chart shows how many unique users logged in each month.</p>
+          <p className="chart-summary">Historical TDS readings from sensors.</p>
+        </div>
+        <div className="chart-card">
+          <h2 className="chart-title">Water Temperature (°C) Over Time</h2>
+          <div className="chart-placeholder">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+                <XAxis dataKey="timestamp" />
+                <YAxis domain={['auto', 'auto']} />
+                <Tooltip />
+                <Line type="monotone" dataKey="waterTemp" stroke="#FF9800" strokeWidth={3} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="chart-summary">Historical water temperature readings from sensors.</p>
+        </div>
+        <div className="chart-card">
+          <h2 className="chart-title">Air Temperature (°C) Over Time</h2>
+          <div className="chart-placeholder">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+                <XAxis dataKey="timestamp" />
+                <YAxis domain={['auto', 'auto']} />
+                <Tooltip />
+                <Line type="monotone" dataKey="airTemp" stroke="#F44336" strokeWidth={3} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="chart-summary">Historical air temperature readings from sensors.</p>
+        </div>
+        <div className="chart-card">
+          <h2 className="chart-title">Humidity (%) Over Time</h2>
+          <div className="chart-placeholder">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+                <XAxis dataKey="timestamp" />
+                <YAxis domain={['auto', 'auto']} />
+                <Tooltip />
+                <Line type="monotone" dataKey="humidity" stroke="#009688" strokeWidth={3} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="chart-summary">Historical humidity readings from sensors.</p>
         </div>
       </div>
     </div>

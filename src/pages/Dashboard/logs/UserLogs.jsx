@@ -8,7 +8,6 @@ const UserLogsPage = () => {
   const [sessionLogs, setSessionLogs] = useState([]);
   const [screenLogs, setScreenLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('login');
-  const [users, setUsers] = useState([]); // <-- Add this for user records
   const navigate = useNavigate();
 
   // State to hold grouped plant data
@@ -28,18 +27,6 @@ const UserLogsPage = () => {
   const togglePlant = (plantId) => {
     setExpandedPlantId(prevId => (prevId === plantId ? null : plantId));
   };
-
-  // Fetch user records for the User Records tab
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setUsers(data);
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     const plantsQuery = query(collectionGroup(db, 'plants'));
@@ -119,9 +106,6 @@ const UserLogsPage = () => {
         </button>
         <button className={activeTab === 'plant' ? 'active' : ''} onClick={() => setActiveTab('plant')}>
           Plant Logs
-        </button>
-        <button className={activeTab === 'userrecords' ? 'active' : ''} onClick={() => setActiveTab('userrecords')}>
-          User Records
         </button>
       </div>
 
@@ -277,32 +261,6 @@ const UserLogsPage = () => {
               </table>
             </div>
           )}
-        </div>
-      )}
-
-      {/* User Records Table */}
-      {activeTab === 'userrecords' && (
-        <div className="table-wrapper">
-          <table className="records-table">
-            <thead>
-              <tr>
-                <th>UID</th>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Phone Number</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(user => (
-                <tr key={user.uid}>
-                  <td>{user.uid}</td>
-                  <td>{user.name || 'N/A'}</td>
-                  <td>{user.username || 'N/A'}</td>
-                  <td>{user.contact || 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
