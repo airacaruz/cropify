@@ -1,13 +1,18 @@
-import React, { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import {
-  collection,
   addDoc,
-  serverTimestamp,
+  collection,
+  getDocs,
   onSnapshot,
-  query,
   orderBy,
+  query,
+  serverTimestamp,
+  where,
 } from "firebase/firestore";
-import { db } from "../../firebase";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../../components/Navbar";
+import { auth, db } from "../../firebase";
 import "../../styles/ManageApp.css";
 
 const ManageAppPage = () => {
@@ -18,6 +23,37 @@ const ManageAppPage = () => {
   const [status, setStatus] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState("news");
+
+  // Role and user info
+  const [role, setRole] = useState(null);
+  const [adminName, setAdminName] = useState("");
+  const [uid, setUid] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Fetch role and admin name using uid (like Dashboard)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate("/", { replace: true });
+      } else {
+        setUid(user.uid);
+        const q = query(collection(db, "admins"), where("adminId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            setRole((data.role || "unknown").toLowerCase());
+            setAdminName(data.name || "Admin");
+          });
+        } else {
+          setRole("unknown");
+        }
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     const newsQuery = query(collection(db, "news"), orderBy("createdAt", "desc"));
@@ -58,8 +94,27 @@ const ManageAppPage = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Optional: restrict access to only superadmin
+  if (role !== "superadmin") {
+    return (
+      <div className="loading-container">
+        <Navbar role={role} />
+        <p>Access denied. Only Super Admin can view this page.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="manage-app-container">
+      <Navbar role={role} />
       <h2>Manage Cropify</h2>
 
       <div className="tab-buttons">

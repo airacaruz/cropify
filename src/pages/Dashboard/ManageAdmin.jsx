@@ -1,7 +1,8 @@
-import { collection, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LogoutButton from '../../components/LogoutButton';
+import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
 import '../../styles/AdminRecordsPage.css';
 
@@ -11,17 +12,29 @@ const ManageAdmin = () => {
   const [editedData, setEditedData] = useState({});
   const [adminName, setAdminName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState(null);
+  const [uid, setUid] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedName = localStorage.getItem("adminName");
-    setAdminName(storedName || "Admin");
-
     const unsubscribeAuth = auth && auth.onAuthStateChanged
-      ? auth.onAuthStateChanged((user) => {
+      ? auth.onAuthStateChanged(async (user) => {
           if (!user) {
             navigate('/', { replace: true });
           } else {
+            setUid(user.uid);
+            // Fetch role from Firestore using uid reference
+            const q = query(collection(db, "admins"), where("adminId", "==", user.uid));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                setRole((data.role || "unknown").toLowerCase());
+                setAdminName(data.name || "Admin");
+              });
+            } else {
+              setRole("unknown");
+            }
             setLoading(false);
           }
         })
@@ -89,8 +102,19 @@ const ManageAdmin = () => {
     );
   }
 
+  // Optional: restrict access to only superadmin
+  if (role !== "superadmin") {
+    return (
+      <div className="loading-container">
+        <Navbar role={role} />
+        <p>Access denied. Only Super Admin can view this page.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="user-records-container">
+      <Navbar role={role} />
       <header className="dashboard-topbar">
         <h2 className="dashboard-main-title">Manage Admin</h2>
         <div className="dashboard-profile-actions">
