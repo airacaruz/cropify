@@ -1,5 +1,3 @@
-/* General reset for margin and padding */
-/* Sidebar container - now always a drawer */
 .sidebar {
   width: 269px;
   height: 100vh;
@@ -15,6 +13,12 @@
   transition: transform 0.3s ease-in-out;
   z-index: 1000;
   transform: translateX(-100%);
+}
+
+.sidebar,
+.sidebar * {
+  font-size: 1rem !important;
+  font-family: inherit;
 }
 
 .sidebar.drawer.open {

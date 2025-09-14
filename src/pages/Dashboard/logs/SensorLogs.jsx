@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
-import '../../../styles/UserRecordsPage.css'; // Reusing styles
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Navbar from '../../../components/Navbar';
+import { auth, db } from '../../../firebase';
+import '../../../styles/UserRecordsPage.css';
 
 const SensorLogsPage = () => {
   const [activeTab, setActiveTab] = useState('kits');
   const [expandedKitRow, setExpandedKitRow] = useState(null);
   const [expandedSessionRow, setExpandedSessionRow] = useState(null);
+
+  // Role and user info
+  const [role, setRole] = useState(null);
+  const [adminName, setAdminName] = useState("");
+  const [uid, setUid] = useState(null);
+  const navigate = useNavigate();
 
   // Hardcoded Sensor Kits
   const sensorKits = [
@@ -38,6 +49,39 @@ const SensorLogsPage = () => {
     },
   ];
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate("/", { replace: true });
+      } else {
+        setUid(user.uid);
+        // Fetch role from Firestore using uid reference
+        const q = query(collection(db, "admins"), where("adminId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            setRole((data.role || "unknown").toLowerCase());
+            setAdminName(data.name || "Admin");
+          });
+        } else {
+          setRole("unknown");
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // Access control for admin
+  if (role === "admin") {
+    return (
+      <div className="loading-container">
+        <Navbar role={role} />
+        <p>Access denied. Only Super Admin can view this page.</p>
+      </div>
+    );
+  }
+
   const toggleKitExpand = (index) => {
     setExpandedKitRow(expandedKitRow === index ? null : index);
   };
@@ -48,6 +92,8 @@ const SensorLogsPage = () => {
 
   return (
     <div className="user-records-container">
+      <Navbar role={role} />
+
       <h2>Sensor Logs</h2>
 
       <div className="tab-buttons">

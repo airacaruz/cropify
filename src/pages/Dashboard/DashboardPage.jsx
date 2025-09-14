@@ -142,23 +142,13 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    // 4th page: Monthly New User Acquisition & Sensor Data Sessions Tables
+    // 4th page: Sensor Data Sessions Table, then Monthly New User Acquisition Table, then the graph
     doc.addPage();
     doc.setFontSize(18);
-    doc.text('Monthly New User Acquisition', 14, 18);
+    doc.text('Sensor Data Sessions', 14, 18);
 
     autoTable(doc, {
         startY: 22,
-        head: [['Month', 'New Users']],
-        body: newUsersData.map(row => [row.month, row.newUsers]),
-        theme: 'grid',
-        styles: { fontSize: 10 },
-        margin: { left: 14, right: 14 }
-    });
-
-    doc.text('Sensor Data Sessions:', 14, doc.lastAutoTable.finalY + 10);
-    autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 14,
         head: [['Timestamp', 'pH', 'TDS', 'Water Temp', 'Air Temp', 'Humidity']],
         body: sensorChartData.map(row => [
             row.timestamp,
@@ -172,6 +162,28 @@ const exportChartsAndPrescriptivePDF = async ({
         styles: { fontSize: 9 },
         margin: { left: 14, right: 14 }
     });
+
+    doc.text('Monthly New User Acquisition', 14, doc.lastAutoTable.finalY + 10);
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 14,
+        head: [['Month', 'New Users']],
+        body: newUsersData.map(row => [row.month, row.newUsers]),
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        margin: { left: 14, right: 14 }
+    });
+
+    // Add the Monthly New User Acquisition graph below the table
+    const newUserChart = chartImages.find(chart => chart.id === 'chart-new-users');
+    if (newUserChart && newUserChart.img) {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const chartHeight = 65;
+        const chartWidth = pageWidth - 30;
+        let y = doc.lastAutoTable.finalY + 20;
+        doc.setFontSize(12);
+        doc.text('Monthly New User Acquisition Trend (Graph)', 14, y);
+        doc.addImage(newUserChart.img, 'PNG', 14, y + 4, chartWidth, chartHeight);
+    }
 
     // 5th page: Prescriptive Insights
     doc.addPage();
@@ -491,24 +503,6 @@ const Dashboard = () => {
 
                     {/* Charts */}
                     <div id="charts-container" className="charts-container">
-                        <div className="chart-card" id="chart-new-users">
-                            <h2 className="chart-title">Monthly New User Graph</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={newUsersData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="newUsers"
-                                        stroke="#4CAF50"
-                                        strokeWidth={3}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-
                         <div className="chart-card" id="chart-active-users">
                             <h2 className="chart-title">Monthly Active Users</h2>
                             <ResponsiveContainer width="100%" height={300}>
@@ -579,6 +573,24 @@ const Dashboard = () => {
                                     <YAxis domain={['auto', 'auto']} />
                                     <Tooltip />
                                     <Line type="monotone" dataKey="humidity" stroke="#009688" strokeWidth={3} dot={{ r: 4 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                        {/* Monthly New User Acquisition graph moved below sensor data session */}
+                        <div className="chart-card" id="chart-new-users">
+                            <h2 className="chart-title">Monthly New User Acquisition Trend</h2>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={newUsersData}>
+                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="newUsers"
+                                        stroke="#4CAF50"
+                                        strokeWidth={3}
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>

@@ -109,7 +109,6 @@ const ManageAdmin = () => {
             <tr>
               <th>Admin ID</th>
               <th>Name</th>
-              <th>Email</th>
               <th>Role</th>
             </tr>
           </thead>
@@ -119,7 +118,6 @@ const ManageAdmin = () => {
                 <tr onClick={() => toggleExpand(admin.id, admin)} className="hoverable-row">
                   <td><span className="menu-icon">⋮</span> {admin.id}</td>
                   <td>{admin.name || 'N/A'}</td>
-                  <td>{admin.email || 'N/A'}</td>
                   <td>{admin.role || 'N/A'}</td>
                 </tr>
                 {expandedRow === admin.id && (
@@ -131,14 +129,6 @@ const ManageAdmin = () => {
                           type="text"
                           name="name"
                           value={editedData.name}
-                          onChange={handleChange}
-                        />
-
-                        <label>Edit Email</label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={editedData.email}
                           onChange={handleChange}
                         />
 

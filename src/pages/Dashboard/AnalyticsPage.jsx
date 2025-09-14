@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
 import '../../styles/AnalyticsPage.css';
 
@@ -126,7 +127,8 @@ function AnalyticsPage() {
   if (role !== "superadmin") {
     return (
       <div className="loading-container">
-        <p>Access denied. Only superadmin can view this page.</p>
+        <Navbar role={role} />
+        <p>Access denied. Only Super Admin can view this page.</p>
       </div>
     );
   }
@@ -173,6 +175,9 @@ function AnalyticsPage() {
 
   return (
     <div className="analytics-page-container">
+      {/* Always show Navbar with role for correct links */}
+      <Navbar role={role} />
+
       <div className="back-button" onClick={() => navigate(-1)}>
         ← Back
       </div>

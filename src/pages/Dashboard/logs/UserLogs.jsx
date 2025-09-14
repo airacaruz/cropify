@@ -1,33 +1,51 @@
-import { collection, collectionGroup, onSnapshot, query } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, collectionGroup, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../../firebase';
+import Navbar from '../../../components/Navbar';
+import { auth, db } from '../../../firebase';
 import '../../../styles/UserRecordsPage.css';
 
 const UserLogsPage = () => {
   const [sessionLogs, setSessionLogs] = useState([]);
   const [screenLogs, setScreenLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('login');
-  const navigate = useNavigate();
-
-  // State to hold grouped plant data
   const [plantLogs, setPlantLogs] = useState([]);
-  // State to manage expanded grower sections (outer level)
   const [expandedGrowerId, setExpandedGrowerId] = useState(null);
-  // State to manage expanded individual plant details (inner level)
   const [expandedPlantId, setExpandedPlantId] = useState(null);
 
-  // Function to toggle grower expansion
-  const toggleGrower = (growerId) => {
-    setExpandedGrowerId(prevId => (prevId === growerId ? null : growerId));
-    setExpandedPlantId(null);
-  };
+  // Role and user info
+  const [role, setRole] = useState(null);
+  const [adminName, setAdminName] = useState("");
+  const [uid, setUid] = useState(null);
 
-  // Function to toggle plant details expansion
-  const togglePlant = (plantId) => {
-    setExpandedPlantId(prevId => (prevId === plantId ? null : plantId));
-  };
+  const navigate = useNavigate();
 
+  // Auth and role fetch (using uid and Firestore reference)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate("/", { replace: true });
+      } else {
+        setUid(user.uid);
+        // Fetch role from Firestore using uid reference
+        const q = query(collection(db, "admins"), where("adminId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            setRole((data.role || "unknown").toLowerCase());
+            setAdminName(data.name || "Admin");
+          });
+        } else {
+          setRole("unknown");
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // Plant logs
   useEffect(() => {
     const plantsQuery = query(collectionGroup(db, 'plants'));
     const unsubscribe = onSnapshot(plantsQuery, (snapshot) => {
@@ -58,6 +76,7 @@ const UserLogsPage = () => {
     return () => unsubscribe();
   }, []);
 
+  // Session logs
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'user_logs_UserSessions'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({
@@ -74,6 +93,7 @@ const UserLogsPage = () => {
     return () => unsubscribe();
   }, []);
 
+  // Screen logs
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'user_logs_ScreenVisited'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({
@@ -92,8 +112,22 @@ const UserLogsPage = () => {
     return () => unsubscribe();
   }, []);
 
+  // Access control for admin
+  if (role === "admin") {
+    return (
+      <div className="loading-container">
+        <Navbar role={role} />
+        <p>Access denied. Only Super Admin can view this page.</p>
+      </div>
+    );
+  }
+
+  // UI
   return (
     <div className="user-records-container">
+      {/* Always show Navbar with role for correct links */}
+      <Navbar role={role} />
+
       <div className="back-button" onClick={() => navigate(-1)}>← Back</div>
       <h2>User Logs</h2>
     
@@ -200,7 +234,7 @@ const UserLogsPage = () => {
                 <tbody>
                   {plantLogs.map(growerGroup => (
                     <React.Fragment key={growerGroup.growerId}>
-                      <tr className="hoverable-row" onClick={() => toggleGrower(growerGroup.growerId)}>
+                      <tr className="hoverable-row" onClick={() => setExpandedGrowerId(prevId => (prevId === growerGroup.growerId ? null : growerGroup.growerId))}>
                         <td className="expand-cell">
                           <span className="expand-icon">
                             {expandedGrowerId === growerGroup.growerId ? '▲' : '▼'}
@@ -224,7 +258,7 @@ const UserLogsPage = () => {
                                 <tbody>
                                   {growerGroup.plants.map(plant => (
                                     <React.Fragment key={plant.id}>
-                                      <tr className="hoverable-row" onClick={() => togglePlant(plant.id)}>
+                                      <tr className="hoverable-row" onClick={() => setExpandedPlantId(prevId => (prevId === plant.id ? null : plant.id))}>
                                         <td><span className="menu-icon">⋮</span></td>
                                         <td>{plant.name || 'N/A'}</td>
                                         <td>{plant.type || 'N/A'}</td>
