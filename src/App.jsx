@@ -3,7 +3,6 @@ import './App.css';
 import Test from './Test';
 import Layout from './components/Layout';
 import ProtectedRoute from "./components/ProtectedRoute";
-import { ThemeProvider } from './components/ThemeContext';
 import AdminRecords from './pages/Dashboard/AdminRecords';
 import AnalyticsPage from './pages/Dashboard/AnalyticsPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
@@ -138,11 +137,7 @@ const routes = [
 const router = createBrowserRouter(routes);
 
 function App() {
-  return (
-    <ThemeProvider>
-      <RouterProvider router={router} />
-    </ThemeProvider>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

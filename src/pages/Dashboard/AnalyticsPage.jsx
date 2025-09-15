@@ -32,7 +32,7 @@ function AnalyticsPage() {
   // Plant type pie chart state
   const [plantTypeData, setPlantTypeData] = useState([]);
 
-  // Example hardcoded sensor data for demo/testing
+  // ✅ Hardcoded sensor data fallback
   const hardcodedSessions = [
     {
       id: 'demo1',
@@ -63,6 +63,7 @@ function AnalyticsPage() {
     },
   ];
 
+  // ✅ Hardcoded plant types fallback
   const hardcodedPlantTypes = [
     { name: "Lettuce", value: 4 },
     { name: "Tomato", value: 1 }
@@ -102,7 +103,7 @@ function AnalyticsPage() {
   useEffect(() => {
     if (role !== "superadmin" && !isAdminUid) return;
 
-    // Fetch sensor sessions from Firestore
+    // Fetch sensor sessions
     const fetchSensorSessions = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'sensor_sessions'));
@@ -128,22 +129,26 @@ function AnalyticsPage() {
       }
     };
 
-    // Fetch plant types for pie chart
+    // Fetch plant types
     const fetchPlantTypes = async () => {
       try {
-        const snapshot = await getDocs(collection(db, 'plants'));
+        const snapshot = await getDocs(collection(db, 'user_logs_PlantLogs'));
         const typeCounts = {};
         snapshot.forEach(doc => {
-          const kind = doc.data().kind || 'Unknown';
-          typeCounts[kind] = (typeCounts[kind] || 0) + 1;
+          const plantType = doc.data().plantType || 'Unknown';
+          typeCounts[plantType] = (typeCounts[plantType] || 0) + 1;
         });
-        hardcodedPlantTypes.forEach(hard => {
-          typeCounts[hard.name] = (typeCounts[hard.name] || 0) + hard.value;
-        });
-        const pieData = Object.entries(typeCounts).map(([kind, count]) => ({
-          name: kind,
+
+        let pieData = Object.entries(typeCounts).map(([type, count]) => ({
+          name: type,
           value: count,
         }));
+
+        // ✅ fallback if empty
+        if (pieData.length === 0) {
+          pieData = hardcodedPlantTypes;
+        }
+
         setPlantTypeData(pieData);
       } catch (err) {
         setPlantTypeData(hardcodedPlantTypes);
@@ -236,6 +241,12 @@ function AnalyticsPage() {
 
       <div className="charts-container">
         <div className="chart-card pie-card-layout">
+          <div>
+            <h2 className="chart-title">Hydroponic Plant Types Distribution</h2>
+            <p className="chart-summary">
+              Distribution of hydroponic plant types input by users.
+            </p>
+          </div>
           <div className="pie-center">
             <PieChart width={300} height={300}>
               <Pie
@@ -275,79 +286,75 @@ function AnalyticsPage() {
             </ul>
           </div>
         </div>
+
+        {/* Line charts */}
         <div className="chart-card">
           <h2 className="chart-title">pH Over Time</h2>
-          <div className="chart-placeholder">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={['auto', 'auto']} />
-                <Tooltip />
-                <Line type="monotone" dataKey="ph" stroke="#4CAF50" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+              <XAxis dataKey="timestamp" />
+              <YAxis domain={['auto', 'auto']} />
+              <Tooltip />
+              <Line type="monotone" dataKey="ph" stroke="#4CAF50" strokeWidth={3} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
           <p className="chart-summary">Historical pH readings from sensors.</p>
         </div>
+
         <div className="chart-card">
           <h2 className="chart-title">TDS (ppm) Over Time</h2>
-          <div className="chart-placeholder">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={['auto', 'auto']} />
-                <Tooltip />
-                <Line type="monotone" dataKey="tds" stroke="#2196F3" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+              <XAxis dataKey="timestamp" />
+              <YAxis domain={['auto', 'auto']} />
+              <Tooltip />
+              <Line type="monotone" dataKey="tds" stroke="#2196F3" strokeWidth={3} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
           <p className="chart-summary">Historical TDS readings from sensors.</p>
         </div>
+
         <div className="chart-card">
           <h2 className="chart-title">Water Temperature (°C) Over Time</h2>
-          <div className="chart-placeholder">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={['auto', 'auto']} />
-                <Tooltip />
-                <Line type="monotone" dataKey="waterTemp" stroke="#FF9800" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+              <XAxis dataKey="timestamp" />
+              <YAxis domain={['auto', 'auto']} />
+              <Tooltip />
+              <Line type="monotone" dataKey="waterTemp" stroke="#FF9800" strokeWidth={3} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
           <p className="chart-summary">Historical water temperature readings from sensors.</p>
         </div>
+
         <div className="chart-card">
           <h2 className="chart-title">Air Temperature (°C) Over Time</h2>
-          <div className="chart-placeholder">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={['auto', 'auto']} />
-                <Tooltip />
-                <Line type="monotone" dataKey="airTemp" stroke="#F44336" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+              <XAxis dataKey="timestamp" />
+              <YAxis domain={['auto', 'auto']} />
+              <Tooltip />
+              <Line type="monotone" dataKey="airTemp" stroke="#F44336" strokeWidth={3} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
           <p className="chart-summary">Historical air temperature readings from sensors.</p>
         </div>
+
         <div className="chart-card">
           <h2 className="chart-title">Humidity (%) Over Time</h2>
-          <div className="chart-placeholder">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={['auto', 'auto']} />
-                <Tooltip />
-                <Line type="monotone" dataKey="humidity" stroke="#009688" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
+              <XAxis dataKey="timestamp" />
+              <YAxis domain={['auto', 'auto']} />
+              <Tooltip />
+              <Line type="monotone" dataKey="humidity" stroke="#009688" strokeWidth={3} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
           <p className="chart-summary">Historical humidity readings from sensors.</p>
         </div>
       </div>

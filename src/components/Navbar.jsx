@@ -1,14 +1,12 @@
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from '../assets/images/cropifytextlogo.png';
-import { ThemeContext } from '../components/ThemeContext';
 import '../styles/Navbar.css';
 
 // Accept role as a prop
 function Navbar({ role }) {
   const location = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { theme, toggleTheme } = useContext(ThemeContext);
 
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen);
@@ -42,6 +40,7 @@ function Navbar({ role }) {
             onClick={closeDrawer}
             aria-label="Close navigation"
           >
+            ×
           </button>
         </div>
         <nav>
@@ -71,21 +70,7 @@ function Navbar({ role }) {
             )}
           </ul>
         </nav>
-        {/* Theme toggle switch in sidebar */}
-        <div style={{ marginTop: "2rem", textAlign: "center" }}>
-          <label className="theme-switch">
-            <input
-              type="checkbox"
-              checked={theme === "dark"}
-              onChange={toggleTheme}
-            />
-            <span className="slider">
-              {theme === "dark" ? "🌙" : "☀️"}
-            </span>
-          </label>
-        </div>
       </div>
-      
       {isDrawerOpen && (
         <div className="drawer-overlay" onClick={closeDrawer}></div>
       )}
