@@ -54,6 +54,24 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+body.light-mode {
+  background: #f9f9f9;
+  color: #222;
+}
+body.dark-mode {
+  background: #181818;
+  color: #eee;
+}
+.theme-toggle-btn {
+  transition: color 0.2s;
+}
+body.dark-mode .theme-toggle-btn {
+  color: #ffd700;
+}
+body.light-mode .theme-toggle-btn {
+  color: #222;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

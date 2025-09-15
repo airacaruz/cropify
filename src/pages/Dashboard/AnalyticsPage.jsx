@@ -1,15 +1,19 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import { FaCloudRain, FaCloudSun, FaTemperatureHigh, FaTint, FaWater } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import {
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
+  YAxis
 } from 'recharts';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
@@ -20,10 +24,13 @@ function AnalyticsPage() {
   const [role, setRole] = useState(null); 
   const [adminName, setAdminName] = useState("");
   const [uid, setUid] = useState(null); 
+  const [isAdminUid, setIsAdminUid] = useState(false);
   const navigate = useNavigate();
 
   // Sensor data state
   const [sensorSessions, setSensorSessions] = useState([]);
+  // Plant type pie chart state
+  const [plantTypeData, setPlantTypeData] = useState([]);
 
   // Example hardcoded sensor data for demo/testing
   const hardcodedSessions = [
@@ -56,6 +63,11 @@ function AnalyticsPage() {
     },
   ];
 
+  const hardcodedPlantTypes = [
+    { name: "Lettuce", value: 4 },
+    { name: "Tomato", value: 1 }
+  ];
+
   useEffect(() => {
     const storedName = localStorage.getItem("adminName");
     setAdminName(storedName || "Admin");
@@ -73,8 +85,10 @@ function AnalyticsPage() {
           const data = doc.data();
           if (data.adminId === user.uid) {
             setRole(data.role || "unknown");
-            setAdminName(data.name || "Admin");
+            const cleanName = (data.name || "Admin").replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
+            setAdminName(cleanName);
             found = true;
+            if (data.role === "admin") setIsAdminUid(true);
           }
         });
         if (!found) setRole("unknown");
@@ -86,7 +100,7 @@ function AnalyticsPage() {
   }, [navigate]);
 
   useEffect(() => {
-    if (role !== "superadmin") return;
+    if (role !== "superadmin" && !isAdminUid) return;
 
     // Fetch sensor sessions from Firestore
     const fetchSensorSessions = async () => {
@@ -106,34 +120,53 @@ function AnalyticsPage() {
             humidity: data.humidity,
           };
         });
-        // Combine Firestore and hardcoded sessions
         const allSessions = [...sessions, ...hardcodedSessions];
-        // Sort by timestamp ascending
         allSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         setSensorSessions(allSessions);
       } catch (error) {
-        console.error("Error fetching sensor sessions:", error);
         setSensorSessions(hardcodedSessions);
       }
     };
 
+    // Fetch plant types for pie chart
+    const fetchPlantTypes = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'plants'));
+        const typeCounts = {};
+        snapshot.forEach(doc => {
+          const kind = doc.data().kind || 'Unknown';
+          typeCounts[kind] = (typeCounts[kind] || 0) + 1;
+        });
+        hardcodedPlantTypes.forEach(hard => {
+          typeCounts[hard.name] = (typeCounts[hard.name] || 0) + hard.value;
+        });
+        const pieData = Object.entries(typeCounts).map(([kind, count]) => ({
+          name: kind,
+          value: count,
+        }));
+        setPlantTypeData(pieData);
+      } catch (err) {
+        setPlantTypeData(hardcodedPlantTypes);
+      }
+    };
+
     fetchSensorSessions();
-  }, [role]);
+    fetchPlantTypes();
+  }, [role, isAdminUid]);
 
   if (loading) {
     return <div className="loading-container"><p>Loading...</p></div>;
   }
 
-  if (role !== "superadmin") {
+  if (role !== "superadmin" && !isAdminUid) {
     return (
       <div className="loading-container">
         <Navbar role={role} />
-        <p>Access denied. Only Super Admin can view this page.</p>
+        <p>Access denied. Only Super Admin and Admin can view this page.</p>
       </div>
     );
   }
 
-  // Prepare data for charts
   const chartData = sensorSessions.map(session => ({
     timestamp: session.timestamp,
     ph: session.ph,
@@ -143,53 +176,58 @@ function AnalyticsPage() {
     humidity: session.humidity,
   }));
 
-  // Example KPIs (you can compute averages, min/max, etc.)
   const latest = chartData[chartData.length - 1] || {};
   const kpiCards = [
     {
       title: "Latest pH",
       value: latest.ph ?? "—",
       context: "Most recent pH reading",
+      icon: <FaTint color="#4CAF50" size={24} />,
     },
     {
       title: "Latest TDS (ppm)",
       value: latest.tds ?? "—",
       context: "Most recent TDS reading",
+      icon: <FaWater color="#2196F3" size={24} />,
     },
     {
       title: "Latest Water Temp (°C)",
       value: latest.waterTemp ?? "—",
       context: "Most recent water temperature",
+      icon: <FaTemperatureHigh color="#FF9800" size={24} />,
     },
     {
       title: "Latest Air Temp (°C)",
       value: latest.airTemp ?? "—",
       context: "Most recent air temperature",
+      icon: <FaCloudSun color="#F44336" size={24} />,
     },
     {
       title: "Latest Humidity (%)",
       value: latest.humidity ?? "—",
       context: "Most recent humidity reading",
+      icon: <FaCloudRain color="#009688" size={24} />,
     },
   ];
 
+  const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#009688', '#9C27B0'];
+
   return (
     <div className="analytics-page-container">
-      {/* Always show Navbar with role for correct links */}
       <Navbar role={role} />
 
       <div className="back-button" onClick={() => navigate(-1)}>
         ← Back
       </div>
       <h2>Sensor Analytics</h2>
-      <div className="admin-greeting">
-        <p>Welcome, {adminName}!</p>
-      </div>
 
       <div className="kpi-cards-container">
         {kpiCards.map((kpi, idx) => (
           <div className="kpi-card" key={idx}>
-            <h4 className="kpi-card-title">{kpi.title}</h4>
+            <h4 className="kpi-card-title">
+              {kpi.icon}
+              <span style={{ marginLeft: 8 }}>{kpi.title}</span>
+            </h4>
             <h1 className="kpi-value">{kpi.value}</h1>
             <p className="kpi-context">{kpi.context}</p>
           </div>
@@ -197,6 +235,46 @@ function AnalyticsPage() {
       </div>
 
       <div className="charts-container">
+        <div className="chart-card pie-card-layout">
+          <div className="pie-center">
+            <PieChart width={300} height={300}>
+              <Pie
+                data={plantTypeData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label
+              >
+                {plantTypeData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </div>
+          <div className="pie-list">
+            <h3 style={{ marginBottom: 10 }}>Plant Types</h3>
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              {plantTypeData.map((entry, idx) => (
+                <li key={entry.name} style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 16,
+                      height: 16,
+                      background: COLORS[idx % COLORS.length],
+                      borderRadius: "50%",
+                      marginRight: 8,
+                    }}
+                  ></span>
+                  <span style={{ fontWeight: 500 }}>{entry.name}</span>
+                  <span style={{ marginLeft: "auto", fontWeight: 700 }}>{entry.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
         <div className="chart-card">
           <h2 className="chart-title">pH Over Time</h2>
           <div className="chart-placeholder">

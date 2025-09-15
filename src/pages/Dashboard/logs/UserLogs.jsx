@@ -1,6 +1,7 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, collectionGroup, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { FaBarcode, FaCalendarAlt, FaChevronDown, FaChevronUp, FaDesktop, FaIdBadge, FaLeaf, FaSeedling, FaSignInAlt, FaUser } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
@@ -18,6 +19,7 @@ const UserLogsPage = () => {
   const [role, setRole] = useState(null);
   const [adminName, setAdminName] = useState("");
   const [uid, setUid] = useState(null);
+  const [isAdminUid, setIsAdminUid] = useState(false);
 
   const navigate = useNavigate();
 
@@ -36,6 +38,7 @@ const UserLogsPage = () => {
             const data = doc.data();
             setRole((data.role || "unknown").toLowerCase());
             setAdminName(data.name || "Admin");
+            if (data.role === "admin") setIsAdminUid(true);
           });
         } else {
           setRole("unknown");
@@ -112,12 +115,12 @@ const UserLogsPage = () => {
     return () => unsubscribe();
   }, []);
 
-  // Access control for admin
-  if (role === "admin") {
+  // Only allow superadmin and admin with UID to view
+  if (role !== "superadmin" && !isAdminUid) {
     return (
       <div className="loading-container">
         <Navbar role={role} />
-        <p>Access denied. Only Super Admin can view this page.</p>
+        <p>Access denied. Only Super Admin and Admin can view this page.</p>
       </div>
     );
   }
@@ -125,21 +128,21 @@ const UserLogsPage = () => {
   // UI
   return (
     <div className="user-records-container">
-      {/* Always show Navbar with role for correct links */}
       <Navbar role={role} />
-
       <div className="back-button" onClick={() => navigate(-1)}>← Back</div>
-      <h2>User Logs</h2>
+      <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <FaUser style={{ color: "#4CAF50" }} /> User Logs
+      </h2>
     
       <div className="tab-buttons">
         <button className={activeTab === 'login' ? 'active' : ''} onClick={() => setActiveTab('login')}>
-          Session Logs
+          <FaSignInAlt style={{ marginRight: 4 }} /> Session Logs
         </button>
         <button className={activeTab === 'screen' ? 'active' : ''} onClick={() => setActiveTab('screen')}>
-          Screen Logs
+          <FaDesktop style={{ marginRight: 4 }} /> Screen Logs
         </button>
         <button className={activeTab === 'plant' ? 'active' : ''} onClick={() => setActiveTab('plant')}>
-          Plant Logs
+          <FaSeedling style={{ marginRight: 4 }} /> Plant Logs
         </button>
       </div>
 
@@ -149,10 +152,10 @@ const UserLogsPage = () => {
           <table className="records-table">
             <thead>
               <tr>
-                <th>Session ID</th>
-                <th>Login Date</th>
+                <th><FaIdBadge /> Session ID</th>
+                <th><FaCalendarAlt /> Login Date</th>
                 <th>Login Time</th>
-                <th>Logout Date</th>
+                <th><FaCalendarAlt /> Logout Date</th>
                 <th>Logout Time</th>
               </tr>
             </thead>
@@ -193,10 +196,10 @@ const UserLogsPage = () => {
           <table className="records-table">
             <thead>
               <tr>
-                <th>Visit ID</th>
-                <th>User ID</th>
-                <th>Screen Name</th>
-                <th>Timestamp</th>
+                <th><FaIdBadge /> Visit ID</th>
+                <th><FaUser /> User ID</th>
+                <th><FaDesktop /> Screen Name</th>
+                <th><FaCalendarAlt /> Timestamp</th>
               </tr>
             </thead>
             <tbody>
@@ -228,7 +231,7 @@ const UserLogsPage = () => {
                 <thead>
                   <tr>
                     <th className="expand-cell-header"></th>
-                    <th>User ID</th>
+                    <th><FaUser /> User ID</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -237,7 +240,7 @@ const UserLogsPage = () => {
                       <tr className="hoverable-row" onClick={() => setExpandedGrowerId(prevId => (prevId === growerGroup.growerId ? null : growerGroup.growerId))}>
                         <td className="expand-cell">
                           <span className="expand-icon">
-                            {expandedGrowerId === growerGroup.growerId ? '▲' : '▼'}
+                            {expandedGrowerId === growerGroup.growerId ? <FaChevronUp /> : <FaChevronDown />}
                           </span>
                         </td>
                         <td>{growerGroup.growerId}</td>
@@ -250,9 +253,9 @@ const UserLogsPage = () => {
                                 <thead>
                                   <tr>
                                     <th></th>
-                                    <th>Plant Name</th>
+                                    <th><FaLeaf /> Plant Name</th>
                                     <th>Plant Type</th>
-                                    <th>Plant ID</th>
+                                    <th><FaBarcode /> Plant ID</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -268,11 +271,11 @@ const UserLogsPage = () => {
                                         <tr className="expanded-row">
                                           <td colSpan="4">
                                             <div className="plant-details-display">
-                                              <p><strong>Plant Name:</strong> {plant.name || 'N/A'}</p>
-                                              <p><strong>Plant ID:</strong> {plant.id}</p>
-                                              <p><strong>Sensor ID:</strong> {plant.sensorId || 'N/A'}</p>
-                                              <p><strong>Plant Type:</strong> {plant.type || 'N/A'}</p>
-                                              <p><strong>Date Added:</strong>
+                                              <p><FaLeaf /> <strong>Plant Name:</strong> {plant.name || 'N/A'}</p>
+                                              <p><FaBarcode /> <strong>Plant ID:</strong> {plant.id}</p>
+                                              <p><FaIdBadge /> <strong>Sensor ID:</strong> {plant.sensorId || 'N/A'}</p>
+                                              <p><FaSeedling /> <strong>Plant Type:</strong> {plant.type || 'N/A'}</p>
+                                              <p><FaCalendarAlt /> <strong>Date Added:</strong>
                                                 {plant.timestamp?.toDate
                                                   ? plant.timestamp.toDate().toLocaleDateString()
                                                   : 'N/A'}

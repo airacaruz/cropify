@@ -1,6 +1,5 @@
 // src/pages/js/LoginLinkPage.jsx
 
-import React, { useEffect } from "react";
 import {
   getAuth,
   isSignInWithEmailLink,
@@ -8,15 +7,15 @@ import {
   signOut,
 } from "firebase/auth";
 import {
-  getFirestore,
   collection,
+  getDocs,
+  getFirestore,
   query,
   where,
-  getDocs,
 } from "firebase/firestore";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-// ADD THIS IMPORT:
-import { app } from "../../firebase"; // Adjust this path based on your file structure
+import { app } from "../../firebase";
 
 function LoginLinkPage() {
   const auth = getAuth(app);
@@ -28,7 +27,7 @@ function LoginLinkPage() {
       const email = window.localStorage.getItem("emailForSignIn");
       if (!email) {
         alert("Missing email info. Try again.");
-        navigate("/send-link"); // Or navigate back to your main login page
+        navigate("/send-link"); 
         return;
       }
 

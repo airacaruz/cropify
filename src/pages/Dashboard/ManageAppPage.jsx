@@ -10,6 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { FaChevronDown, FaChevronUp, FaImage, FaNewspaper, FaPlus, FaTimes, FaVideo } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase";
@@ -23,6 +24,7 @@ const ManageAppPage = () => {
   const [status, setStatus] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState("news");
+  const [expandedNewsId, setExpandedNewsId] = useState(null);
 
   // Role and user info
   const [role, setRole] = useState(null);
@@ -31,7 +33,6 @@ const ManageAppPage = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch role and admin name using uid (like Dashboard)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -94,6 +95,10 @@ const ManageAppPage = () => {
     }
   };
 
+  const toggleExpand = (id) => {
+    setExpandedNewsId(expandedNewsId === id ? null : id);
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -102,7 +107,6 @@ const ManageAppPage = () => {
     );
   }
 
-  // Optional: restrict access to only superadmin
   if (role !== "superadmin") {
     return (
       <div className="loading-container">
@@ -115,31 +119,44 @@ const ManageAppPage = () => {
   return (
     <div className="manage-app-container">
       <Navbar role={role} />
-      <h2>Manage Cropify</h2>
+      <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <FaNewspaper style={{ color: "#4CAF50" }} /> Manage Cropify News
+      </h2>
 
       <div className="tab-buttons">
         <button
           className={activeTab === "news" ? "active" : ""}
           onClick={() => setActiveTab("news")}
         >
-          News
+          <FaNewspaper style={{ marginRight: 4 }} /> News
         </button>
-        {/* Future tabs can go here */}
-        {/* <button onClick={() => setActiveTab("somethingElse")}>Other Tab</button> */}
       </div>
 
       {activeTab === "news" && (
         <>
           <div className="header-buttons">
             <button className="add-btn" onClick={() => setShowForm(true)}>
-              Add News
+              <FaPlus style={{ marginRight: 4 }} /> Add News
             </button>
           </div>
 
           {showForm && (
             <div className="modal-overlay">
               <div className="modal-form">
-                <h3>Add News</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3>
+                    <FaNewspaper style={{ marginRight: 6, color: "#4CAF50" }} />
+                    Add News
+                  </h3>
+                  <button
+                    type="button"
+                    className="close-modal-btn"
+                    onClick={() => setShowForm(false)}
+                    style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer" }}
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
                 <form onSubmit={handleSubmit}>
                   <label>Title:</label>
                   <input
@@ -163,8 +180,10 @@ const ManageAppPage = () => {
                   />
 
                   <div className="modal-buttons">
-                    <button type="submit">Submit</button>
-                    <button type="button" onClick={() => setShowForm(false)}>
+                    <button type="submit" className="submit-btn">
+                      <FaPlus style={{ marginRight: 4 }} /> Submit
+                    </button>
+                    <button type="button" className="cancel-btn" onClick={() => setShowForm(false)}>
                       Cancel
                     </button>
                   </div>
@@ -179,31 +198,61 @@ const ManageAppPage = () => {
               <p>No news articles yet.</p>
             ) : (
               newsList.map((news) => (
-                <div key={news.id} className="news-item">
-                  {news.mediaUrl &&
-                    (news.mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                      <img
-                        src={news.mediaUrl}
-                        alt={news.title}
-                        className="news-image"
-                      />
-                    ) : news.mediaUrl.match(/\.(mp4|webm)$/i) ? (
-                      <video
-                        controls
-                        src={news.mediaUrl}
-                        className="news-image"
-                      />
-                    ) : null)}
-                  <h3>{news.title}</h3>
-                  <p>{news.description}</p>
-                  <a
-                    href={news.mediaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View Content
-                  </a>
-                  <hr />
+                <div key={news.id} className="news-item-card">
+                  <div className="news-card-header" onClick={() => toggleExpand(news.id)} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <FaNewspaper style={{ color: "#4CAF50" }} />
+                      <span style={{ fontWeight: "bold", fontSize: "1.1em" }}>{news.title}</span>
+                    </div>
+                    <span>
+                      {expandedNewsId === news.id ? <FaChevronUp /> : <FaChevronDown />}
+                    </span>
+                  </div>
+                  <div className="news-preview" style={{ margin: "8px 0", color: "#555" }}>
+                    {news.description.length > 80 && expandedNewsId !== news.id
+                      ? news.description.slice(0, 80) + "..."
+                      : news.description}
+                  </div>
+                  {expandedNewsId === news.id && (
+                    <div className="news-full-content">
+                      <div style={{ marginBottom: 10 }}>
+                        {news.mediaUrl &&
+                          (news.mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                            <span>
+                              <FaImage style={{ marginRight: 4, color: "#2196F3" }} />
+                              <img
+                                src={news.mediaUrl}
+                                alt={news.title}
+                                className="news-image"
+                                style={{ maxWidth: 220, borderRadius: 8, marginTop: 8 }}
+                              />
+                            </span>
+                          ) : news.mediaUrl.match(/\.(mp4|webm)$/i) ? (
+                            <span>
+                              <FaVideo style={{ marginRight: 4, color: "#FF9800" }} />
+                              <video
+                                controls
+                                src={news.mediaUrl}
+                                className="news-image"
+                                style={{ maxWidth: 220, borderRadius: 8, marginTop: 8 }}
+                              />
+                            </span>
+                          ) : null)}
+                      </div>
+                      <div style={{ marginBottom: 10 }}>
+                        <strong>Description:</strong>
+                        <p style={{ margin: "6px 0" }}>{news.description}</p>
+                      </div>
+                      <a
+                        href={news.mediaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="view-content-link"
+                      >
+                        View Content
+                      </a>
+                    </div>
+                  )}
                 </div>
               ))
             )}

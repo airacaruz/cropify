@@ -1,7 +1,7 @@
 .sidebar {
   width: 269px;
   height: 100vh;
-  background-color: #E8F1E7;
+  background-color: #2e7d32; /* Dark green background */
   position: fixed;
   top: 0;
   left: 0;
@@ -36,7 +36,7 @@
 }
 
 .sidebar .logo img {
-  width: 150px;
+  width: 140px;
   height: auto;
 }
 
@@ -51,7 +51,7 @@ nav ul {
   align-items: center;
   gap: 10px;
   padding: 13px 0px;
-  color: black;
+  color: rgb(255, 255, 255); /* White text color */
   text-decoration: none;
   font-weight: 600;
   border-radius: 20px;
@@ -63,22 +63,21 @@ nav ul {
 }
 
 .navlist li a:hover {
-  background-color: #cdddcf;
+  background-color: #8fce93; /* Hover background color */
 }
 
 .navlist li.active a {
-  background-color: #4c7029;
+  background-color: #87b857; /* Active link background color */
   color: white;
   font-weight: 700;
 }
 
-/* Hamburger menu styles - always visible */
 .hamburger-menu {
   position: fixed;
   top: 20px;
   left: 20px;
   z-index: 1001;
-  background: #4c7029;
+  background: #2e7d32; /* hamburger background color */
   border: none;
   border-radius: 4px;
   padding: 10px;
@@ -100,7 +99,6 @@ nav ul {
   transition: 0.3s;
 }
 
-/* Close drawer button - always visible */
 .close-drawer {
   position: absolute;
   top: 10px;
@@ -117,7 +115,6 @@ nav ul {
   justify-content: center;
 }
 
-/* Drawer overlay - always available */
 .drawer-overlay {
   position: fixed;
   top: 0;
@@ -129,10 +126,9 @@ nav ul {
   cursor: pointer;
 }
 
-/* Remove all media queries since drawer applies to all screen sizes */
 .logout-button {
   padding: 10px 20px;
-  background-color: #85af5c;
+  background-color: #2e7d32;
   color: white;
   border: none;
   border-radius: 8px;
@@ -140,5 +136,33 @@ nav ul {
 }
 
 .logout-button:hover {
-  background-color: #4c7029;
+  background-color: #89d636;
+}
+
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.theme-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-switch input:checked + .slider {
+  background-color: #4CAF50;
+  color: #ffd700;
 }

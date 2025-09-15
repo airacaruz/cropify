@@ -91,7 +91,7 @@
   width: 100%;
   max-width: 500px;
   border-radius: 10px;
-  box-shadow: 0 0 10px #333;
+  box-shadow: 10px 10px 40px #333;
   box-sizing: border-box;
 }
 
@@ -186,4 +186,81 @@
   background-color: #a5d6a7;
   color: white;
   font-weight: bold;
+}
+
+.news-item-card {
+  display: flex;
+  gap: 1.5rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(60,60,60,0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-start;
+}
+
+.news-media img,
+.news-media video {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+.news-content {
+  flex: 1;
+}
+
+.add-btn, .submit-btn {
+  background: #4CAF50;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cancel-btn {
+  background: #eee;
+  color: #333;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.modal-form {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(60,60,60,0.12);
+  max-width: 400px;
+  margin: 2rem auto;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.status-message {
+  margin-top: 1rem;
+  color: #4CAF50;
+}
+
+.view-content-link {
+  color: #2196F3;
+  text-decoration: underline;
+  font-size: 0.95rem;
 }

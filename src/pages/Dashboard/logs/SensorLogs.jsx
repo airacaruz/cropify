@@ -1,6 +1,7 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { FaCheckCircle, FaChevronDown, FaChevronUp, FaClock, FaCloudRain, FaCloudSun, FaFlask, FaList, FaMicrochip, FaTemperatureHigh, FaTimesCircle, FaTint, FaUser, FaWater } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
@@ -94,20 +95,22 @@ const SensorLogsPage = () => {
     <div className="user-records-container">
       <Navbar role={role} />
 
-      <h2>Sensor Logs</h2>
+      <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <FaMicrochip style={{ color: "#4CAF50" }} /> Sensor Logs
+      </h2>
 
       <div className="tab-buttons">
         <button
           className={activeTab === 'kits' ? 'active' : ''}
           onClick={() => setActiveTab('kits')}
         >
-          Sensor Kits
+          <FaList style={{ marginRight: 4 }} /> Sensor Kits
         </button>
         <button
           className={activeTab === 'sessions' ? 'active' : ''}
           onClick={() => setActiveTab('sessions')}
         >
-          Sensor Sessions
+          <FaFlask style={{ marginRight: 4 }} /> Sensor Sessions
         </button>
       </div>
 
@@ -116,27 +119,47 @@ const SensorLogsPage = () => {
         <table className="records-table">
           <thead>
             <tr>
-              <th>Sensor Kit ID</th>
-              <th>Is Active</th>
-              <th>UID</th>
+              <th><FaMicrochip /> Sensor Kit ID</th>
+              <th><FaCheckCircle /> Is Active</th>
+              <th><FaUser /> UID</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {sensorKits.map((kit, index) => (
               <React.Fragment key={index}>
                 <tr onClick={() => toggleKitExpand(index)} className="hoverable-row">
-                  <td><span className="menu-icon">⋮</span> {kit.id}</td>
-                  <td>{kit.isActive ? 'Yes' : 'No'}</td>
+                  <td>
+                    <span className="menu-icon">⋮</span> {kit.id}
+                  </td>
+                  <td>
+                    {kit.isActive
+                      ? <span style={{ color: "#4CAF50", fontWeight: "bold" }}><FaCheckCircle /> Yes</span>
+                      : <span style={{ color: "#F44336", fontWeight: "bold" }}><FaTimesCircle /> No</span>
+                    }
+                  </td>
                   <td>{kit.uid}</td>
+                  <td>
+                    {expandedKitRow === index
+                      ? <FaChevronUp />
+                      : <FaChevronDown />}
+                  </td>
                 </tr>
                 {expandedKitRow === index && (
                   <tr className="expanded-row">
-                    <td colSpan="3">
+                    <td colSpan="4">
                       <div className="view-only-details">
-                        <p><strong>Sensor Kit ID:</strong> {kit.id}</p>
-                        <p><strong>Active:</strong> {kit.isActive ? 'Yes' : 'No'}</p>
-                        <p><strong>UID:</strong> {kit.uid}</p>
-                        <button onClick={() => setExpandedKitRow(null)}>Close</button>
+                        <p><FaMicrochip /> <strong>Sensor Kit ID:</strong> {kit.id}</p>
+                        <p>
+                          {kit.isActive
+                            ? <span style={{ color: "#4CAF50" }}><FaCheckCircle /> Active</span>
+                            : <span style={{ color: "#F44336" }}><FaTimesCircle /> Inactive</span>
+                          }
+                        </p>
+                        <p><FaUser /> <strong>UID:</strong> {kit.uid}</p>
+                        <button className="close-btn" onClick={() => setExpandedKitRow(null)}>
+                          <FaTimesCircle style={{ marginRight: 4 }} /> Close
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -152,15 +175,16 @@ const SensorLogsPage = () => {
         <table className="records-table">
           <thead>
             <tr>
-              <th>Sensor Kit ID</th>
-              <th>UID</th>
-              <th>Sensor Type</th>
-              <th>pH</th>
-              <th>TDS (ppm)</th>
-              <th>Water Temp (°C)</th>
-              <th>Air Temp (°C)</th>
-              <th>Humidity (%)</th>
-              <th>Timestamp</th>
+              <th><FaMicrochip /> Sensor Kit ID</th>
+              <th><FaUser /> UID</th>
+              <th><FaFlask /> Sensor Type</th>
+              <th><FaTint /> pH</th>
+              <th><FaWater /> TDS (ppm)</th>
+              <th><FaTemperatureHigh /> Water Temp (°C)</th>
+              <th><FaCloudSun /> Air Temp (°C)</th>
+              <th><FaCloudRain /> Humidity (%)</th>
+              <th><FaClock /> Timestamp</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -176,21 +200,28 @@ const SensorLogsPage = () => {
                   <td>{session.airTemp}</td>
                   <td>{session.humidity}</td>
                   <td>{session.timestamp}</td>
+                  <td>
+                    {expandedSessionRow === index
+                      ? <FaChevronUp />
+                      : <FaChevronDown />}
+                  </td>
                 </tr>
                 {expandedSessionRow === index && (
                   <tr className="expanded-row">
-                    <td colSpan="9">
+                    <td colSpan="10">
                       <div className="view-only-details">
-                        <p><strong>Sensor Kit ID:</strong> {session.skid}</p>
-                        <p><strong>User ID:</strong> {session.uid}</p>
-                        <p><strong>Sensor Type:</strong> {session.sensorType}</p>
-                        <p><strong>pH:</strong> {session.ph}</p>
-                        <p><strong>TDS:</strong> {session.tds} ppm</p>
-                        <p><strong>Water Temp:</strong> {session.waterTemp} °C</p>
-                        <p><strong>Air Temp:</strong> {session.airTemp} °C</p>
-                        <p><strong>Humidity:</strong> {session.humidity} %</p>
-                        <p><strong>Timestamp:</strong> {session.timestamp}</p>
-                        <button onClick={() => setExpandedSessionRow(null)}>Close</button>
+                        <p><FaMicrochip /> <strong>Sensor Kit ID:</strong> {session.skid}</p>
+                        <p><FaUser /> <strong>User ID:</strong> {session.uid}</p>
+                        <p><FaFlask /> <strong>Sensor Type:</strong> {session.sensorType}</p>
+                        <p><FaTint /> <strong>pH:</strong> {session.ph}</p>
+                        <p><FaWater /> <strong>TDS:</strong> {session.tds} ppm</p>
+                        <p><FaTemperatureHigh /> <strong>Water Temp:</strong> {session.waterTemp} °C</p>
+                        <p><FaCloudSun /> <strong>Air Temp:</strong> {session.airTemp} °C</p>
+                        <p><FaCloudRain /> <strong>Humidity:</strong> {session.humidity} %</p>
+                        <p><FaClock /> <strong>Timestamp:</strong> {session.timestamp}</p>
+                        <button className="close-btn" onClick={() => setExpandedSessionRow(null)}>
+                          <FaTimesCircle style={{ marginRight: 4 }} /> Close
+                        </button>
                       </div>
                     </td>
                   </tr>

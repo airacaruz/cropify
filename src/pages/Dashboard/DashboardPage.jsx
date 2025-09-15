@@ -4,26 +4,34 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useEffect, useState } from 'react';
+import {
+    FaCloudRain,
+    FaCloudSun,
+    FaTemperatureHigh,
+    FaTint,
+    FaUserPlus,
+    FaWater
+} from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
-import LogoutButton from '../../components/LogoutButton';
-import Navbar from '../../components/Navbar';
-import { auth, db } from '../../firebase';
-
-import '../../styles/DashboardPage.css';
-
 import {
     Bar,
     BarChart,
     CartesianGrid,
+    Cell,
     Line,
     LineChart,
+    Pie,
+    PieChart,
     ResponsiveContainer,
     Tooltip,
     XAxis,
-    YAxis,
+    YAxis
 } from 'recharts';
+import LogoutButton from '../../components/LogoutButton';
+import Navbar from '../../components/Navbar';
+import { auth, db } from '../../firebase';
+import '../../styles/DashboardPage.css';
 
-// ---------------- PDF + Insights ----------------
 function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsers) {
     const insights = [];
     if (parseFloat(kpiData.newUsersTrend) < 0) {
@@ -54,11 +62,11 @@ const exportChartsAndPrescriptivePDF = async ({
     totalUsers,
     prescriptiveInsights,
     sensorKpiCards,
-    sensorChartData
+    sensorChartData,
+    plantTypeData
 }) => {
     const doc = new jsPDF();
 
-    // Helper to export chart images by element id
     async function getChartImage(chartId) {
         const chartElement = document.getElementById(chartId);
         if (chartElement) {
@@ -68,24 +76,23 @@ const exportChartsAndPrescriptivePDF = async ({
         return null;
     }
 
-    // List of chart IDs and titles
     const chartList = [
         { id: 'chart-new-users', title: 'Monthly New User Acquisition' },
         { id: 'chart-active-users', title: 'Monthly Active Users' },
         { id: 'chart-ph', title: 'pH Over Time' },
         { id: 'chart-tds', title: 'TDS (ppm) Over Time' },
         { id: 'chart-water-temp', title: 'Water Temperature (°C) Over Time' },
+        { id: 'chart-air-temp', title: 'Air Temperature (°C) Over Time' },
         { id: 'chart-humidity', title: 'Humidity (%) Over Time' },
+        { id: 'chart-plant-types', title: 'Hydroponic Plant Types Distribution' },
     ];
 
-    // Get all chart images
     const chartImages = [];
     for (let i = 0; i < chartList.length; i++) {
         const img = await getChartImage(chartList[i].id);
         chartImages.push({ ...chartList[i], img });
     }
 
-    // Add charts to PDF, 3 per page (pages 1 and 2)
     let chartIdx = 0;
     while (chartIdx < chartImages.length) {
         if (chartIdx > 0) doc.addPage();
@@ -110,7 +117,6 @@ const exportChartsAndPrescriptivePDF = async ({
         chartIdx += 3;
     }
 
-    // 3rd page: Prescriptive Insights only
     doc.addPage();
     doc.setFontSize(18);
     doc.text('Prescriptive Insights', 14, 18);
@@ -119,12 +125,10 @@ const exportChartsAndPrescriptivePDF = async ({
         doc.text(`- ${insight}`, 16, 28 + idx * 10);
     });
 
-    // 4th page: Prescriptive Analytics & KPIs Tables (User KPIs, Sensor KPIs, Sensor Data Sessions, Monthly New User)
     doc.addPage();
     doc.setFontSize(18);
     doc.text('Prescriptive Analytics & KPIs', 14, 18);
 
-    // User KPIs Table
     doc.setFontSize(14);
     doc.text('User KPIs:', 14, 28);
     autoTable(doc, {
@@ -140,7 +144,6 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    // Sensor KPIs Table
     doc.text('Sensor KPIs:', 14, doc.lastAutoTable.finalY + 10);
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 14,
@@ -151,16 +154,16 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    // Sensor Data Sessions Table
     doc.text('Sensor Data Sessions:', 14, doc.lastAutoTable.finalY + 10);
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 14,
-        head: [['Timestamp', 'pH', 'TDS', 'Water Temp', 'Humidity']],
+        head: [['Timestamp', 'pH', 'TDS', 'Water Temp', 'Air Temp', 'Humidity']],
         body: sensorChartData.map(row => [
             row.timestamp,
             row.ph,
             row.tds,
             row.waterTemp,
+            row.airTemp,
             row.humidity
         ]),
         theme: 'grid',
@@ -168,7 +171,6 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    // Monthly New User Acquisition Table
     doc.text('Monthly New User Acquisition:', 14, doc.lastAutoTable.finalY + 10);
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 14,
@@ -179,22 +181,37 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    // Optionally, add the Monthly New User Acquisition graph below the table
-    const newUserChart = chartImages.find(chart => chart.id === 'chart-new-users');
-    if (newUserChart && newUserChart.img) {
+    // Add plant type pie chart results as a table
+    doc.text('Hydroponic Plant Types Distribution:', 14, doc.lastAutoTable.finalY + 10);
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 14,
+        head: [['Plant Type', 'Count']],
+        body: plantTypeData.map(row => [row.name, row.value]),
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        margin: { left: 14, right: 14 }
+    });
+
+    const plantTypeChart = chartImages.find(chart => chart.id === 'chart-plant-types');
+    if (plantTypeChart && plantTypeChart.img) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const chartHeight = 65;
         const chartWidth = pageWidth - 30;
         let y = doc.lastAutoTable.finalY + 20;
         doc.setFontSize(12);
-        doc.text('Monthly New User Acquisition Trend (Graph)', 14, y);
-        doc.addImage(newUserChart.img, 'PNG', 14, y + 4, chartWidth, chartHeight);
+        doc.text('Hydroponic Plant Types Distribution (Pie Chart)', 14, y);
+        doc.addImage(plantTypeChart.img, 'PNG', 14, y + 4, chartWidth, chartHeight);
     }
 
     doc.save('Cropify_Prescriptive_Report.pdf');
 };
 
-// ---------------- Dashboard ----------------
+const hardcodedPlantTypes = [
+    { name: "Lettuce", value: 4 },
+    { name: "Tomato", value: 1 }
+];
+const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#009688', '#9C27B0'];
+
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [role, setRole] = useState(null); 
@@ -202,14 +219,14 @@ const Dashboard = () => {
     const [uid, setUid] = useState(null); 
     const navigate = useNavigate();
 
-    // Analytics data
     const [newUsersData, setNewUsersData] = useState([]);
     const [dailyActiveUsersData, setDailyActiveUsersData] = useState([]);
     const [kpiData, setKpiData] = useState({ newUsersCount: 0, newUsersTrend: '0%' });
     const [activeUsersCount, setActiveUsersCount] = useState(0);
 
-    // Sensor data state
     const [sensorSessions, setSensorSessions] = useState([]);
+    const [plantTypeData, setPlantTypeData] = useState([]);
+
     const hardcodedSessions = [
         {
             id: 'demo1',
@@ -241,8 +258,9 @@ const Dashboard = () => {
     ];
 
     useEffect(() => {
-        const storedName = localStorage.getItem("adminName");
-        setAdminName(storedName || "Admin");
+        const storedName = localStorage.getItem("adminName") || "";
+        const cleanName = storedName.replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
+        setAdminName(cleanName || "Admin");
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -275,7 +293,8 @@ const Dashboard = () => {
                         const data = doc.data();
                         const userRole = (data.role || "unknown").toLowerCase();
                         setRole(userRole);
-                        setAdminName(data.name || "Admin");
+                        const cleanName = (data.name || "Admin").replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
+                        setAdminName(cleanName);
                     });
                 } else {
                     setRole("unknown");
@@ -388,14 +407,29 @@ const Dashboard = () => {
                     humidity: data.humidity,
                 };
             });
-            // Combine Firestore and hardcoded sessions
             const allSessions = [...sessions, ...hardcodedSessions];
             allSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             setSensorSessions(allSessions);
 
+            // Fetch plant types for pie chart
+            const plantSnapshot = await getDocs(collection(db, 'plants'));
+            const typeCounts = {};
+            plantSnapshot.forEach(doc => {
+                const kind = doc.data().kind || 'Unknown';
+                typeCounts[kind] = (typeCounts[kind] || 0) + 1;
+            });
+            hardcodedPlantTypes.forEach(hard => {
+                typeCounts[hard.name] = (typeCounts[hard.name] || 0) + hard.value;
+            });
+            const pieData = Object.entries(typeCounts).map(([kind, count]) => ({
+                name: kind,
+                value: count,
+            }));
+            setPlantTypeData(pieData);
+
         } catch (error) {
-            console.error("Error fetching analytics data:", error);
             setSensorSessions(hardcodedSessions);
+            setPlantTypeData(hardcodedPlantTypes);
         }
     };
 
@@ -405,7 +439,6 @@ const Dashboard = () => {
         return <div className="loading-container"><p>Loading...</p></div>;
     }
 
-    // Prepare sensor data for charts and cards
     const sensorChartData = sensorSessions.map(session => ({
         timestamp: session.timestamp,
         ph: session.ph,
@@ -421,30 +454,34 @@ const Dashboard = () => {
             title: "Latest pH",
             value: latestSensor.ph ?? "—",
             context: "Most recent pH reading",
+            icon: <FaTint color="#4CAF50" size={24} />,
         },
         {
             title: "Latest TDS (ppm)",
             value: latestSensor.tds ?? "—",
             context: "Most recent TDS reading",
+            icon: <FaWater color="#2196F3" size={24} />,
         },
         {
             title: "Latest Water Temp (°C)",
             value: latestSensor.waterTemp ?? "—",
             context: "Most recent water temperature",
+            icon: <FaTemperatureHigh color="#FF9800" size={24} />,
         },
         {
             title: "Latest Air Temp (°C)",
             value: latestSensor.airTemp ?? "—",
             context: "Most recent air temperature",
+            icon: <FaCloudSun color="#F44336" size={24} />,
         },
         {
             title: "Latest Humidity (%)",
             value: latestSensor.humidity ?? "—",
             context: "Most recent humidity reading",
+            icon: <FaCloudRain color="#009688" size={24} />,
         },
     ];
 
-    // ---------------- UI ----------------
     return (
         <div className="dashboard-container">
             <Navbar role={role} />
@@ -453,7 +490,7 @@ const Dashboard = () => {
                 <h2 className="dashboard-main-title">Dashboard</h2>
                 <div className="dashboard-profile-actions">
                     <span className="dashboard-admin-name">
-                        {adminName} 
+                        {adminName}
                     </span>
                     <LogoutButton />
                 </div>
@@ -476,10 +513,12 @@ const Dashboard = () => {
 
             {(role === "superadmin" || role === "admin") && (
                 <div className="dashboard-analytics-section">
-                    {/* User KPIs */}
                     <div className="kpi-cards-container">
                         <div className="kpi-card">
-                            <h4 className="kpi-card-title">New Users (Current Month)</h4>
+                            <h4 className="kpi-card-title">
+                                <FaUserPlus color="#4CAF50" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                                New Users (Current Month)
+                            </h4>
                             <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
                             <p className="kpi-trend">
                                 <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
@@ -488,17 +527,18 @@ const Dashboard = () => {
                                 vs. last month
                             </p>
                         </div>
-                        {/* Sensor KPI Cards */}
                         {sensorKpiCards.map((kpi, idx) => (
                             <div className="kpi-card" key={idx}>
-                                <h4 className="kpi-card-title">{kpi.title}</h4>
+                                <h4 className="kpi-card-title">
+                                    {kpi.icon}
+                                    <span style={{ marginLeft: 8 }}>{kpi.title}</span>
+                                </h4>
                                 <h1 className="kpi-value">{kpi.value}</h1>
                                 <p className="kpi-context">{kpi.context}</p>
                             </div>
                         ))}
                     </div>
 
-                    {/* Charts */}
                     <div id="charts-container" className="charts-container">
                         <div className="chart-card" id="chart-active-users">
                             <h2 className="chart-title">Monthly Active Users</h2>
@@ -511,6 +551,53 @@ const Dashboard = () => {
                                     <Bar dataKey="users" fill="#4CAF50" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
+                        </div>
+
+                        <div className="chart-card pie-card-layout" id="chart-plant-types">
+                            <div>
+                                <h2 className="chart-title">Hydroponic Plant Types Distribution</h2>
+                                <p className="chart-summary">
+                                    Distribution of hydroponic plant types input by users.
+                                </p>
+                            </div>
+                            <div className="pie-center">
+                                <PieChart width={300} height={300}>
+                                    <Pie
+                                        data={plantTypeData}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={100}
+                                        label
+                                    >
+                                        {plantTypeData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </div>
+                            <div className="pie-list">
+                                <h3 style={{ marginBottom: 10 }}>Plant Types</h3>
+                                <ul style={{ listStyle: "none", padding: 0 }}>
+                                    {plantTypeData.map((entry, idx) => (
+                                        <li key={entry.name} style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                                            <span
+                                                style={{
+                                                    display: "inline-block",
+                                                    width: 16,
+                                                    height: 16,
+                                                    background: COLORS[idx % COLORS.length],
+                                                    borderRadius: "50%",
+                                                    marginRight: 8,
+                                                }}
+                                            ></span>
+                                            <span style={{ fontWeight: 500 }}>{entry.name}</span>
+                                            <span style={{ marginLeft: "auto", fontWeight: 700 }}>{entry.value}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         </div>
 
                         <div className="chart-card" id="chart-ph">
@@ -573,7 +660,6 @@ const Dashboard = () => {
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                        {/* Monthly New User Acquisition graph moved below sensor data session */}
                         <div className="chart-card" id="chart-new-users">
                             <h2 className="chart-title">Monthly New User Trend</h2>
                             <ResponsiveContainer width="100%" height={300}>
@@ -593,7 +679,6 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    {/* Export PDF */}
                     <div style={{ textAlign: 'right', marginTop: '2rem' }}>
                         <button
                             style={{
@@ -611,7 +696,8 @@ const Dashboard = () => {
                                     totalUsers: "...",
                                     prescriptiveInsights,
                                     sensorKpiCards,
-                                    sensorChartData
+                                    sensorChartData,
+                                    plantTypeData
                                 })
                             }
                         >

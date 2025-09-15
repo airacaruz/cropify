@@ -1,26 +1,24 @@
-/* src/styles/UserRecordsPage.css */
-
 .user-records-container {
   padding: 40px;
-  width: 1000px; /* Adjust as needed, consider responsiveness */
+  width: 1000px;
   min-height: 100vh;
-  margin: 0 auto; /* Center the container */
-  font-family: 'Inter', sans-serif; /* Ensure font is consistent */
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
   color: #333;
 }
 
 h2 {
-  color: #2e7d32; /* Green color from AdminRecordsPage.css */
+  color: #2e7d32;
   font-size: 40px;
   font-weight: bold;
   text-align: left;
-  padding-bottom: 20px; /* User's specified padding */
-  margin: 0; /* Reset margin to ensure padding-bottom works as expected */
+  padding-bottom: 20px;
+  margin: 0;
 }
 
 .tab-buttons {
   display: flex;
-  justify-content: left; /* Aligns buttons to the left */
+  justify-content: left;
   margin-bottom: 20px;
   gap: 10px;
 }
@@ -28,28 +26,25 @@ h2 {
 .tab-buttons button {
   padding: 10px 20px;
   border: none;
-  background-color: #eee; /* User's specified background */
+  background-color: #eee;
   cursor: pointer;
-  border-radius: 8px; /* Rounded corners for consistency */
-  font-size: 16px; /* Consistent font size */
+  border-radius: 8px;
+  font-size: 16px;
   transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
-  border: 1px solid #bdc3c7; /* Added border for consistency */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #bdc3c7;
 }
 
 .tab-buttons button:hover {
-  background-color: #dfe6e9; /* Lighter grey on hover */
+  background-color: #dfe6e9;
 }
 
 .tab-buttons button.active {
-  background-color: #2e7d32; /* Green for active tab, similar to add-btn in admin */
+  background-color: #2e7d32;
   color: white;
   border-color: #2e7d32;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* More prominent shadow for active */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
-
-/* General table styles (for Session, Screen, AND outer Plant Logs table) */
-
 
 .records-table {
   width: 100%;
@@ -59,122 +54,115 @@ h2 {
 .records-table th,
 .records-table td {
   padding: 12px 16px;
-  border: 1px solid #a5d6a7; /* Border color from admin table */
+  border: 1px solid #a5d6a7;
   text-align: left;
 }
 
 .records-table th {
-  background-color: #2e7d32; /* Dark green from admin table header */
+  background-color: #2e7d32;
   color: #fff;
-  text-transform: uppercase; /* Match admin table headers */
+  text-transform: uppercase;
   font-size: 14px;
 }
 
 .records-table tbody tr:nth-child(even) {
-  background-color: #f1f8e9; /* Even row background from admin table */
+  background-color: #f1f8e9;
 }
 
 .records-table tbody tr:hover {
-  background-color: #e6f0e6; /* Lighter green on hover for table rows */
+  background-color: #e6f0e6;
 }
 
-/* Plant Logs Section (Outer container for the nested structure) */
 .plant-logs-section {
-  /* This container now just holds the table-wrapper, no direct background/shadow */
   margin-top: 20px;
 }
 
 .plant-logs-section h3 {
-    color: #2e7d32; /* Dark green for section title */
+    color: #2e7d32;
     margin-bottom: 20px;
     font-size: 28px;
     text-align: center;
 }
 
-/* Styles for expandable table rows (both outer and inner tables) */
 .hoverable-row {
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .expand-cell {
-    width: 30px; /* Fixed width for icon column */
-    text-align: center;
-    /* Ensure the content (arrow) is aligned to the left within this cell */
-    padding-left: 5px; /* Adjust as needed for spacing */
-    padding-right: 5px; /* Adjust as needed for spacing */
-}
-
-.expand-cell-header { /* For the header of the expand icon column */
     width: 30px;
     text-align: center;
-    padding-left: 5px; /* Adjust as needed for spacing */
-    padding-right: 5px; /* Adjust as needed for spacing */
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.expand-cell-header {
+    width: 30px;
+    text-align: center;
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 .expand-icon {
     font-size: 1.2em;
-    color: #2e7d32; /* Dark green for icon */
-    display: block; /* Ensures it takes up full cell space for centering */
-    text-align: left; /* Aligns the arrow to the left within its cell */
+    color: #2e7d32;
+    display: block;
+    text-align: left;
 }
 
 .menu-icon {
     font-weight: bold;
-    margin-right: 6px; /* Space between icon and text */
-    color: #4c9f4c; /* Green color for the dots */
-    font-size: 1.2em; /* Make it slightly larger if needed */
-    display: inline-block; /* Ensure it behaves like text */
+    margin-right: 6px;
+    color: #4c9f4c;
+    font-size: 1.2em;
+    display: inline-block;
 }
 
 .expanded-row td {
     background-color: #f9f9f9;
-    padding: 0; /* Remove padding from this cell to control inner content's padding */
-    border-top: 2px solid #2e7d32; /* Separator for expanded content */
+    padding: 0;
+    border-top: 2px solid #2e7d32;
 }
 
-/* Styles for the inner table wrapper and inner table */
 .inner-table-wrapper {
-    padding: 15px; /* Padding inside the expanded row */
-    background-color: #f9f9f9; /* Background for the expanded area */
-    border-radius: 8px; /* Rounded corners for the inner content */
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.05); /* Subtle inner shadow */
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
 }
 
 .inner-records-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 0; /* Remove default margin-top */
-    border-radius: 8px; /* Rounded corners for the inner table */
-    overflow: hidden; /* Ensures border-radius applies */
-    box-shadow: none; /* Remove outer shadow for inner table */
+    margin-top: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: none;
 }
 
 .inner-records-table th,
 .inner-records-table td {
-    padding: 10px 12px; /* Slightly less padding for inner table */
-    border: 1px solid #d4edda; /* Lighter border for inner table */
+    padding: 10px 12px;
+    border: 1px solid #d4edda;
 }
 
 .inner-records-table th {
-    background-color: #4CAF50; /* A slightly different green for inner header */
+    background-color: #4CAF50;
     color: white;
 }
 
 .inner-records-table tbody tr:nth-child(even) {
-    background-color: #e8f5e9; /* Lighter even row background for inner table */
+    background-color: #e8f5e9;
 }
 
 .inner-records-table tbody tr:hover {
-    background-color: #d4edda; /* Lighter hover for inner table rows */
+    background-color: #d4edda;
 }
 
-
-/* Styles for displaying plant details within the expanded row */
 .plant-details-display {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px 30px; /* Vertical and horizontal gap */
+    gap: 15px 30px;
     padding: 10px;
     background-color: #ffffff;
     border-radius: 8px;
@@ -184,11 +172,9 @@ h2 {
 
 .plant-details-display p {
     margin: 0;
-    /* Enforce two columns by setting flex-basis to just under 50%
-       and letting gap handle the spacing */
-    flex: 1 1 calc(50% - 15px); /* 50% minus half of the horizontal gap (30px / 2 = 15px) */
-    box-sizing: border-box; /* Include padding and border in the element's total width and height */
-    min-width: 200px; /* Ensure readability on smaller columns */
+    flex: 1 1 calc(50% - 15px);
+    box-sizing: border-box;
+    min-width: 200px;
     color: #555;
     font-size: 0.95em;
 }
@@ -196,4 +182,60 @@ h2 {
 .plant-details-display strong {
     color: #333;
     margin-right: 5px;
+}
+
+.tab-buttons button {
+  background: #f5f5f5;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.2rem;
+  margin-right: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s;
+}
+.tab-buttons .active {
+  background: #4CAF50;
+  color: #fff;
+}
+
+.close-btn {
+  background: #eee;
+  color: #333;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.close-btn:hover {
+  background: #bdbdbd;
+}
+
+.expanded-row .view-only-details {
+  background: #fafafa;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(60,60,60,0.08);
+  padding: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.records-table th, .records-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.hoverable-row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.hoverable-row:hover {
+  background: #f1f8e9;
 }

@@ -1,5 +1,6 @@
 import { collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { FaPlus, FaSave, FaTimes, FaTrashAlt, FaUserEdit, FaUserShield } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import LogoutButton from '../../components/LogoutButton';
 import Navbar from '../../components/Navbar';
@@ -30,7 +31,9 @@ const ManageAdmin = () => {
               querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 setRole((data.role || "unknown").toLowerCase());
-                setAdminName(data.name || "Admin");
+                // Remove (superadmin) and (admin) from the name
+                const cleanName = (data.name || "Admin").replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
+                setAdminName(cleanName);
               });
             } else {
               setRole("unknown");
@@ -116,7 +119,9 @@ const ManageAdmin = () => {
     <div className="user-records-container">
       <Navbar role={role} />
       <header className="dashboard-topbar">
-        <h2 className="dashboard-main-title">Manage Admin</h2>
+        <h2 className="dashboard-main-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <FaUserShield style={{ color: "#4CAF50" }} /> Manage Admin
+        </h2>
         <div className="dashboard-profile-actions">
           <span className="dashboard-admin-name">{adminName}</span>
           <LogoutButton />
@@ -124,7 +129,9 @@ const ManageAdmin = () => {
       </header>
       <div className="header">
         <div className="header-buttons">
-          <button className="add-btn" onClick={() => navigate('/register')}>Add Admin</button>
+          <button className="add-btn" onClick={() => navigate('/register')}>
+            <FaPlus style={{ marginRight: 4 }} /> Add Admin
+          </button>
         </div>
       </div>
       <div className="table-wrapper">
@@ -134,15 +141,34 @@ const ManageAdmin = () => {
               <th>Admin ID</th>
               <th>Name</th>
               <th>Role</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {admins.map(admin => (
               <React.Fragment key={admin.id}>
                 <tr onClick={() => toggleExpand(admin.id, admin)} className="hoverable-row">
-                  <td><span className="menu-icon">⋮</span> {admin.id}</td>
+                  <td>
+                    <span className="menu-icon">⋮</span> {admin.id}
+                  </td>
                   <td>{admin.name || 'N/A'}</td>
                   <td>{admin.role || 'N/A'}</td>
+                  <td>
+                    <button
+                      className="edit-btn"
+                      title="Edit"
+                      onClick={(e) => { e.stopPropagation(); toggleExpand(admin.id, admin); }}
+                    >
+                      <FaUserEdit />
+                    </button>
+                    <button
+                      className="delete-btn"
+                      title="Delete"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(admin.id); }}
+                    >
+                      <FaTrashAlt />
+                    </button>
+                  </td>
                 </tr>
                 {expandedRow === admin.id && (
                   <tr className="expanded-row">
@@ -165,11 +191,12 @@ const ManageAdmin = () => {
                         />
 
                         <div className="action-buttons">
-                          <div className="left-buttons">
-                            <button className="save-btn" onClick={() => handleSave(admin.id)}>Save</button>
-                            <button onClick={() => setExpandedRow(null)}>Cancel</button>
-                          </div>
-                          <button className="delete-btn" onClick={() => handleDelete(admin.id)}>Delete User</button>
+                          <button className="save-btn" onClick={() => handleSave(admin.id)}>
+                            <FaSave style={{ marginRight: 4 }} /> Save
+                          </button>
+                          <button className="cancel-btn" onClick={() => setExpandedRow(null)}>
+                            <FaTimes style={{ marginRight: 4 }} /> Cancel
+                          </button>
                         </div>
                       </div>
                     </td>
