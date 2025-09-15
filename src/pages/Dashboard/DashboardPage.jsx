@@ -75,7 +75,6 @@ const exportChartsAndPrescriptivePDF = async ({
         { id: 'chart-ph', title: 'pH Over Time' },
         { id: 'chart-tds', title: 'TDS (ppm) Over Time' },
         { id: 'chart-water-temp', title: 'Water Temperature (°C) Over Time' },
-        { id: 'chart-air-temp', title: 'Air Temperature (°C) Over Time' },
         { id: 'chart-humidity', title: 'Humidity (%) Over Time' },
     ];
 
@@ -111,14 +110,23 @@ const exportChartsAndPrescriptivePDF = async ({
         chartIdx += 3;
     }
 
-    // 3rd page: Prescriptive Analytics & KPIs Tables
+    // 3rd page: Prescriptive Insights only
+    doc.addPage();
+    doc.setFontSize(18);
+    doc.text('Prescriptive Insights', 14, 18);
+    doc.setFontSize(12);
+    prescriptiveInsights.forEach((insight, idx) => {
+        doc.text(`- ${insight}`, 16, 28 + idx * 10);
+    });
+
+    // 4th page: Prescriptive Analytics & KPIs Tables (User KPIs, Sensor KPIs, Sensor Data Sessions, Monthly New User)
     doc.addPage();
     doc.setFontSize(18);
     doc.text('Prescriptive Analytics & KPIs', 14, 18);
 
+    // User KPIs Table
     doc.setFontSize(14);
     doc.text('User KPIs:', 14, 28);
-
     autoTable(doc, {
         startY: 32,
         head: [['Metric', 'Value']],
@@ -132,6 +140,7 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
+    // Sensor KPIs Table
     doc.text('Sensor KPIs:', 14, doc.lastAutoTable.finalY + 10);
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 14,
@@ -142,20 +151,16 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    // 4th page: Sensor Data Sessions Table, then Monthly New User Acquisition Table, then the graph
-    doc.addPage();
-    doc.setFontSize(18);
-    doc.text('Sensor Data Sessions', 14, 18);
-
+    // Sensor Data Sessions Table
+    doc.text('Sensor Data Sessions:', 14, doc.lastAutoTable.finalY + 10);
     autoTable(doc, {
-        startY: 22,
-        head: [['Timestamp', 'pH', 'TDS', 'Water Temp', 'Air Temp', 'Humidity']],
+        startY: doc.lastAutoTable.finalY + 14,
+        head: [['Timestamp', 'pH', 'TDS', 'Water Temp', 'Humidity']],
         body: sensorChartData.map(row => [
             row.timestamp,
             row.ph,
             row.tds,
             row.waterTemp,
-            row.airTemp,
             row.humidity
         ]),
         theme: 'grid',
@@ -163,7 +168,8 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    doc.text('Monthly New User', 14, doc.lastAutoTable.finalY + 10);
+    // Monthly New User Acquisition Table
+    doc.text('Monthly New User Acquisition:', 14, doc.lastAutoTable.finalY + 10);
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 14,
         head: [['Month', 'New Users']],
@@ -173,7 +179,7 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    // Add the Monthly New User Acquisition graph below the table
+    // Optionally, add the Monthly New User Acquisition graph below the table
     const newUserChart = chartImages.find(chart => chart.id === 'chart-new-users');
     if (newUserChart && newUserChart.img) {
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -181,18 +187,9 @@ const exportChartsAndPrescriptivePDF = async ({
         const chartWidth = pageWidth - 30;
         let y = doc.lastAutoTable.finalY + 20;
         doc.setFontSize(12);
-        doc.text('Monthly New User Trend (Graph)', 14, y);
+        doc.text('Monthly New User Acquisition Trend (Graph)', 14, y);
         doc.addImage(newUserChart.img, 'PNG', 14, y + 4, chartWidth, chartHeight);
     }
-
-    // 5th page: Prescriptive Insights
-    doc.addPage();
-    doc.setFontSize(18);
-    doc.setFontSize(12);
-    doc.text('Prescriptive Insights', 14, 18);
-    prescriptiveInsights.forEach((insight, idx) => {
-        doc.text(`- ${insight}`, 16, 28 + idx * 10);
-    });
 
     doc.save('Cropify_Prescriptive_Report.pdf');
 };
@@ -456,7 +453,7 @@ const Dashboard = () => {
                 <h2 className="dashboard-main-title">Dashboard</h2>
                 <div className="dashboard-profile-actions">
                     <span className="dashboard-admin-name">
-                        {adminName} ({role})
+                        {adminName} 
                     </span>
                     <LogoutButton />
                 </div>

@@ -1,19 +1,15 @@
-// Import the functions you need from the SDKs you need
+import { getAnalytics, logEvent } from "firebase/analytics";
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-
-
-
-import { getAnalytics, logEvent } from "firebase/analytics"; // ✅ FIXED
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDw76Wvqrckyz3jD7iscPHixaJ-I2M0r9Y",
   authDomain: "cropify-8e68d.firebaseapp.com",
   projectId: "cropify-8e68d",
-  storageBucket: "cropify-8e68d.firebasestorage.app",
+  storageBucket: "cropify-8e68d.appspot.com", // <-- FIXED: should be .appspot.com
   messagingSenderId: "781285242880",
   appId: "1:781285242880:web:b42465242f97da0adcc0e5"
 };
@@ -21,13 +17,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize services
-const db = getFirestore(app);
 const auth = getAuth(app);
-const analytics = getAnalytics(app); // ✅ Works now
+const db = getFirestore(app);
+const analytics = getAnalytics(app);
+const storage = getStorage(app);
 
-// Exports
-export { app, db, auth, analytics, logEvent };
-
-export const storage = getStorage(app);
-
+export { analytics, app, auth, db, logEvent, storage };

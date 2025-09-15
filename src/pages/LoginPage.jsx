@@ -2,13 +2,15 @@ import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { collection, getDocs, getFirestore, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import cropifyLogo from "../assets/images/cropifylogo.png"; // Make sure this path is correct
+import cropifyLogo from "../assets/images/cropifylogo.png";
 import { app } from "../firebase";
 import "../styles/LoginPage.css";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const auth = getAuth(app);
@@ -22,6 +24,8 @@ function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage("");
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -31,16 +35,19 @@ function LoginPage() {
       if (!querySnapshot.empty) {
         const adminData = querySnapshot.docs[0].data();
         const name = adminData.name;
-        alert("Login successful!");
-        navigate("/dashboard");
+        // Instead of navigating directly to dashboard, go to MFA page
         localStorage.setItem("adminName", name);
+        setMessage("Login successful! Proceeding to verification...");
+        navigate("/login-mfa", { state: { email, password } });
       } else {
-        alert("Access denied: Not an admin.");
+        setMessage("Access denied: Not an admin.");
         await auth.signOut();
       }
     } catch (error) {
       console.error("Login error message:", error.message);
-      alert(error.message);
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,14 +71,19 @@ function LoginPage() {
               placeholder="Username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
             />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
             />
-            <button type="submit" className="login-btn">LOGIN</button>
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? "Logging in..." : "LOGIN"}
+            </button>
+            {message && <div className="login-message error">{message}</div>}
           </form>
         </div>
       </div>

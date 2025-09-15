@@ -14,13 +14,19 @@ import UserLogs from './pages/Dashboard/logs/UserLogs';
 import UserReportLogs from './pages/Dashboard/logs/UserReportLogs';
 import UserSessions from './pages/Dashboard/logs/UserSessions';
 import LoginPage from './pages/LoginPage';
+import LoginPage1 from './pages/LoginPage1'; // MFA login page
 import NotFoundPage from './pages/NotFoundPage';
 import RegisterPage from './pages/RegisterPage';
 import LoginLinkPage from './pages/js/LoginLinkPage';
+
 const routes = [
   {
     path: '/',
-    element: <LoginPage />, // 👈 this is now 100% exclusive to '/'
+    element: <LoginPage />, // Main login page
+  },
+  {
+    path: '/login-mfa',
+    element: <LoginPage1 />, // MFA login page (SMS)
   },
   {
     path: '/register',
@@ -33,7 +39,7 @@ const routes = [
   {
     path: '/verify-link',
     element: <LoginLinkPage />,
-  },  
+  },
   {
     path: '/',
     element: <Layout />,
@@ -119,11 +125,14 @@ const routes = [
           </ProtectedRoute>
         ),
       },
-          
     ],
   },
+  // Add a catch-all route for 404s
+  {
+    path: '*',
+    element: <NotFoundPage />,
+  },
 ];
-
 
 const router = createBrowserRouter(routes);
 
