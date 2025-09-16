@@ -119,7 +119,7 @@ const ManageAdmin = () => {
     <div className="user-records-container">
       <Navbar role={role} />
       <header className="dashboard-topbar">
-        <h2 className="dashboard-main-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <h2 className="manage-admin-main-title">
           <FaUserShield style={{ color: "#4CAF50" }} /> Manage Admin
         </h2>
         <div className="dashboard-profile-actions">

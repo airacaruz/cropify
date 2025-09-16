@@ -5,6 +5,20 @@
   color: #333;
 }
 
+.analytics-main-title {
+  display: block;
+  position: relative;
+  left: var(--title-offset-x, 0);
+  transition: left 200ms ease;
+}
+
+.analytics-main-title.align-right {
+  left: 0;
+  margin-left: auto;
+  margin-right: 0;
+  text-align: right;
+}
+
 .back-button {
   color: #4CAF50;
   cursor: pointer;

@@ -221,10 +221,7 @@ function AnalyticsPage() {
     <div className="analytics-page-container">
       <Navbar role={role} />
 
-      <div className="back-button" onClick={() => navigate(-1)}>
-        ← Back
-      </div>
-      <h2>Sensor Analytics</h2>
+      <h2 className="analytics-main-title" style={{ '--title-offset-x': '120px' }}>Sensor Analytics</h2>
 
       <div className="kpi-cards-container">
         {kpiCards.map((kpi, idx) => (
@@ -240,7 +237,7 @@ function AnalyticsPage() {
       </div>
 
       <div className="charts-container">
-        <div className="chart-card pie-card-layout">
+        <div className="chart-card pie-card-layout" id="chart-plant-types">
           <div>
             <h2 className="chart-title">Hydroponic Plant Types Distribution</h2>
             <p className="chart-summary">

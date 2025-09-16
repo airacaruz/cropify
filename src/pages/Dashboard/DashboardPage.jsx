@@ -9,7 +9,6 @@ import {
     FaCloudSun,
     FaTemperatureHigh,
     FaTint,
-    FaUserPlus,
     FaWater
 } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
@@ -58,7 +57,6 @@ function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalU
 
 const exportChartsAndPrescriptivePDF = async ({
     kpiData,
-    newUsersData,
     totalUsers,
     prescriptiveInsights,
     sensorKpiCards,
@@ -77,12 +75,9 @@ const exportChartsAndPrescriptivePDF = async ({
     }
 
     const chartList = [
-        { id: 'chart-new-users', title: 'Monthly New User Acquisition' },
-        { id: 'chart-active-users', title: 'Monthly Active Users' },
         { id: 'chart-ph', title: 'pH Over Time' },
         { id: 'chart-tds', title: 'TDS (ppm) Over Time' },
         { id: 'chart-water-temp', title: 'Water Temperature (°C) Over Time' },
-        { id: 'chart-air-temp', title: 'Air Temperature (°C) Over Time' },
         { id: 'chart-humidity', title: 'Humidity (%) Over Time' },
         { id: 'chart-plant-types', title: 'Hydroponic Plant Types Distribution' },
     ];
@@ -171,15 +166,7 @@ const exportChartsAndPrescriptivePDF = async ({
         margin: { left: 14, right: 14 }
     });
 
-    doc.text('Monthly New User Acquisition:', 14, doc.lastAutoTable.finalY + 10);
-    autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 14,
-        head: [['Month', 'New Users']],
-        body: newUsersData.map(row => [row.month, row.newUsers]),
-        theme: 'grid',
-        styles: { fontSize: 10 },
-        margin: { left: 14, right: 14 }
-    });
+    // Skipped Monthly New User Acquisition table as requested
 
     // Add plant type pie chart results as a table
     doc.text('Hydroponic Plant Types Distribution:', 14, doc.lastAutoTable.finalY + 10);
@@ -199,7 +186,6 @@ const exportChartsAndPrescriptivePDF = async ({
         const chartWidth = pageWidth - 30;
         let y = doc.lastAutoTable.finalY + 20;
         doc.setFontSize(12);
-        doc.text('Hydroponic Plant Types Distribution (Pie Chart)', 14, y);
         doc.addImage(plantTypeChart.img, 'PNG', 14, y + 4, chartWidth, chartHeight);
     }
 
@@ -217,6 +203,7 @@ const Dashboard = () => {
     const [role, setRole] = useState(null); 
     const [adminName, setAdminName] = useState("");
     const [uid, setUid] = useState(null); 
+    const [actionsOpen, setActionsOpen] = useState(false);
     const navigate = useNavigate();
 
     const [newUsersData, setNewUsersData] = useState([]);
@@ -427,7 +414,7 @@ const Dashboard = () => {
             }));
             setPlantTypeData(pieData);
 
-        } catch (error) {
+        } catch {
             setSensorSessions(hardcodedSessions);
             setPlantTypeData(hardcodedPlantTypes);
         }
@@ -489,6 +476,35 @@ const Dashboard = () => {
             <header className="dashboard-topbar">
                 <h2 className="dashboard-main-title">Dashboard</h2>
                 <div className="dashboard-profile-actions">
+                    {(role === "superadmin" || role === "admin") && (
+                        <div className="dashboard-actions">
+                            <button
+                                className="actions-toggle"
+                                onClick={() => setActionsOpen((prev) => !prev)}
+                            >
+                                Print Dashboard Summary ▾
+                            </button>
+                            {actionsOpen && (
+                                <div className="actions-menu">
+                                    <button
+                                        className="actions-item"
+                                        onClick={() =>
+                                            exportChartsAndPrescriptivePDF({
+                                                kpiData,
+                                                totalUsers: "...",
+                                                prescriptiveInsights,
+                                                sensorKpiCards,
+                                                sensorChartData,
+                                                plantTypeData
+                                            })
+                                        }
+                                    >
+                                        Export to PDF
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <span className="dashboard-admin-name">
                         {adminName}
                     </span>
@@ -514,19 +530,6 @@ const Dashboard = () => {
             {(role === "superadmin" || role === "admin") && (
                 <div className="dashboard-analytics-section">
                     <div className="kpi-cards-container">
-                        <div className="kpi-card">
-                            <h4 className="kpi-card-title">
-                                <FaUserPlus color="#4CAF50" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
-                                New Users (Current Month)
-                            </h4>
-                            <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
-                            <p className="kpi-trend">
-                                <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
-                                    {parseFloat(kpiData.newUsersTrend) > 0 ? '▲' : '▼'} {kpiData.newUsersTrend}
-                                </span>{' '}
-                                vs. last month
-                            </p>
-                        </div>
                         {sensorKpiCards.map((kpi, idx) => (
                             <div className="kpi-card" key={idx}>
                                 <h4 className="kpi-card-title">
@@ -538,6 +541,8 @@ const Dashboard = () => {
                             </div>
                         ))}
                     </div>
+
+                    
 
                     <div id="charts-container" className="charts-container">
                         <div className="chart-card" id="chart-active-users">
@@ -636,18 +641,7 @@ const Dashboard = () => {
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                        <div className="chart-card" id="chart-air-temp">
-                            <h2 className="chart-title">Air Temperature (°C) Over Time</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={sensorChartData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="timestamp" />
-                                    <YAxis domain={['auto', 'auto']} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="airTemp" stroke="#F44336" strokeWidth={3} dot={{ r: 4 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                        
                         <div className="chart-card" id="chart-humidity">
                             <h2 className="chart-title">Humidity (%) Over Time</h2>
                             <ResponsiveContainer width="100%" height={300}>
@@ -660,50 +654,10 @@ const Dashboard = () => {
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                        <div className="chart-card" id="chart-new-users">
-                            <h2 className="chart-title">Monthly New User Trend</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={newUsersData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="newUsers"
-                                        stroke="#4CAF50"
-                                        strokeWidth={3}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                        
                     </div>
 
-                    <div style={{ textAlign: 'right', marginTop: '2rem' }}>
-                        <button
-                            style={{
-                                padding: '0.5rem 1rem',
-                                background: '#4CAF50',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer'
-                            }}
-                            onClick={() =>
-                                exportChartsAndPrescriptivePDF({
-                                    kpiData,
-                                    newUsersData,
-                                    totalUsers: "...",
-                                    prescriptiveInsights,
-                                    sensorKpiCards,
-                                    sensorChartData,
-                                    plantTypeData
-                                })
-                            }
-                        >
-                            Export Prescriptive PDF
-                        </button>
-                    </div>
+                    
                 </div>
             )}
         </div>

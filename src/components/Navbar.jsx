@@ -23,7 +23,7 @@ function Navbar({ role }) {
   return (
     <>
       <button 
-        className="hamburger-menu" 
+        className={`hamburger-menu ${isDrawerOpen ? 'active' : ''}`} 
         onClick={toggleDrawer}
         aria-label="Toggle navigation"
       >
@@ -35,13 +35,6 @@ function Navbar({ role }) {
       <div className={`sidebar drawer ${isDrawerOpen ? 'open' : ''}`}>
         <div className='logo'>
           <img src={logo} alt="Logo" />
-          <button 
-            className="close-drawer" 
-            onClick={closeDrawer}
-            aria-label="Close navigation"
-          >
-            ×
-          </button>
         </div>
         <nav>
           <ul className="navlist">
