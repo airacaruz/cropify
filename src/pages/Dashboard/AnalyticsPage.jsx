@@ -1,7 +1,9 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useEffect, useState } from 'react';
-import { FaCloudRain, FaCloudSun, FaTemperatureHigh, FaTint, FaWater } from "react-icons/fa";
+import { FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import {
   CartesianGrid,
@@ -18,6 +20,7 @@ import {
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
 import '../../styles/AnalyticsPage.css';
+import { adminAuditActions } from '../../utils/adminAuditLogger';
 
 function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
@@ -31,6 +34,9 @@ function AnalyticsPage() {
   const [sensorSessions, setSensorSessions] = useState([]);
   // Plant type pie chart state
   const [plantTypeData, setPlantTypeData] = useState([]);
+  
+  // Print modal state
+  const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
 
   // ✅ Hardcoded sensor data fallback
   const hardcodedSessions = [
@@ -159,6 +165,236 @@ function AnalyticsPage() {
     fetchPlantTypes();
   }, [role, isAdminUid]);
 
+  // PDF Export function
+  const exportAnalyticsPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      let yPosition = 30;
+      
+      // Add title
+      doc.setFontSize(20);
+      doc.text('Cropify Sensor Analytics Report', 20, yPosition);
+      yPosition += 15;
+      
+      // Add date
+      doc.setFontSize(12);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, yPosition);
+      yPosition += 20;
+      
+      // Calculate KPIs
+      const totalSessions = sensorSessions.length;
+      const avgPH = sensorSessions.length > 0 ? (sensorSessions.reduce((sum, s) => sum + s.ph, 0) / sensorSessions.length).toFixed(2) : 0;
+      const avgTDS = sensorSessions.length > 0 ? (sensorSessions.reduce((sum, s) => sum + s.tds, 0) / sensorSessions.length).toFixed(0) : 0;
+      const avgWaterTemp = sensorSessions.length > 0 ? (sensorSessions.reduce((sum, s) => sum + s.waterTemp, 0) / sensorSessions.length).toFixed(1) : 0;
+      const avgAirTemp = sensorSessions.length > 0 ? (sensorSessions.reduce((sum, s) => sum + s.airTemp, 0) / sensorSessions.length).toFixed(1) : 0;
+      const avgHumidity = sensorSessions.length > 0 ? (sensorSessions.reduce((sum, s) => sum + s.humidity, 0) / sensorSessions.length).toFixed(1) : 0;
+      
+      // Add KPIs Section
+      doc.setFontSize(16);
+      doc.text('Key Performance Indicators (KPIs)', 20, yPosition);
+      yPosition += 15;
+      
+      const kpiData = [
+        ['Metric', 'Average Value', 'Status'],
+        ['Total Sensor Sessions', totalSessions.toString(), totalSessions > 0 ? 'Good' : 'No Data'],
+        ['Average pH Level', avgPH, (avgPH >= 5.5 && avgPH <= 7.5) ? 'Optimal' : 'Needs Attention'],
+        ['Average TDS (ppm)', avgTDS, (avgTDS >= 500 && avgTDS <= 1500) ? 'Optimal' : 'Needs Attention'],
+        ['Average Water Temp (°C)', avgWaterTemp, (avgWaterTemp >= 18 && avgWaterTemp <= 24) ? 'Optimal' : 'Needs Attention'],
+        ['Average Air Temp (°C)', avgAirTemp, (avgAirTemp >= 20 && avgAirTemp <= 26) ? 'Optimal' : 'Needs Attention'],
+        ['Average Humidity (%)', avgHumidity, (avgHumidity >= 40 && avgHumidity <= 70) ? 'Optimal' : 'Needs Attention']
+      ];
+      
+      autoTable(doc, {
+        head: [kpiData[0]],
+        body: kpiData.slice(1),
+        startY: yPosition,
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [76, 175, 80] }
+      });
+      
+      yPosition = doc.lastAutoTable.finalY + 20;
+      
+      // Add Prescriptive Insights Section
+      doc.setFontSize(16);
+      doc.text('Prescriptive Insights & Recommendations', 20, yPosition);
+      yPosition += 15;
+      
+      const insights = [];
+      
+      // pH insights
+      if (avgPH < 5.5) {
+        insights.push('• pH Level is too low. Consider adding pH up solution to raise pH to optimal range (5.5-7.5)');
+      } else if (avgPH > 7.5) {
+        insights.push('• pH Level is too high. Consider adding pH down solution to lower pH to optimal range (5.5-7.5)');
+      } else {
+        insights.push('• pH Level is within optimal range. Continue current pH management practices');
+      }
+      
+      // TDS insights
+      if (avgTDS < 500) {
+        insights.push('• TDS is low. Consider increasing nutrient concentration for better plant growth');
+      } else if (avgTDS > 1500) {
+        insights.push('• TDS is high. Consider diluting nutrient solution to prevent nutrient burn');
+      } else {
+        insights.push('• TDS is within optimal range. Current nutrient levels are appropriate');
+      }
+      
+      // Temperature insights
+      if (avgWaterTemp < 18) {
+        insights.push('• Water temperature is low. Consider using a water heater to maintain optimal temperature');
+      } else if (avgWaterTemp > 24) {
+        insights.push('• Water temperature is high. Consider cooling measures to prevent root stress');
+      } else {
+        insights.push('• Water temperature is optimal for plant growth');
+      }
+      
+      if (avgAirTemp < 20) {
+        insights.push('• Air temperature is low. Consider increasing ambient temperature for better growth');
+      } else if (avgAirTemp > 26) {
+        insights.push('• Air temperature is high. Consider ventilation or cooling to prevent heat stress');
+      } else {
+        insights.push('• Air temperature is within optimal range');
+      }
+      
+      // Humidity insights
+      if (avgHumidity < 40) {
+        insights.push('• Humidity is low. Consider using a humidifier to increase moisture levels');
+      } else if (avgHumidity > 70) {
+        insights.push('• Humidity is high. Consider improving ventilation to prevent mold and disease');
+      } else {
+        insights.push('• Humidity levels are optimal for plant health');
+      }
+      
+      // Add insights as text
+      doc.setFontSize(11);
+      insights.forEach(insight => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 30;
+        }
+        doc.text(insight, 20, yPosition);
+        yPosition += 8;
+      });
+      
+      yPosition += 10;
+      
+      // Add Plant Type Distribution Section
+      if (yPosition > 200) {
+        doc.addPage();
+        yPosition = 30;
+      }
+      
+      doc.setFontSize(16);
+      doc.text('Hydroponic Plant Type Distribution', 20, yPosition);
+      yPosition += 15;
+      
+      if (plantTypeData.length > 0) {
+        const totalPlants = plantTypeData.reduce((sum, p) => sum + p.value, 0);
+        const plantTableData = plantTypeData.map(plant => [
+          plant.name,
+          plant.value.toString(),
+          `${((plant.value / totalPlants) * 100).toFixed(1)}%`
+        ]);
+        
+        autoTable(doc, {
+          head: [['Plant Type', 'Count', 'Percentage']],
+          body: plantTableData,
+          startY: yPosition,
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [76, 175, 80] }
+        });
+        
+        yPosition = doc.lastAutoTable.finalY + 15;
+        
+        // Add plant type insights
+        doc.setFontSize(12);
+        doc.text('Plant Type Analysis:', 20, yPosition);
+        yPosition += 10;
+        
+        const mostPopular = plantTypeData.reduce((max, plant) => plant.value > max.value ? plant : max, plantTypeData[0]);
+        doc.setFontSize(10);
+        doc.text(`• Most popular plant type: ${mostPopular.name} (${mostPopular.value} plants, ${((mostPopular.value / totalPlants) * 100).toFixed(1)}%)`, 20, yPosition);
+        yPosition += 8;
+        doc.text(`• Total plants tracked: ${totalPlants}`, 20, yPosition);
+        yPosition += 8;
+        doc.text(`• Number of different plant types: ${plantTypeData.length}`, 20, yPosition);
+      } else {
+        doc.setFontSize(11);
+        doc.text('No plant type data available', 20, yPosition);
+      }
+      
+      yPosition += 20;
+      
+      // Add Detailed Sensor Data Section
+      if (yPosition > 180) {
+        doc.addPage();
+        yPosition = 30;
+      }
+      
+      doc.setFontSize(16);
+      doc.text('Detailed Sensor Data', 20, yPosition);
+      yPosition += 15;
+      
+      if (sensorSessions.length > 0) {
+        const tableData = sensorSessions.slice(0, 20).map(session => [
+          session.id.substring(0, 8) + '...',
+          new Date(session.timestamp).toLocaleDateString(),
+          session.ph.toFixed(2),
+          session.tds.toString(),
+          session.waterTemp.toFixed(1),
+          session.airTemp.toFixed(1),
+          session.humidity.toFixed(1)
+        ]);
+        
+        autoTable(doc, {
+          head: [['Session ID', 'Date', 'pH', 'TDS', 'Water Temp', 'Air Temp', 'Humidity']],
+          body: tableData,
+          startY: yPosition,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [76, 175, 80] }
+        });
+        
+        if (sensorSessions.length > 20) {
+          yPosition = doc.lastAutoTable.finalY + 10;
+          doc.setFontSize(10);
+          doc.text(`* Showing first 20 of ${sensorSessions.length} total sessions`, 20, yPosition);
+        }
+      } else {
+        doc.setFontSize(11);
+        doc.text('No sensor data available', 20, yPosition);
+      }
+      
+      // Add footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
+        doc.text('Cropify Analytics Report', doc.internal.pageSize.width - 60, doc.internal.pageSize.height - 10);
+      }
+      
+      // Save the PDF
+      doc.save('Cropify_Sensor_Analytics_Report.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF report');
+    }
+  };
+
+  const handlePrintConfirm = async () => {
+    // Log the print analytics action
+    if (uid && adminName) {
+      await adminAuditActions.printAnalytics(uid, adminName);
+    }
+    
+    exportAnalyticsPDF();
+    setShowPrintConfirmModal(false);
+  };
+
+  const handlePrintCancel = () => {
+    setShowPrintConfirmModal(false);
+  };
+
   if (loading) {
     return <div className="loading-container"><p>Loading...</p></div>;
   }
@@ -166,7 +402,7 @@ function AnalyticsPage() {
   if (role !== "superadmin" && !isAdminUid) {
     return (
       <div className="loading-container">
-        <Navbar role={role} />
+        <Navbar role={role} adminName={adminName} adminId={uid} />
         <p>Access denied. Only Super Admin and Admin can view this page.</p>
       </div>
     );
@@ -181,106 +417,79 @@ function AnalyticsPage() {
     humidity: session.humidity,
   }));
 
-  const latest = chartData[chartData.length - 1] || {};
-  const kpiCards = [
-    {
-      title: "Latest pH",
-      value: latest.ph ?? "—",
-      context: "Most recent pH reading",
-      icon: <FaTint color="#4CAF50" size={24} />,
-    },
-    {
-      title: "Latest TDS (ppm)",
-      value: latest.tds ?? "—",
-      context: "Most recent TDS reading",
-      icon: <FaWater color="#2196F3" size={24} />,
-    },
-    {
-      title: "Latest Water Temp (°C)",
-      value: latest.waterTemp ?? "—",
-      context: "Most recent water temperature",
-      icon: <FaTemperatureHigh color="#FF9800" size={24} />,
-    },
-    {
-      title: "Latest Air Temp (°C)",
-      value: latest.airTemp ?? "—",
-      context: "Most recent air temperature",
-      icon: <FaCloudSun color="#F44336" size={24} />,
-    },
-    {
-      title: "Latest Humidity (%)",
-      value: latest.humidity ?? "—",
-      context: "Most recent humidity reading",
-      icon: <FaCloudRain color="#009688" size={24} />,
-    },
-  ];
 
   const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#009688', '#9C27B0'];
 
   return (
     <div className="analytics-page-container">
-      <Navbar role={role} />
+      <Navbar role={role} adminName={adminName} />
 
-      <h2 className="analytics-main-title" style={{ '--title-offset-x': '120px' }}>Sensor Analytics</h2>
-
-      <div className="kpi-cards-container">
-        {kpiCards.map((kpi, idx) => (
-          <div className="kpi-card" key={idx}>
-            <h4 className="kpi-card-title">
-              {kpi.icon}
-              <span style={{ marginLeft: 8 }}>{kpi.title}</span>
-            </h4>
-            <h1 className="kpi-value">{kpi.value}</h1>
-            <p className="kpi-context">{kpi.context}</p>
-          </div>
-        ))}
+      <div style={{ textAlign: 'right', marginBottom: '2rem' }}>
+        <button
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: 'transparent',
+            color: '#2e7d32',
+            border: '2px solid #2e7d32',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}
+          onClick={() => setShowPrintConfirmModal(true)}
+        >
+          Print Analytics Summary
+        </button>
       </div>
 
       <div className="charts-container">
-        <div className="chart-card pie-card-layout" id="chart-plant-types">
-          <div>
-            <h2 className="chart-title">Hydroponic Plant Types Distribution</h2>
-            <p className="chart-summary">
-              Distribution of hydroponic plant types input by users.
-            </p>
-          </div>
-          <div className="pie-center">
-            <PieChart width={300} height={300}>
-              <Pie
-                data={plantTypeData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label
-              >
-                {plantTypeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+        <div className="chart-card pie-chart-main-card">
+          <h2 className="chart-title">Hydroponic Plant Types Distribution</h2>
+          <p className="chart-summary">
+            Distribution of hydroponic plant types input by users.
+          </p>
+          <div className="pie-chart-container">
+            <div className="pie-chart-wrapper">
+              <PieChart width={300} height={300}>
+                <Pie
+                  data={plantTypeData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label
+                >
+                  {plantTypeData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </div>
+            <div className="plant-types-card">
+              <div className="plant-types-header">
+                <h3>Plant Types</h3>
+                <span className="total-count">
+                  Total: {plantTypeData.reduce((sum, item) => sum + item.value, 0)}
+                </span>
+              </div>
+              <div className="plant-types-list">
+                {plantTypeData.map((entry, idx) => (
+                  <div key={entry.name} className="plant-type-item">
+                    <div className="plant-type-info">
+                      <span
+                        className="plant-type-color"
+                        style={{
+                          background: COLORS[idx % COLORS.length],
+                        }}
+                      ></span>
+                      <span className="plant-type-name">{entry.name}</span>
+                    </div>
+                    <span className="plant-type-count">{entry.value}</span>
+                  </div>
                 ))}
-              </Pie>
-            </PieChart>
-          </div>
-          <div className="pie-list">
-            <h3 style={{ marginBottom: 10 }}>Plant Types</h3>
-            <ul style={{ listStyle: "none", padding: 0 }}>
-              {plantTypeData.map((entry, idx) => (
-                <li key={entry.name} style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: 16,
-                      height: 16,
-                      background: COLORS[idx % COLORS.length],
-                      borderRadius: "50%",
-                      marginRight: 8,
-                    }}
-                  ></span>
-                  <span style={{ fontWeight: 500 }}>{entry.name}</span>
-                  <span style={{ marginLeft: "auto", fontWeight: 700 }}>{entry.value}</span>
-                </li>
-              ))}
-            </ul>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -355,6 +564,50 @@ function AnalyticsPage() {
           <p className="chart-summary">Historical humidity readings from sensors.</p>
         </div>
       </div>
+
+      {/* Print Confirmation Modal */}
+      {showPrintConfirmModal && (
+        <div className="modal-overlay" onClick={handlePrintCancel}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Confirm Print Analytics Summary</h3>
+              <button className="close-modal-btn" onClick={handlePrintCancel}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to print the analytics summary?</p>
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+                This will generate a PDF file with all sensor analytics data and charts.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={handlePrintCancel}>
+                <FaTimes style={{ marginRight: 4 }} /> Cancel
+              </button>
+              <button 
+                className="submit-btn" 
+                onClick={handlePrintConfirm}
+                style={{
+                  background: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginLeft: '10px'
+                }}
+              >
+                Print Summary
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

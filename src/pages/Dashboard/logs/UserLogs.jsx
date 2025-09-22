@@ -1,7 +1,7 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, collectionGroup, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { FaBarcode, FaCalendarAlt, FaChevronDown, FaChevronUp, FaDesktop, FaIdBadge, FaLeaf, FaSeedling, FaSignInAlt, FaUser } from "react-icons/fa";
+import { FaBarcode, FaCalendarAlt, FaChevronDown, FaChevronUp, FaDesktop, FaIdBadge, FaLeaf, FaSeedling, FaSignInAlt, FaUser, FaUserShield } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
@@ -12,6 +12,7 @@ const UserLogsPage = () => {
   const [screenLogs, setScreenLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('login');
   const [plantLogs, setPlantLogs] = useState([]);
+  const [adminAuditLogs, setAdminAuditLogs] = useState([]);
   const [expandedGrowerId, setExpandedGrowerId] = useState(null);
   const [expandedPlantId, setExpandedPlantId] = useState(null);
 
@@ -115,11 +116,30 @@ const UserLogsPage = () => {
     return () => unsubscribe();
   }, []);
 
+  // Admin audit logs (only for superadmin)
+  useEffect(() => {
+    if (role !== "superadmin") return;
+    
+    const unsubscribe = onSnapshot(collection(db, 'admin_audit_logs'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        logId: doc.id,
+        ...doc.data(),
+      }));
+      const sortedData = data.sort((a, b) => {
+        const timeA = a.timestamp?.seconds || 0;
+        const timeB = b.timestamp?.seconds || 0;
+        return timeB - timeA;
+      });
+      setAdminAuditLogs(sortedData);
+    });
+    return () => unsubscribe();
+  }, [role]);
+
   // Only allow superadmin and admin with UID to view
   if (role !== "superadmin" && !isAdminUid) {
     return (
       <div className="loading-container">
-        <Navbar role={role} />
+        <Navbar role={role} adminName={adminName} adminId={uid} />
         <p>Access denied. Only Super Admin and Admin can view this page.</p>
       </div>
     );
@@ -128,11 +148,7 @@ const UserLogsPage = () => {
   // UI
   return (
     <div className="user-records-container">
-      <Navbar role={role} />
-      <div className="back-button" onClick={() => navigate(-1)}>← Back</div>
-      <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <FaUser style={{ color: "#4CAF50" }} /> User Logs
-      </h2>
+      <Navbar role={role} adminName={adminName} />
     
       <div className="tab-buttons">
         <button className={activeTab === 'login' ? 'active' : ''} onClick={() => setActiveTab('login')}>
@@ -144,6 +160,11 @@ const UserLogsPage = () => {
         <button className={activeTab === 'plant' ? 'active' : ''} onClick={() => setActiveTab('plant')}>
           <FaSeedling style={{ marginRight: 4 }} /> Plant Logs
         </button>
+        {role === "superadmin" && (
+          <button className={activeTab === 'audit' ? 'active' : ''} onClick={() => setActiveTab('audit')}>
+            <FaUserShield style={{ marginRight: 4 }} /> Admin Audit Logs
+          </button>
+        )}
       </div>
 
       {/* Session Logs Table */}
@@ -300,8 +321,91 @@ const UserLogsPage = () => {
           )}
         </div>
       )}
+
+      {/* Admin Audit Logs Table - Only visible to superadmin */}
+      {activeTab === 'audit' && role === "superadmin" && (
+        <div className="table-wrapper">
+          <table className="records-table">
+            <thead>
+              <tr>
+                <th><FaUserShield /> Log ID</th>
+                <th><FaUser /> Admin ID</th>
+                <th>Admin Name</th>
+                <th>Action</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {adminAuditLogs.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
+                    No admin audit logs found.
+                  </td>
+                </tr>
+              ) : (
+                adminAuditLogs.map((log) => (
+                  <tr key={log.logId}>
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+                        {log.logId}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+                        {log.adminId || 'N/A'}
+                      </span>
+                    </td>
+                    <td>{log.adminName || 'N/A'}</td>
+                    <td>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        backgroundColor: getActionColor(log.action),
+                        color: 'white'
+                      }}>
+                        {log.action || 'N/A'}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '14px', color: '#666' }}>
+                        {log.details || 'No details'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
+};
+
+// Helper function to get action color
+const getActionColor = (action) => {
+  switch (action?.toLowerCase()) {
+    case 'login':
+      return '#4CAF50';
+    case 'logout':
+      return '#FF9800';
+    case 'create':
+    case 'add':
+      return '#2196F3';
+    case 'update':
+    case 'edit':
+      return '#FF9800';
+    case 'delete':
+    case 'remove':
+      return '#F44336';
+    case 'view':
+    case 'read':
+      return '#9C27B0';
+    default:
+      return '#6C757D';
+  }
 };
 
 export default UserLogsPage;

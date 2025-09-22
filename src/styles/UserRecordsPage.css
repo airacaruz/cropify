@@ -1,10 +1,12 @@
 .user-records-container {
-  padding: 40px;
-  width: 1000px;
+  padding: 30px;
+  max-width: 1400px;
+  width: 100%;
   min-height: 100vh;
   margin: 0 auto;
   font-family: 'Inter', sans-serif;
   color: #333;
+  position: relative;
 }
 
 h2 {
@@ -46,31 +48,73 @@ h2 {
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
+.table-wrapper {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-top: 20px;
+  border: 1px solid rgba(46, 125, 50, 0.1);
+}
+
 .records-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 15px;
 }
 
 .records-table th,
 .records-table td {
-  padding: 12px 16px;
-  border: 1px solid #a5d6a7;
+  padding: 18px 20px;
   text-align: left;
+  border-bottom: 1px solid rgba(46, 125, 50, 0.1);
 }
 
 .records-table th {
-  background-color: #2e7d32;
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
   color: #fff;
   text-transform: uppercase;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.records-table tbody tr {
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(46, 125, 50, 0.05);
 }
 
 .records-table tbody tr:nth-child(even) {
-  background-color: #f1f8e9;
+  background-color: rgba(46, 125, 50, 0.02);
 }
 
 .records-table tbody tr:hover {
-  background-color: #e6f0e6;
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.08) 0%, rgba(76, 175, 80, 0.05) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
+}
+
+.records-table td {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.records-table td:first-child {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #7f8c8d;
+  background: rgba(46, 125, 50, 0.03);
+}
+
+/* Actions column width */
+.records-table th:last-child,
+.records-table td:last-child {
+  width: 50px;
+  text-align: center;
+  padding: 12px 8px;
 }
 
 .plant-logs-section {
@@ -238,4 +282,277 @@ h2 {
 }
 .hoverable-row:hover {
   background: #f1f8e9;
+}
+
+/* Modal Styles for Sensor Logs */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #2e7d32;
+  font-size: 18px;
+}
+
+.close-modal-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-modal-btn:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.sensor-details {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #4CAF50;
+}
+
+.detail-item strong {
+  margin-right: 8px;
+  color: #333;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
+}
+
+/* Enhanced User Management Styles */
+
+/* Add some spacing and visual improvements */
+.records-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Enhanced responsive design */
+@media (max-width: 768px) {
+  .user-records-container {
+    padding: 15px;
+    border-radius: 10px;
+  }
+  
+  .records-table th,
+  .records-table td {
+    padding: 12px 10px;
+    font-size: 14px;
+  }
+  
+  .records-table th {
+    font-size: 11px;
+  }
+}
+
+/* Add subtle animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.table-wrapper {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Enhanced focus states for accessibility */
+.records-table tbody tr:focus-within {
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.12) 0%, rgba(76, 175, 80, 0.08) 100%);
+  outline: 2px solid #2e7d32;
+  outline-offset: -2px;
+}
+
+/* Add subtle loading state */
+.table-wrapper.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.table-wrapper.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #2e7d32;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Edit Button Styles */
+.edit-btn {
+  background: #2e7d32;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.edit-btn:hover {
+  background: #1b5e20;
+  transform: translateY(-1px);
+}
+
+.edit-btn:active {
+  transform: translateY(0);
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+.form-group input:hover {
+  border-color: #4caf50;
+}
+
+/* Save Button */
+.save-btn {
+  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+}
+
+.save-btn:hover {
+  background: linear-gradient(135deg, #1b5e20 0%, #388e3c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
+}
+
+.save-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+}
+
+/* Modal Form Layout */
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
 }
