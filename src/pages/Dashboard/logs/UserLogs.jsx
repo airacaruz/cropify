@@ -1,7 +1,9 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, collectionGroup, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import React, { useEffect, useState } from 'react';
-import { FaBarcode, FaCalendarAlt, FaChevronDown, FaChevronUp, FaDesktop, FaIdBadge, FaLeaf, FaSeedling, FaSignInAlt, FaUser, FaUserShield } from "react-icons/fa";
+import { FaBarcode, FaCalendarAlt, FaChevronDown, FaChevronUp, FaDesktop, FaIdBadge, FaLeaf, FaSeedling, FaSignInAlt, FaUser } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
@@ -12,7 +14,6 @@ const UserLogsPage = () => {
   const [screenLogs, setScreenLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('login');
   const [plantLogs, setPlantLogs] = useState([]);
-  const [adminAuditLogs, setAdminAuditLogs] = useState([]);
   const [expandedGrowerId, setExpandedGrowerId] = useState(null);
   const [expandedPlantId, setExpandedPlantId] = useState(null);
 
@@ -116,24 +117,199 @@ const UserLogsPage = () => {
     return () => unsubscribe();
   }, []);
 
-  // Admin audit logs (only for superadmin)
-  useEffect(() => {
-    if (role !== "superadmin") return;
+
+  const exportToPDF = () => {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
     
-    const unsubscribe = onSnapshot(collection(db, 'admin_audit_logs'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        logId: doc.id,
-        ...doc.data(),
-      }));
-      const sortedData = data.sort((a, b) => {
-        const timeA = a.timestamp?.seconds || 0;
-        const timeB = b.timestamp?.seconds || 0;
-        return timeB - timeA;
-      });
-      setAdminAuditLogs(sortedData);
+    let yPosition = margin;
+    
+    // Helper function to check if we need a new page
+    const checkPageBreak = (requiredSpace = 20) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        doc.addPage();
+        yPosition = margin;
+        return true;
+      }
+      return false;
+    };
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('User Logs Report', margin, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Comprehensive user activity and session tracking', margin, yPosition);
+    yPosition += 15;
+
+    // Session Logs Section
+    checkPageBreak(30);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Session Logs', margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Sessions: ${sessionLogs.length}`, margin, yPosition);
+    yPosition += 10;
+
+    // Session Logs Table
+    checkPageBreak(40);
+    const sessionTableData = sessionLogs.map(log => [
+      log.sessionId,
+      log.loginTime?.toDate ? log.loginTime.toDate().toLocaleDateString() : '—',
+      log.loginTime?.seconds ? new Date(log.loginTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '—',
+      log.logoutTime?.toDate ? log.logoutTime.toDate().toLocaleDateString() : '—',
+      log.logoutTime?.seconds ? new Date(log.logoutTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
+    ]);
+
+    doc.autoTable({
+      startY: yPosition,
+      head: [['Session ID', 'Login Date', 'Login Time', 'Logout Date', 'Logout Time']],
+      body: sessionTableData,
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 25 }
+      },
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: {
+        fontSize: 9,
+        fontStyle: 'bold',
+        fillColor: [76, 175, 80]
+      }
     });
-    return () => unsubscribe();
-  }, [role]);
+
+    // Screen Logs Section
+    checkPageBreak(30);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Screen Logs', margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Screen Visits: ${screenLogs.length}`, margin, yPosition);
+    yPosition += 10;
+
+    // Screen Logs Table
+    checkPageBreak(40);
+    const screenTableData = screenLogs.map(log => [
+      log.visitId,
+      log.userId,
+      log.screenName,
+      log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleString() : '—'
+    ]);
+
+    doc.autoTable({
+      startY: yPosition,
+      head: [['Visit ID', 'User ID', 'Screen Name', 'Timestamp']],
+      body: screenTableData,
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 40 }
+      },
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: {
+        fontSize: 9,
+        fontStyle: 'bold',
+        fillColor: [76, 175, 80]
+      }
+    });
+
+    // Plant Logs Section
+    checkPageBreak(30);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Plant Logs', margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Growers: ${plantLogs.length}`, margin, yPosition);
+    yPosition += 5;
+    doc.text(`Total Plants: ${plantLogs.reduce((total, grower) => total + grower.plants.length, 0)}`, margin, yPosition);
+    yPosition += 10;
+
+    // Plant Logs Table
+    checkPageBreak(40);
+    const plantTableData = [];
+    plantLogs.forEach(grower => {
+      grower.plants.forEach(plant => {
+        plantTableData.push([
+          grower.growerId,
+          plant.name || 'N/A',
+          plant.type || 'N/A',
+          plant.id,
+          plant.sensorId || 'N/A',
+          plant.timestamp?.toDate ? plant.timestamp.toDate().toLocaleDateString() : 'N/A'
+        ]);
+      });
+    });
+
+    doc.autoTable({
+      startY: yPosition,
+      head: [['Grower ID', 'Plant Name', 'Plant Type', 'Plant ID', 'Sensor ID', 'Date Added']],
+      body: plantTableData,
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 25 }
+      },
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: {
+        fontSize: 9,
+        fontStyle: 'bold',
+        fillColor: [76, 175, 80]
+      }
+    });
+
+    // Add footer to all pages
+    const pageCount = doc.internal.getNumberOfPages();
+    const generatedDateTime = `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
+    
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Page ${i} of ${pageCount}`, margin, pageHeight - 10);
+      doc.text('Cropify User Logs Report', pageWidth - 80, pageHeight - 10);
+      doc.text(generatedDateTime, margin, pageHeight - 20);
+    }
+
+    doc.save('Cropify_User_Logs_Report.pdf');
+  };
 
   // Only allow superadmin and admin with UID to view
   if (role !== "superadmin" && !isAdminUid) {
@@ -148,7 +324,7 @@ const UserLogsPage = () => {
   // UI
   return (
     <div className="user-records-container">
-      <Navbar role={role} adminName={adminName} />
+      <Navbar role={role} adminName={adminName} onPrintSummary={exportToPDF} />
     
       <div className="tab-buttons">
         <button className={activeTab === 'login' ? 'active' : ''} onClick={() => setActiveTab('login')}>
@@ -160,11 +336,6 @@ const UserLogsPage = () => {
         <button className={activeTab === 'plant' ? 'active' : ''} onClick={() => setActiveTab('plant')}>
           <FaSeedling style={{ marginRight: 4 }} /> Plant Logs
         </button>
-        {role === "superadmin" && (
-          <button className={activeTab === 'audit' ? 'active' : ''} onClick={() => setActiveTab('audit')}>
-            <FaUserShield style={{ marginRight: 4 }} /> Admin Audit Logs
-          </button>
-        )}
       </div>
 
       {/* Session Logs Table */}
@@ -322,90 +493,9 @@ const UserLogsPage = () => {
         </div>
       )}
 
-      {/* Admin Audit Logs Table - Only visible to superadmin */}
-      {activeTab === 'audit' && role === "superadmin" && (
-        <div className="table-wrapper">
-          <table className="records-table">
-            <thead>
-              <tr>
-                <th><FaUserShield /> Log ID</th>
-                <th><FaUser /> Admin ID</th>
-                <th>Admin Name</th>
-                <th>Action</th>
-                <th>Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {adminAuditLogs.length === 0 ? (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
-                    No admin audit logs found.
-                  </td>
-                </tr>
-              ) : (
-                adminAuditLogs.map((log) => (
-                  <tr key={log.logId}>
-                    <td>
-                      <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
-                        {log.logId}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
-                        {log.adminId || 'N/A'}
-                      </span>
-                    </td>
-                    <td>{log.adminName || 'N/A'}</td>
-                    <td>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        backgroundColor: getActionColor(log.action),
-                        color: 'white'
-                      }}>
-                        {log.action || 'N/A'}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '14px', color: '#666' }}>
-                        {log.details || 'No details'}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 };
 
-// Helper function to get action color
-const getActionColor = (action) => {
-  switch (action?.toLowerCase()) {
-    case 'login':
-      return '#4CAF50';
-    case 'logout':
-      return '#FF9800';
-    case 'create':
-    case 'add':
-      return '#2196F3';
-    case 'update':
-    case 'edit':
-      return '#FF9800';
-    case 'delete':
-    case 'remove':
-      return '#F44336';
-    case 'view':
-    case 'read':
-      return '#9C27B0';
-    default:
-      return '#6C757D';
-  }
-};
 
 export default UserLogsPage;

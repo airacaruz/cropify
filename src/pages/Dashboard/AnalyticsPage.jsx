@@ -20,7 +20,6 @@ import {
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
 import '../../styles/AnalyticsPage.css';
-import { adminAuditActions } from '../../utils/adminAuditLogger';
 
 function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
@@ -168,17 +167,32 @@ function AnalyticsPage() {
   // PDF Export function
   const exportAnalyticsPDF = async () => {
     try {
-      const doc = new jsPDF();
-      let yPosition = 30;
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
+      
+      let yPosition = margin;
+      
+      // Helper function to check if we need a new page
+      const checkPageBreak = (requiredSpace = 20) => {
+        if (yPosition + requiredSpace > pageHeight - margin) {
+          doc.addPage();
+          yPosition = margin;
+          return true;
+        }
+        return false;
+      };
       
       // Add title
       doc.setFontSize(20);
-      doc.text('Cropify Sensor Analytics Report', 20, yPosition);
+      doc.text('Cropify Sensor Analytics Report', margin, yPosition);
       yPosition += 15;
       
       // Add date
       doc.setFontSize(12);
-      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, yPosition);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, yPosition);
       yPosition += 20;
       
       // Calculate KPIs
@@ -190,8 +204,9 @@ function AnalyticsPage() {
       const avgHumidity = sensorSessions.length > 0 ? (sensorSessions.reduce((sum, s) => sum + s.humidity, 0) / sensorSessions.length).toFixed(1) : 0;
       
       // Add KPIs Section
+      checkPageBreak(40);
       doc.setFontSize(16);
-      doc.text('Key Performance Indicators (KPIs)', 20, yPosition);
+      doc.text('Key Performance Indicators (KPIs)', margin, yPosition);
       yPosition += 15;
       
       const kpiData = [
@@ -208,15 +223,31 @@ function AnalyticsPage() {
         head: [kpiData[0]],
         body: kpiData.slice(1),
         startY: yPosition,
-        styles: { fontSize: 10 },
-        headStyles: { fillColor: [76, 175, 80] }
+        styles: { 
+          fontSize: 9,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          halign: 'left'
+        },
+        headStyles: { 
+          fillColor: [76, 175, 80],
+          fontSize: 9,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 30, halign: 'center' },
+          2: { cellWidth: 40, halign: 'center' }
+        },
+        margin: { left: margin, right: margin }
       });
       
       yPosition = doc.lastAutoTable.finalY + 20;
       
       // Add Prescriptive Insights Section
+      checkPageBreak(50);
       doc.setFontSize(16);
-      doc.text('Prescriptive Insights & Recommendations', 20, yPosition);
+      doc.text('Prescriptive Insights & Recommendations', margin, yPosition);
       yPosition += 15;
       
       const insights = [];
@@ -265,27 +296,27 @@ function AnalyticsPage() {
         insights.push('• Humidity levels are optimal for plant health');
       }
       
-      // Add insights as text
-      doc.setFontSize(11);
+      // Add insights as text with proper line wrapping
+      doc.setFontSize(10);
       insights.forEach(insight => {
-        if (yPosition > 250) {
-          doc.addPage();
-          yPosition = 30;
-        }
-        doc.text(insight, 20, yPosition);
-        yPosition += 8;
+        checkPageBreak(15);
+        
+        // Split long lines
+        const lines = doc.splitTextToSize(insight, contentWidth - 20);
+        lines.forEach(line => {
+          checkPageBreak(8);
+          doc.text(line, margin + 10, yPosition);
+          yPosition += 6;
+        });
+        yPosition += 3;
       });
       
       yPosition += 10;
       
       // Add Plant Type Distribution Section
-      if (yPosition > 200) {
-        doc.addPage();
-        yPosition = 30;
-      }
-      
+      checkPageBreak(40);
       doc.setFontSize(16);
-      doc.text('Hydroponic Plant Type Distribution', 20, yPosition);
+      doc.text('Hydroponic Plant Type Distribution', margin, yPosition);
       yPosition += 15;
       
       if (plantTypeData.length > 0) {
@@ -300,46 +331,64 @@ function AnalyticsPage() {
           head: [['Plant Type', 'Count', 'Percentage']],
           body: plantTableData,
           startY: yPosition,
-          styles: { fontSize: 10 },
-          headStyles: { fillColor: [76, 175, 80] }
+          styles: { 
+            fontSize: 9,
+            cellPadding: 3
+          },
+          headStyles: { 
+            fillColor: [76, 175, 80],
+            fontSize: 9,
+            fontStyle: 'bold'
+          },
+          columnStyles: {
+            0: { cellWidth: 60 },
+            1: { cellWidth: 30, halign: 'center' },
+            2: { cellWidth: 40, halign: 'center' }
+          },
+          margin: { left: margin, right: margin }
         });
         
         yPosition = doc.lastAutoTable.finalY + 15;
         
         // Add plant type insights
+        checkPageBreak(30);
         doc.setFontSize(12);
-        doc.text('Plant Type Analysis:', 20, yPosition);
+        doc.text('Plant Type Analysis:', margin, yPosition);
         yPosition += 10;
         
         const mostPopular = plantTypeData.reduce((max, plant) => plant.value > max.value ? plant : max, plantTypeData[0]);
-        doc.setFontSize(10);
-        doc.text(`• Most popular plant type: ${mostPopular.name} (${mostPopular.value} plants, ${((mostPopular.value / totalPlants) * 100).toFixed(1)}%)`, 20, yPosition);
-        yPosition += 8;
-        doc.text(`• Total plants tracked: ${totalPlants}`, 20, yPosition);
-        yPosition += 8;
-        doc.text(`• Number of different plant types: ${plantTypeData.length}`, 20, yPosition);
+        doc.setFontSize(9);
+        
+        const analysisLines = [
+          `• Most popular plant type: ${mostPopular.name} (${mostPopular.value} plants, ${((mostPopular.value / totalPlants) * 100).toFixed(1)}%)`,
+          `• Total plants tracked: ${totalPlants}`,
+          `• Number of different plant types: ${plantTypeData.length}`
+        ];
+        
+        analysisLines.forEach(line => {
+          checkPageBreak(8);
+          doc.text(line, margin, yPosition);
+          yPosition += 6;
+        });
       } else {
-        doc.setFontSize(11);
-        doc.text('No plant type data available', 20, yPosition);
+        doc.setFontSize(10);
+        doc.text('No plant type data available', margin, yPosition);
+        yPosition += 10;
       }
       
-      yPosition += 20;
+      yPosition += 15;
       
       // Add Detailed Sensor Data Section
-      if (yPosition > 180) {
-        doc.addPage();
-        yPosition = 30;
-      }
-      
+      checkPageBreak(40);
       doc.setFontSize(16);
-      doc.text('Detailed Sensor Data', 20, yPosition);
+      doc.text('Detailed Sensor Data', margin, yPosition);
       yPosition += 15;
       
       if (sensorSessions.length > 0) {
-        const tableData = sensorSessions.slice(0, 20).map(session => [
-          session.id.substring(0, 8) + '...',
+        const tableData = sensorSessions.slice(0, 15).map(session => [
+          session.id.substring(0, 6) + '...',
           new Date(session.timestamp).toLocaleDateString(),
-          session.ph.toFixed(2),
+          session.ph.toFixed(1),
           session.tds.toString(),
           session.waterTemp.toFixed(1),
           session.airTemp.toFixed(1),
@@ -347,30 +396,49 @@ function AnalyticsPage() {
         ]);
         
         autoTable(doc, {
-          head: [['Session ID', 'Date', 'pH', 'TDS', 'Water Temp', 'Air Temp', 'Humidity']],
+          head: [['ID', 'Date', 'pH', 'TDS', 'W.Temp', 'A.Temp', 'Humidity']],
           body: tableData,
           startY: yPosition,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [76, 175, 80] }
+          styles: { 
+            fontSize: 7,
+            cellPadding: 2,
+            overflow: 'linebreak'
+          },
+          headStyles: { 
+            fillColor: [76, 175, 80],
+            fontSize: 7,
+            fontStyle: 'bold'
+          },
+          columnStyles: {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 15, halign: 'center' },
+            3: { cellWidth: 20, halign: 'center' },
+            4: { cellWidth: 20, halign: 'center' },
+            5: { cellWidth: 20, halign: 'center' },
+            6: { cellWidth: 20, halign: 'center' }
+          },
+          margin: { left: margin, right: margin }
         });
         
-        if (sensorSessions.length > 20) {
+        if (sensorSessions.length > 15) {
           yPosition = doc.lastAutoTable.finalY + 10;
-          doc.setFontSize(10);
-          doc.text(`* Showing first 20 of ${sensorSessions.length} total sessions`, 20, yPosition);
+          checkPageBreak(10);
+          doc.setFontSize(8);
+          doc.text(`* Showing first 15 of ${sensorSessions.length} total sessions`, margin, yPosition);
         }
       } else {
-        doc.setFontSize(11);
-        doc.text('No sensor data available', 20, yPosition);
+        doc.setFontSize(10);
+        doc.text('No sensor data available', margin, yPosition);
       }
       
-      // Add footer
+      // Add footer to all pages
       const pageCount = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.text(`Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
-        doc.text('Cropify Analytics Report', doc.internal.pageSize.width - 60, doc.internal.pageSize.height - 10);
+        doc.text(`Page ${i} of ${pageCount}`, margin, pageHeight - 10);
+        doc.text('Cropify Analytics Report', pageWidth - 60, pageHeight - 10);
       }
       
       // Save the PDF

@@ -112,7 +112,7 @@ h2 {
 /* Actions column width */
 .records-table th:last-child,
 .records-table td:last-child {
-  width: 50px;
+  width: 60px;
   text-align: center;
   padding: 12px 8px;
 }

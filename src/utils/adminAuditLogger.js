@@ -48,6 +48,12 @@ export const adminAuditActions = {
   viewSensorLogs: (adminId, adminName) => 
     logAdminAction(adminId, adminName, 'view', 'Admin viewed sensor logs'),
   
+  viewManageUsers: (adminId, adminName) => 
+    logAdminAction(adminId, adminName, 'view', 'Admin viewed manage users page'),
+  
+  editUser: (adminId, adminName, userName) => 
+    logAdminAction(adminId, adminName, 'update', `Admin edited user: ${userName}`),
+  
   // Admin management actions
   viewManageAdmin: (adminId, adminName) => 
     logAdminAction(adminId, adminName, 'view', 'Admin viewed manage admin page'),

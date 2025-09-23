@@ -6,8 +6,8 @@ import { app } from "../firebase";
 import '../styles/Navbar.css';
 import { adminAuditActions } from '../utils/adminAuditLogger';
 
-// Accept role, adminName, and adminId as props
-function Navbar({ role, adminName, adminId }) {
+// Accept role, adminName, adminId, and onPrintSummary as props
+function Navbar({ role, adminName, adminId, onPrintSummary }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -39,6 +39,8 @@ function Navbar({ role, adminName, adminId }) {
         return 'Manage App';
       case '/adminrecords':
         return 'Admin Records';
+      case '/adminauditlogs':
+        return 'Admin Audit Logs';
       default:
         return 'Dashboard';
     }
@@ -122,6 +124,29 @@ function Navbar({ role, adminName, adminId }) {
         </div>
         <h2 className="header-title" style={{ fontWeight: 'bold' }}>{getPageTitle()}</h2>
         <div className="header-right">
+          {/* Print Summary Button - only show for specific pages */}
+          {onPrintSummary && (location.pathname === '/dashboard' || location.pathname === '/userrecords' || location.pathname === '/userlogs' || location.pathname === '/sensorlogs' || location.pathname === '/adminauditlogs') && (
+            <button 
+              onClick={onPrintSummary}
+              className="print-summary-btn"
+              style={{
+                background: 'transparent',
+                color: 'white',
+                border: '0.5px solid white',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginRight: '10px'
+              }}
+            >
+              Print {getPageTitle()} Summary
+            </button>
+          )}
           <div className="admin-dropdown" ref={dropdownRef}>
             <button 
               className="admin-dropdown-button"
@@ -152,9 +177,6 @@ function Navbar({ role, adminName, adminId }) {
             <li className={location.pathname === '/dashboard' ? 'active' : ''}>
               <Link to="/dashboard" onClick={handleLinkClick}>DASHBOARD</Link>
             </li>
-            <li className={location.pathname === '/analytics' ? 'active' : ''}>
-              <Link to="/analytics" onClick={handleLinkClick}>ANALYTICS</Link>
-            </li>
             <li className={location.pathname === '/userlogs' ? 'active' : ''}>
               <Link to="/userlogs" onClick={handleLinkClick}>USER LOGS</Link>
             </li>
@@ -172,6 +194,9 @@ function Navbar({ role, adminName, adminId }) {
               <>
                 <li className={location.pathname === '/manageadmin' ? 'active' : ''}>
                   <Link to="/manageadmin" onClick={handleLinkClick}>MANAGE ADMIN</Link>
+                </li>
+                <li className={location.pathname === '/adminauditlogs' ? 'active' : ''}>
+                  <Link to="/adminauditlogs" onClick={handleLinkClick}>AUDIT LOGS</Link>
                 </li>
                 <li className={location.pathname === '/manageapp' ? 'active' : ''}>
                   <Link to="/manageapp" onClick={handleLinkClick}>MANAGE APP</Link>

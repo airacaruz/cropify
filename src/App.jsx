@@ -3,6 +3,7 @@ import './App.css';
 import Test from './Test';
 import Layout from './components/Layout';
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminAuditLogs from './pages/Dashboard/AdminAuditLogs';
 import AdminRecords from './pages/Dashboard/AdminRecords';
 import AnalyticsPage from './pages/Dashboard/AnalyticsPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
@@ -122,6 +123,14 @@ const routes = [
         element: (
           <ProtectedRoute>
             <ManageAdmin />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'adminauditlogs',
+        element: (
+          <ProtectedRoute>
+            <AdminAuditLogs />
           </ProtectedRoute>
         ),
       },
