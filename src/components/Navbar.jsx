@@ -13,6 +13,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const dropdownRef = useRef(null);
 
   // Function to get page title based on current route
@@ -88,6 +89,15 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
     setShowLogoutConfirm(false);
   };
 
+  const handleSettingsClick = () => {
+    setShowSettingsModal(true);
+    setIsDropdownOpen(false);
+  };
+
+  const closeSettingsModal = () => {
+    setShowSettingsModal(false);
+  };
+
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -157,6 +167,12 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
             </button>
             {isDropdownOpen && (
               <div className="dropdown-menu">
+                <button 
+                  className="dropdown-item settings-item"
+                  onClick={handleSettingsClick}
+                >
+                  Settings
+                </button>
                 <button 
                   className="dropdown-item logout-item"
                   onClick={handleLogoutClick}
@@ -229,6 +245,23 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
               >
                 Sign Out
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="settings-modal-overlay" onClick={closeSettingsModal}>
+          <div className="settings-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-modal-header">
+              <h3>Settings</h3>
+              <button className="close-settings-btn" onClick={closeSettingsModal}>
+                ×
+              </button>
+            </div>
+            <div className="settings-modal-body">
+              {/* Settings content will be added here */}
             </div>
           </div>
         </div>
