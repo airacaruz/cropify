@@ -1,7 +1,7 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { FaCheckCircle, FaChevronDown, FaChevronUp, FaClock, FaCloudRain, FaCloudSun, FaFlask, FaList, FaMicrochip, FaTemperatureHigh, FaTimesCircle, FaTint, FaUser, FaWater } from "react-icons/fa";
+import { FaCheckCircle, FaClock, FaCloudRain, FaCloudSun, FaEye, FaFlask, FaList, FaMicrochip, FaTemperatureHigh, FaTimes, FaTint, FaUser, FaWater } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
@@ -9,13 +9,13 @@ import '../../../styles/UserRecordsPage.css';
 
 const SensorLogsPage = () => {
   const [activeTab, setActiveTab] = useState('kits');
-  const [expandedKitRow, setExpandedKitRow] = useState(null);
-  const [expandedSessionRow, setExpandedSessionRow] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedData, setSelectedData] = useState(null);
 
   // Role and user info
   const [role, setRole] = useState(null);
   const [adminName, setAdminName] = useState("");
-  const [uid, setUid] = useState(null);
+  const [uid, setUid] = useState("");
   const navigate = useNavigate();
 
   // Hardcoded Sensor Kits
@@ -73,31 +73,21 @@ const SensorLogsPage = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Access control for admin
-  if (role === "admin") {
-    return (
-      <div className="loading-container">
-        <Navbar role={role} />
-        <p>Access denied. Only Super Admin can view this page.</p>
-      </div>
-    );
-  }
 
-  const toggleKitExpand = (index) => {
-    setExpandedKitRow(expandedKitRow === index ? null : index);
+  const openModal = (data) => {
+    setSelectedData(data);
+    setShowModal(true);
   };
 
-  const toggleSessionExpand = (index) => {
-    setExpandedSessionRow(expandedSessionRow === index ? null : index);
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedData(null);
   };
 
   return (
     <div className="user-records-container">
-      <Navbar role={role} />
+      <Navbar role={role} adminName={adminName} adminId={uid} />
 
-      <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <FaMicrochip style={{ color: "#4CAF50" }} /> Sensor Logs
-      </h2>
 
       <div className="tab-buttons">
         <button
@@ -122,49 +112,42 @@ const SensorLogsPage = () => {
               <th><FaMicrochip /> Sensor Kit ID</th>
               <th><FaCheckCircle /> Is Active</th>
               <th><FaUser /> UID</th>
-              <th></th>
+              <th style={{ width: "100px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {sensorKits.map((kit, index) => (
-              <React.Fragment key={index}>
-                <tr onClick={() => toggleKitExpand(index)} className="hoverable-row">
-                  <td>
-                    <span className="menu-icon">⋮</span> {kit.id}
-                  </td>
-                  <td>
-                    {kit.isActive
-                      ? <span style={{ color: "#4CAF50", fontWeight: "bold" }}><FaCheckCircle /> Yes</span>
-                      : <span style={{ color: "#F44336", fontWeight: "bold" }}><FaTimesCircle /> No</span>
-                    }
-                  </td>
-                  <td>{kit.uid}</td>
-                  <td>
-                    {expandedKitRow === index
-                      ? <FaChevronUp />
-                      : <FaChevronDown />}
-                  </td>
-                </tr>
-                {expandedKitRow === index && (
-                  <tr className="expanded-row">
-                    <td colSpan="4">
-                      <div className="view-only-details">
-                        <p><FaMicrochip /> <strong>Sensor Kit ID:</strong> {kit.id}</p>
-                        <p>
-                          {kit.isActive
-                            ? <span style={{ color: "#4CAF50" }}><FaCheckCircle /> Active</span>
-                            : <span style={{ color: "#F44336" }}><FaTimesCircle /> Inactive</span>
-                          }
-                        </p>
-                        <p><FaUser /> <strong>UID:</strong> {kit.uid}</p>
-                        <button className="close-btn" onClick={() => setExpandedKitRow(null)}>
-                          <FaTimesCircle style={{ marginRight: 4 }} /> Close
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
+              <tr key={index}>
+                <td>{kit.id}</td>
+                <td>
+                  {kit.isActive
+                    ? <span style={{ color: "#4CAF50", fontWeight: "bold" }}><FaCheckCircle /> Yes</span>
+                    : <span style={{ color: "#F44336", fontWeight: "bold" }}><FaTimes /> No</span>
+                  }
+                </td>
+                <td>{kit.uid}</td>
+                <td style={{ textAlign: "center" }}>
+                  <button 
+                    className="view-btn"
+                    onClick={() => openModal(kit)}
+                    style={{
+                      background: "#4CAF50",
+                      color: "white",
+                      border: "none",
+                      padding: "8px 12px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "14px",
+                      fontWeight: "500"
+                    }}
+                  >
+                    <FaEye /> View
+                  </button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -184,52 +167,124 @@ const SensorLogsPage = () => {
               <th><FaCloudSun /> Air Temp (°C)</th>
               <th><FaCloudRain /> Humidity (%)</th>
               <th><FaClock /> Timestamp</th>
-              <th></th>
+              <th style={{ width: "100px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {sensorSessions.map((session, index) => (
-              <React.Fragment key={index}>
-                <tr onClick={() => toggleSessionExpand(index)} className="hoverable-row">
-                  <td><span className="menu-icon">⋮</span> {session.skid}</td>
-                  <td>{session.uid}</td>
-                  <td>{session.sensorType}</td>
-                  <td>{session.ph}</td>
-                  <td>{session.tds}</td>
-                  <td>{session.waterTemp}</td>
-                  <td>{session.airTemp}</td>
-                  <td>{session.humidity}</td>
-                  <td>{session.timestamp}</td>
-                  <td>
-                    {expandedSessionRow === index
-                      ? <FaChevronUp />
-                      : <FaChevronDown />}
-                  </td>
-                </tr>
-                {expandedSessionRow === index && (
-                  <tr className="expanded-row">
-                    <td colSpan="10">
-                      <div className="view-only-details">
-                        <p><FaMicrochip /> <strong>Sensor Kit ID:</strong> {session.skid}</p>
-                        <p><FaUser /> <strong>User ID:</strong> {session.uid}</p>
-                        <p><FaFlask /> <strong>Sensor Type:</strong> {session.sensorType}</p>
-                        <p><FaTint /> <strong>pH:</strong> {session.ph}</p>
-                        <p><FaWater /> <strong>TDS:</strong> {session.tds} ppm</p>
-                        <p><FaTemperatureHigh /> <strong>Water Temp:</strong> {session.waterTemp} °C</p>
-                        <p><FaCloudSun /> <strong>Air Temp:</strong> {session.airTemp} °C</p>
-                        <p><FaCloudRain /> <strong>Humidity:</strong> {session.humidity} %</p>
-                        <p><FaClock /> <strong>Timestamp:</strong> {session.timestamp}</p>
-                        <button className="close-btn" onClick={() => setExpandedSessionRow(null)}>
-                          <FaTimesCircle style={{ marginRight: 4 }} /> Close
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
+              <tr key={index}>
+                <td>{session.skid}</td>
+                <td>{session.uid}</td>
+                <td>{session.sensorType}</td>
+                <td>{session.ph}</td>
+                <td>{session.tds}</td>
+                <td>{session.waterTemp}</td>
+                <td>{session.airTemp}</td>
+                <td>{session.humidity}</td>
+                <td>{session.timestamp}</td>
+                <td style={{ textAlign: "center" }}>
+                  <button 
+                    className="view-btn"
+                    onClick={() => openModal(session)}
+                    style={{
+                      background: "#4CAF50",
+                      color: "white",
+                      border: "none",
+                      padding: "8px 12px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "14px",
+                      fontWeight: "500"
+                    }}
+                  >
+                    <FaEye /> View
+                  </button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Modal for displaying sensor information */}
+      {showModal && selectedData && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                {activeTab === 'kits' ? 'Sensor Kit Details' : 'Sensor Session Details'}
+              </h3>
+              <button className="close-modal-btn" onClick={closeModal}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              {activeTab === 'kits' ? (
+                <div className="sensor-details">
+                  <div className="detail-item">
+                    <FaMicrochip style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>Sensor Kit ID:</strong> {selectedData.id}
+                  </div>
+                  <div className="detail-item">
+                    <FaCheckCircle style={{ color: selectedData.isActive ? "#4CAF50" : "#F44336", marginRight: "8px" }} />
+                    <strong>Status:</strong> {selectedData.isActive ? "Active" : "Inactive"}
+                  </div>
+                  <div className="detail-item">
+                    <FaUser style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>User ID:</strong> {selectedData.uid}
+                  </div>
+                </div>
+              ) : (
+                <div className="sensor-details">
+                  <div className="detail-item">
+                    <FaMicrochip style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>Sensor Kit ID:</strong> {selectedData.skid}
+                  </div>
+                  <div className="detail-item">
+                    <FaUser style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>User ID:</strong> {selectedData.uid}
+                  </div>
+                  <div className="detail-item">
+                    <FaFlask style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>Sensor Type:</strong> {selectedData.sensorType}
+                  </div>
+                  <div className="detail-item">
+                    <FaTint style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>pH:</strong> {selectedData.ph}
+                  </div>
+                  <div className="detail-item">
+                    <FaWater style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>TDS:</strong> {selectedData.tds} ppm
+                  </div>
+                  <div className="detail-item">
+                    <FaTemperatureHigh style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>Water Temperature:</strong> {selectedData.waterTemp} °C
+                  </div>
+                  <div className="detail-item">
+                    <FaCloudSun style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>Air Temperature:</strong> {selectedData.airTemp} °C
+                  </div>
+                  <div className="detail-item">
+                    <FaCloudRain style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>Humidity:</strong> {selectedData.humidity} %
+                  </div>
+                  <div className="detail-item">
+                    <FaClock style={{ color: "#4CAF50", marginRight: "8px" }} />
+                    <strong>Timestamp:</strong> {selectedData.timestamp}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={closeModal}>
+                <FaTimes style={{ marginRight: 4 }} /> Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

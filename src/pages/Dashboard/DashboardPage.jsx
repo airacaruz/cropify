@@ -5,12 +5,11 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useEffect, useState } from 'react';
 import {
-    FaCloudRain,
-    FaCloudSun,
-    FaTemperatureHigh,
-    FaTint,
+    FaMicrochip,
+    FaPlus,
+    FaTimes,
     FaUserPlus,
-    FaWater
+    FaUsers
 } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import {
@@ -27,10 +26,10 @@ import {
     XAxis,
     YAxis
 } from 'recharts';
-import LogoutButton from '../../components/LogoutButton';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
 import '../../styles/DashboardPage.css';
+import { adminAuditActions } from '../../utils/adminAuditLogger';
 
 function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsers) {
     const insights = [];
@@ -61,12 +60,258 @@ const exportChartsAndPrescriptivePDF = async ({
     newUsersData,
     totalUsers,
     prescriptiveInsights,
-    sensorKpiCards,
     sensorChartData,
     plantTypeData
 }) => {
     const doc = new jsPDF();
+    let yPosition = 30;
 
+    // Add title page
+    doc.setFontSize(24);
+    doc.text('Cropify Dashboard Analytics Report', 20, yPosition);
+    yPosition += 15;
+    
+    doc.setFontSize(14);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, yPosition);
+    yPosition += 20;
+    
+    doc.setFontSize(12);
+    doc.text('Comprehensive analytics and insights for Cropify hydroponic management system', 20, yPosition);
+    yPosition += 30;
+
+    // Add Executive Summary
+    doc.setFontSize(16);
+    doc.text('Executive Summary', 20, yPosition);
+    yPosition += 15;
+    
+    doc.setFontSize(11);
+    const summaryText = [
+        'This report provides a comprehensive analysis of the Cropify platform performance,',
+        'including user growth metrics, sensor data analytics, and plant type distribution.',
+        'Key findings include user acquisition trends, system performance indicators,',
+        'and actionable insights for optimizing hydroponic operations.'
+    ];
+    
+    summaryText.forEach(line => {
+        doc.text(line, 20, yPosition);
+        yPosition += 6;
+    });
+    
+    yPosition += 15;
+
+    // Add Key Performance Indicators (KPIs) Section
+    doc.setFontSize(16);
+    doc.text('Key Performance Indicators (KPIs)', 20, yPosition);
+    yPosition += 15;
+    
+    const kpiTableData = [
+        ['Metric', 'Current Value', 'Trend', 'Status'],
+        ['New Users (Current Month)', kpiData.newUsersCount || '0', kpiData.newUsersTrend || 'N/A', 'Active'],
+        ['Total Users', totalUsers || 'N/A', 'Growing', 'Good'],
+        ['Active Users', 'N/A', 'Stable', 'Good'],
+        ['Sensor Sessions', sensorChartData.length.toString(), 'Active', 'Good'],
+        ['Plant Types Tracked', plantTypeData.length.toString(), 'Diverse', 'Good']
+    ];
+    
+    autoTable(doc, {
+        head: [kpiTableData[0]],
+        body: kpiTableData.slice(1),
+        startY: yPosition,
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [76, 175, 80] },
+        alternateRowStyles: { fillColor: [245, 245, 245] }
+    });
+    
+    yPosition = doc.lastAutoTable.finalY + 20;
+
+    // Add User Analytics Section
+    doc.addPage();
+    yPosition = 30;
+    doc.setFontSize(16);
+    doc.text('User Analytics & Growth Metrics', 20, yPosition);
+    yPosition += 15;
+    
+    if (newUsersData && newUsersData.length > 0) {
+        // Calculate growth metrics
+        const totalNewUsers = newUsersData.reduce((sum, month) => sum + month.newUsers, 0);
+        const avgMonthlyGrowth = (totalNewUsers / newUsersData.length).toFixed(1);
+        const highestMonth = newUsersData.reduce((max, month) => month.newUsers > max.newUsers ? month : max, newUsersData[0]);
+        
+        doc.setFontSize(12);
+        doc.text('Monthly User Growth Analysis:', 20, yPosition);
+        yPosition += 10;
+        
+        const growthMetrics = [
+            `• Total new users tracked: ${totalNewUsers}`,
+            `• Average monthly growth: ${avgMonthlyGrowth} users`,
+            `• Highest growth month: ${highestMonth.month} (${highestMonth.newUsers} users)`,
+            `• Growth period: ${newUsersData.length} months`
+        ];
+        
+        growthMetrics.forEach(metric => {
+            doc.text(metric, 25, yPosition);
+            yPosition += 7;
+        });
+        
+        yPosition += 10;
+        
+        // Enhanced monthly data table
+        const monthlyData = newUsersData.map(month => [
+            month.month,
+            month.newUsers.toString(),
+            `${((month.newUsers / totalNewUsers) * 100).toFixed(1)}%`,
+            month.newUsers > avgMonthlyGrowth ? 'Above Avg' : 'Below Avg'
+        ]);
+        
+        autoTable(doc, {
+            head: [['Month', 'New Users', 'Percentage', 'Performance']],
+            body: monthlyData,
+            startY: yPosition,
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [76, 175, 80] },
+            alternateRowStyles: { fillColor: [245, 245, 245] }
+        });
+        
+        yPosition = doc.lastAutoTable.finalY + 20;
+    }
+
+    // Add Sensor Data Analytics Section
+    if (sensorChartData && sensorChartData.length > 0) {
+        doc.setFontSize(16);
+        doc.text('Sensor Data Analytics', 20, yPosition);
+        yPosition += 15;
+        
+        // Calculate sensor statistics
+        const avgPH = (sensorChartData.reduce((sum, s) => sum + s.ph, 0) / sensorChartData.length).toFixed(2);
+        const avgTDS = (sensorChartData.reduce((sum, s) => sum + s.tds, 0) / sensorChartData.length).toFixed(0);
+        const avgWaterTemp = (sensorChartData.reduce((sum, s) => sum + s.waterTemp, 0) / sensorChartData.length).toFixed(1);
+        const avgAirTemp = (sensorChartData.reduce((sum, s) => sum + s.airTemp, 0) / sensorChartData.length).toFixed(1);
+        const avgHumidity = (sensorChartData.reduce((sum, s) => sum + s.humidity, 0) / sensorChartData.length).toFixed(1);
+        
+        doc.setFontSize(12);
+        doc.text('Sensor Performance Summary:', 20, yPosition);
+        yPosition += 10;
+        
+        const sensorMetrics = [
+            `• Total sensor readings: ${sensorChartData.length}`,
+            `• Average pH Level: ${avgPH} (Optimal: 5.5-7.5)`,
+            `• Average TDS: ${avgTDS} ppm (Optimal: 500-1500)`,
+            `• Average Water Temperature: ${avgWaterTemp}°C (Optimal: 18-24°C)`,
+            `• Average Air Temperature: ${avgAirTemp}°C (Optimal: 20-26°C)`,
+            `• Average Humidity: ${avgHumidity}% (Optimal: 40-70%)`
+        ];
+        
+        sensorMetrics.forEach(metric => {
+            doc.text(metric, 25, yPosition);
+            yPosition += 7;
+        });
+        
+        yPosition += 10;
+        
+        // Enhanced sensor data table (showing first 15 records)
+        const sensorTableData = sensorChartData.slice(0, 15).map(session => [
+            new Date(session.timestamp).toLocaleDateString(),
+            session.ph.toFixed(2),
+            session.tds.toString(),
+            `${session.waterTemp.toFixed(1)}°C`,
+            `${session.airTemp.toFixed(1)}°C`,
+            `${session.humidity.toFixed(1)}%`
+        ]);
+        
+        autoTable(doc, {
+            head: [['Date', 'pH', 'TDS (ppm)', 'Water Temp', 'Air Temp', 'Humidity']],
+            body: sensorTableData,
+            startY: yPosition,
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [76, 175, 80] },
+            alternateRowStyles: { fillColor: [245, 245, 245] }
+        });
+        
+        if (sensorChartData.length > 15) {
+            yPosition = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(10);
+            doc.text(`* Showing first 15 of ${sensorChartData.length} total sensor readings`, 20, yPosition);
+        }
+        
+        yPosition = doc.lastAutoTable.finalY + 20;
+    }
+
+    // Add Plant Type Distribution Section
+    doc.addPage();
+    yPosition = 30;
+    doc.setFontSize(16);
+    doc.text('Hydroponic Plant Type Distribution', 20, yPosition);
+    yPosition += 15;
+    
+    if (plantTypeData && plantTypeData.length > 0) {
+        const totalPlants = plantTypeData.reduce((sum, p) => sum + p.value, 0);
+        const mostPopular = plantTypeData.reduce((max, plant) => plant.value > max.value ? plant : max, plantTypeData[0]);
+        
+        doc.setFontSize(12);
+        doc.text('Plant Type Analysis:', 20, yPosition);
+        yPosition += 10;
+        
+        const plantMetrics = [
+            `• Total plants tracked: ${totalPlants}`,
+            `• Number of different plant types: ${plantTypeData.length}`,
+            `• Most popular plant: ${mostPopular.name} (${mostPopular.value} plants, ${((mostPopular.value / totalPlants) * 100).toFixed(1)}%)`,
+            `• Plant diversity index: ${plantTypeData.length > 1 ? 'High' : 'Low'}`
+        ];
+        
+        plantMetrics.forEach(metric => {
+            doc.text(metric, 25, yPosition);
+            yPosition += 7;
+        });
+        
+        yPosition += 10;
+        
+        // Enhanced plant type table
+        const plantTableData = plantTypeData.map(plant => [
+            plant.name,
+            plant.value.toString(),
+            `${((plant.value / totalPlants) * 100).toFixed(1)}%`,
+            plant.value === mostPopular.value ? 'Most Popular' : 'Standard'
+        ]);
+        
+        autoTable(doc, {
+            head: [['Plant Type', 'Count', 'Percentage', 'Status']],
+            body: plantTableData,
+            startY: yPosition,
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [76, 175, 80] },
+            alternateRowStyles: { fillColor: [245, 245, 245] }
+        });
+        
+        yPosition = doc.lastAutoTable.finalY + 20;
+    }
+
+    // Add Prescriptive Insights Section
+    doc.setFontSize(16);
+    doc.text('Prescriptive Insights & Recommendations', 20, yPosition);
+    yPosition += 15;
+    
+    if (prescriptiveInsights && prescriptiveInsights.length > 0) {
+        doc.setFontSize(11);
+        prescriptiveInsights.forEach((insight, idx) => {
+            if (yPosition > 250) {
+                doc.addPage();
+                yPosition = 30;
+            }
+            doc.text(`• ${insight}`, 20, yPosition);
+            yPosition += 8;
+        });
+    } else {
+        doc.setFontSize(11);
+        doc.text('• Continue monitoring user growth trends for optimal resource allocation', 20, yPosition);
+        yPosition += 8;
+        doc.text('• Maintain current sensor monitoring practices for system health', 20, yPosition);
+        yPosition += 8;
+        doc.text('• Consider expanding plant type diversity based on user preferences', 20, yPosition);
+    }
+    
+    yPosition += 20;
+
+    // Add Charts Section
     async function getChartImage(chartId) {
         const chartElement = document.getElementById(chartId);
         if (chartElement) {
@@ -79,11 +324,6 @@ const exportChartsAndPrescriptivePDF = async ({
     const chartList = [
         { id: 'chart-new-users', title: 'Monthly New User Acquisition' },
         { id: 'chart-active-users', title: 'Monthly Active Users' },
-        { id: 'chart-ph', title: 'pH Over Time' },
-        { id: 'chart-tds', title: 'TDS (ppm) Over Time' },
-        { id: 'chart-water-temp', title: 'Water Temperature (°C) Over Time' },
-        { id: 'chart-air-temp', title: 'Air Temperature (°C) Over Time' },
-        { id: 'chart-humidity', title: 'Humidity (%) Over Time' },
         { id: 'chart-plant-types', title: 'Hydroponic Plant Types Distribution' },
     ];
 
@@ -93,117 +333,41 @@ const exportChartsAndPrescriptivePDF = async ({
         chartImages.push({ ...chartList[i], img });
     }
 
+    // Add charts to PDF
     let chartIdx = 0;
     while (chartIdx < chartImages.length) {
         if (chartIdx > 0) doc.addPage();
         doc.setFontSize(18);
-        doc.text('Dashboard Analytics Charts', 14, 18);
+        doc.text('Visual Analytics Charts', 20, 20);
 
-        const chartsOnPage = chartImages.slice(chartIdx, chartIdx + 3);
+        const chartsOnPage = chartImages.slice(chartIdx, chartIdx + 2);
         const pageWidth = doc.internal.pageSize.getWidth();
-        const chartHeight = 65;
-        const chartWidth = pageWidth - 30;
-        let y = 28;
+        const chartHeight = 80;
+        const chartWidth = pageWidth - 40;
+        let y = 35;
 
         chartsOnPage.forEach((chart) => {
             doc.setFontSize(12);
-            doc.text(chart.title, 14, y);
+            doc.text(chart.title, 20, y);
             if (chart.img) {
-                doc.addImage(chart.img, 'PNG', 14, y + 4, chartWidth, chartHeight);
+                doc.addImage(chart.img, 'PNG', 20, y + 5, chartWidth, chartHeight);
             }
-            y += chartHeight + 18;
+            y += chartHeight + 25;
         });
 
-        chartIdx += 3;
+        chartIdx += 2;
     }
 
-    doc.addPage();
-    doc.setFontSize(18);
-    doc.text('Prescriptive Insights', 14, 18);
-    doc.setFontSize(12);
-    prescriptiveInsights.forEach((insight, idx) => {
-        doc.text(`- ${insight}`, 16, 28 + idx * 10);
-    });
-
-    doc.addPage();
-    doc.setFontSize(18);
-    doc.text('Prescriptive Analytics & KPIs', 14, 18);
-
-    doc.setFontSize(14);
-    doc.text('User KPIs:', 14, 28);
-    autoTable(doc, {
-        startY: 32,
-        head: [['Metric', 'Value']],
-        body: [
-            ['New Users (Current Month)', kpiData.newUsersCount],
-            ['New Users Trend', kpiData.newUsersTrend],
-            ['Total Users', totalUsers],
-        ],
-        theme: 'grid',
-        styles: { fontSize: 10 },
-        margin: { left: 14, right: 14 }
-    });
-
-    doc.text('Sensor KPIs:', 14, doc.lastAutoTable.finalY + 10);
-    autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 14,
-        head: [['Metric', 'Value', 'Context']],
-        body: sensorKpiCards.map(card => [card.title, card.value, card.context]),
-        theme: 'grid',
-        styles: { fontSize: 10 },
-        margin: { left: 14, right: 14 }
-    });
-
-    doc.text('Sensor Data Sessions:', 14, doc.lastAutoTable.finalY + 10);
-    autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 14,
-        head: [['Timestamp', 'pH', 'TDS', 'Water Temp', 'Air Temp', 'Humidity']],
-        body: sensorChartData.map(row => [
-            row.timestamp,
-            row.ph,
-            row.tds,
-            row.waterTemp,
-            row.airTemp,
-            row.humidity
-        ]),
-        theme: 'grid',
-        styles: { fontSize: 9 },
-        margin: { left: 14, right: 14 }
-    });
-
-    doc.text('Monthly New User Acquisition:', 14, doc.lastAutoTable.finalY + 10);
-    autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 14,
-        head: [['Month', 'New Users']],
-        body: newUsersData.map(row => [row.month, row.newUsers]),
-        theme: 'grid',
-        styles: { fontSize: 10 },
-        margin: { left: 14, right: 14 }
-    });
-
-    // Add plant type pie chart results as a table
-    doc.text('Hydroponic Plant Types Distribution:', 14, doc.lastAutoTable.finalY + 10);
-    autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 14,
-        head: [['Plant Type', 'Count']],
-        body: plantTypeData.map(row => [row.name, row.value]),
-        theme: 'grid',
-        styles: { fontSize: 10 },
-        margin: { left: 14, right: 14 }
-    });
-
-    const plantTypeChart = chartImages.find(chart => chart.id === 'chart-plant-types');
-    if (plantTypeChart && plantTypeChart.img) {
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const chartHeight = 65;
-        const chartWidth = pageWidth - 30;
-        let y = doc.lastAutoTable.finalY + 20;
-        doc.setFontSize(12);
-        doc.text('Hydroponic Plant Types Distribution (Pie Chart)', 14, y);
-        doc.addImage(plantTypeChart.img, 'PNG', 14, y + 4, chartWidth, chartHeight);
+    // Add footer to all pages
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
+        doc.text('Cropify Dashboard Analytics Report', doc.internal.pageSize.width - 80, doc.internal.pageSize.height - 10);
     }
 
-    doc.save('Cropify_Prescriptive_Report.pdf');
+    doc.save('Cropify_Dashboard_Analytics_Report.pdf');
 };
 
 const hardcodedPlantTypes = [
@@ -226,6 +390,32 @@ const Dashboard = () => {
 
     const [sensorSessions, setSensorSessions] = useState([]);
     const [plantTypeData, setPlantTypeData] = useState([]);
+    const [showSensorKitsModal, setShowSensorKitsModal] = useState(false);
+    const [showReportsModal, setShowReportsModal] = useState(false);
+    const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+    const [reportTickets, setReportTickets] = useState([]);
+    const [allReportTickets, setAllReportTickets] = useState([]);
+
+    const handlePrintConfirm = async () => {
+        // Log the print dashboard action
+        if (uid && adminName) {
+            await adminAuditActions.printDashboard(uid, adminName);
+        }
+        
+        exportChartsAndPrescriptivePDF({
+            kpiData,
+            newUsersData,
+            totalUsers: "...",
+            prescriptiveInsights,
+            sensorChartData,
+            plantTypeData
+        });
+        setShowPrintConfirmModal(false);
+    };
+
+    const handlePrintCancel = () => {
+        setShowPrintConfirmModal(false);
+    };
 
     const hardcodedSessions = [
         {
@@ -276,6 +466,13 @@ const Dashboard = () => {
 
         return () => unsubscribe();
     }, [navigate]);
+
+    // Track login action once when component is fully loaded
+    useEffect(() => {
+        if (uid && adminName && !loading) {
+            adminAuditActions.login(uid, adminName);
+        }
+    }, [uid, adminName, loading]);
 
     useEffect(() => {
         if (!uid) return;
@@ -427,9 +624,35 @@ const Dashboard = () => {
             }));
             setPlantTypeData(pieData);
 
-        } catch (error) {
+            // Fetch report tickets from Firestore
+            const reportsSnapshot = await getDocs(collection(db, 'reports'));
+            const reports = reportsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    title: data.message || 'No title',
+                    type: data.type || 'Unknown',
+                    userId: data.userId || 'Unknown',
+                    timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(),
+                    imageUrl: data.imageUrl || null,
+                    fullMessage: data.message || '', // Keep full message for modal
+                    fullUserId: data.userId || '' // Keep full user ID for modal
+                };
+            });
+            
+            // Sort by timestamp (newest first)
+            const sortedReports = reports.sort((a, b) => b.timestamp - a.timestamp);
+            setAllReportTickets(sortedReports);
+            
+            // Take first 3 for the dashboard card
+            setReportTickets(sortedReports.slice(0, 3));
+            
+            console.log('Fetched report tickets:', sortedReports.length, 'total reports');
+
+        } catch (err) {
             setSensorSessions(hardcodedSessions);
             setPlantTypeData(hardcodedPlantTypes);
+            setReportTickets([]);
         }
     };
 
@@ -448,53 +671,11 @@ const Dashboard = () => {
         humidity: session.humidity,
     }));
 
-    const latestSensor = sensorChartData[sensorChartData.length - 1] || {};
-    const sensorKpiCards = [
-        {
-            title: "Latest pH",
-            value: latestSensor.ph ?? "—",
-            context: "Most recent pH reading",
-            icon: <FaTint color="#4CAF50" size={24} />,
-        },
-        {
-            title: "Latest TDS (ppm)",
-            value: latestSensor.tds ?? "—",
-            context: "Most recent TDS reading",
-            icon: <FaWater color="#2196F3" size={24} />,
-        },
-        {
-            title: "Latest Water Temp (°C)",
-            value: latestSensor.waterTemp ?? "—",
-            context: "Most recent water temperature",
-            icon: <FaTemperatureHigh color="#FF9800" size={24} />,
-        },
-        {
-            title: "Latest Air Temp (°C)",
-            value: latestSensor.airTemp ?? "—",
-            context: "Most recent air temperature",
-            icon: <FaCloudSun color="#F44336" size={24} />,
-        },
-        {
-            title: "Latest Humidity (%)",
-            value: latestSensor.humidity ?? "—",
-            context: "Most recent humidity reading",
-            icon: <FaCloudRain color="#009688" size={24} />,
-        },
-    ];
 
     return (
         <div className="dashboard-container">
-            <Navbar role={role} />
+            <Navbar role={role} adminName={adminName} adminId={uid} />
 
-            <header className="dashboard-topbar">
-                <h2 className="dashboard-main-title">Dashboard</h2>
-                <div className="dashboard-profile-actions">
-                    <span className="dashboard-admin-name">
-                        {adminName}
-                    </span>
-                    <LogoutButton />
-                </div>
-            </header>
 
             {role === "superadmin" && (
                 <div className="superadmin-section"></div>
@@ -513,12 +694,29 @@ const Dashboard = () => {
 
             {(role === "superadmin" || role === "admin") && (
                 <div className="dashboard-analytics-section">
+                    <div style={{ textAlign: 'right', marginBottom: '2rem' }}>
+                        <button
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                background: 'transparent',
+                                color: '#2e7d32',
+                                border: '2px solid #2e7d32',
+                                borderRadius: 6,
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                fontWeight: 'bold'
+                            }}
+                            onClick={() => setShowPrintConfirmModal(true)}
+                        >
+                            Print Dashboard Summary
+                        </button>
+                    </div>
                     <div className="kpi-cards-container">
                         <div className="kpi-card">
-                            <h4 className="kpi-card-title">
+                                <h4 className="kpi-card-title">
                                 <FaUserPlus color="#4CAF50" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                 New Users (Current Month)
-                            </h4>
+                                </h4>
                             <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
                             <p className="kpi-trend">
                                 <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
@@ -527,16 +725,90 @@ const Dashboard = () => {
                                 vs. last month
                             </p>
                         </div>
-                        {sensorKpiCards.map((kpi, idx) => (
-                            <div className="kpi-card" key={idx}>
+                        
+                        <div className="kpi-card app-reports-card">
+                            <div className="app-reports-header">
                                 <h4 className="kpi-card-title">
-                                    {kpi.icon}
-                                    <span style={{ marginLeft: 8 }}>{kpi.title}</span>
+                                    <FaMicrochip color="#FF9800" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                                    App Report Tickets
                                 </h4>
-                                <h1 className="kpi-value">{kpi.value}</h1>
-                                <p className="kpi-context">{kpi.context}</p>
+                            </div>
+                            <div className="app-reports-list">
+                                {reportTickets.length > 0 ? (
+                                    reportTickets.map((ticket, index) => (
+                                        <div key={ticket.id} className="app-report-item">
+                                            <div className="ticket-info">
+                                                <span className="ticket-id">{ticket.id}</span>
+                                                <span className="ticket-title">{ticket.title}</span>
+                                            </div>
+                                            <div className="ticket-details">
+                                                <span className={`ticket-status ${ticket.type.toLowerCase().replace(' ', '-')}`}>
+                                                    {ticket.type}
+                                                </span>
+                                                <span className="ticket-user">
+                                                    {ticket.userId.substring(0, 8)}...
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="no-tickets">
+                                        <p>No report tickets found</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="view-all-container">
+                                <button className="view-all-btn" onClick={() => setShowReportsModal(true)}>
+                                    View All Report Tickets
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="kpi-card sensor-kits-card">
+                            <div className="sensor-kits-header">
+                                <h4 className="kpi-card-title">
+                                    <FaMicrochip color="#2196F3" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                                    Recent Sensor Kits
+                                </h4>
+                                <button className="quick-add-btn" onClick={() => alert('Quick Add Sensor Kit - Feature coming soon!')}>
+                                    <FaPlus size={16} /> Quick Add
+                                </button>
+                            </div>
+                            <div className="sensor-kits-list">
+                                {[
+                                    { id: 'SK-001', status: 'Active', user: 'user123' },
+                                    { id: 'SK-002', status: 'Inactive', user: 'user456' }
+                                ].map((kit, index) => (
+                                    <div key={kit.id} className="sensor-kit-item">
+                                        <div className="kit-info">
+                                            <span className="kit-id">{kit.id}</span>
+                                            <span className={`kit-status ${kit.status.toLowerCase()}`}>
+                                                {kit.status}
+                                            </span>
+                                        </div>
+                                        <span className="kit-user">{kit.user}</span>
                             </div>
                         ))}
+                    </div>
+                            <div className="view-all-container">
+                                <button className="view-all-btn" onClick={() => setShowSensorKitsModal(true)}>
+                                    View All Sensor Kits
+                                </button>
+                            </div>
+                    </div>
+
+                        <div className="kpi-card">
+                            <h4 className="kpi-card-title">
+                                <FaUsers color="#2196F3" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                                Active Users
+                            </h4>
+                            <h1 className="kpi-value">{activeUsersCount.toLocaleString()}</h1>
+                            <p className="kpi-trend">
+                                <span className="text-green">
+                                    Currently active users
+                                </span>
+                            </p>
+                        </div>
                     </div>
 
                     <div id="charts-container" className="charts-container">
@@ -553,14 +825,13 @@ const Dashboard = () => {
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="chart-card pie-card-layout" id="chart-plant-types">
-                            <div>
+                        <div className="chart-card pie-chart-main-card" id="chart-plant-types">
                                 <h2 className="chart-title">Hydroponic Plant Types Distribution</h2>
                                 <p className="chart-summary">
                                     Distribution of hydroponic plant types input by users.
                                 </p>
-                            </div>
-                            <div className="pie-center">
+                            <div className="pie-chart-container">
+                                <div className="pie-chart-wrapper">
                                 <PieChart width={300} height={300}>
                                     <Pie
                                         data={plantTypeData}
@@ -577,89 +848,33 @@ const Dashboard = () => {
                                     </Pie>
                                 </PieChart>
                             </div>
-                            <div className="pie-list">
-                                <h3 style={{ marginBottom: 10 }}>Plant Types</h3>
-                                <ul style={{ listStyle: "none", padding: 0 }}>
+                                <div className="plant-types-card">
+                                    <div className="plant-types-header">
+                                        <h3>Plant Types</h3>
+                                        <span className="total-count">
+                                            Total: {plantTypeData.reduce((sum, item) => sum + item.value, 0)}
+                                        </span>
+                                    </div>
+                                    <div className="plant-types-list">
                                     {plantTypeData.map((entry, idx) => (
-                                        <li key={entry.name} style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                                            <div key={entry.name} className="plant-type-item">
+                                                <div className="plant-type-info">
                                             <span
+                                                        className="plant-type-color"
                                                 style={{
-                                                    display: "inline-block",
-                                                    width: 16,
-                                                    height: 16,
                                                     background: COLORS[idx % COLORS.length],
-                                                    borderRadius: "50%",
-                                                    marginRight: 8,
                                                 }}
                                             ></span>
-                                            <span style={{ fontWeight: 500 }}>{entry.name}</span>
-                                            <span style={{ marginLeft: "auto", fontWeight: 700 }}>{entry.value}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                                    <span className="plant-type-name">{entry.name}</span>
+                                                </div>
+                                                <span className="plant-type-count">{entry.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="chart-card" id="chart-ph">
-                            <h2 className="chart-title">pH Over Time</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={sensorChartData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="timestamp" />
-                                    <YAxis domain={['auto', 'auto']} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="ph" stroke="#4CAF50" strokeWidth={3} dot={{ r: 4 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="chart-card" id="chart-tds">
-                            <h2 className="chart-title">TDS (ppm) Over Time</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={sensorChartData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="timestamp" />
-                                    <YAxis domain={['auto', 'auto']} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="tds" stroke="#2196F3" strokeWidth={3} dot={{ r: 4 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="chart-card" id="chart-water-temp">
-                            <h2 className="chart-title">Water Temperature (°C) Over Time</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={sensorChartData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="timestamp" />
-                                    <YAxis domain={['auto', 'auto']} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="waterTemp" stroke="#FF9800" strokeWidth={3} dot={{ r: 4 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="chart-card" id="chart-air-temp">
-                            <h2 className="chart-title">Air Temperature (°C) Over Time</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={sensorChartData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="timestamp" />
-                                    <YAxis domain={['auto', 'auto']} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="airTemp" stroke="#F44336" strokeWidth={3} dot={{ r: 4 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="chart-card" id="chart-humidity">
-                            <h2 className="chart-title">Humidity (%) Over Time</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={sensorChartData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="timestamp" />
-                                    <YAxis domain={['auto', 'auto']} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="humidity" stroke="#009688" strokeWidth={3} dot={{ r: 4 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
                         <div className="chart-card" id="chart-new-users">
                             <h2 className="chart-title">Monthly New User Trend</h2>
                             <ResponsiveContainer width="100%" height={300}>
@@ -677,32 +892,231 @@ const Dashboard = () => {
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                    </div>
+                        </div>
+                        
+                        </div>
+            )}
 
-                    <div style={{ textAlign: 'right', marginTop: '2rem' }}>
-                        <button
-                            style={{
-                                padding: '0.5rem 1rem',
-                                background: '#4CAF50',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer'
-                            }}
-                            onClick={() =>
-                                exportChartsAndPrescriptivePDF({
-                                    kpiData,
-                                    newUsersData,
-                                    totalUsers: "...",
-                                    prescriptiveInsights,
-                                    sensorKpiCards,
-                                    sensorChartData,
-                                    plantTypeData
-                                })
-                            }
-                        >
-                            Export Prescriptive PDF
-                        </button>
+            {/* Sensor Kits Modal */}
+            {showSensorKitsModal && (
+                <div className="modal-overlay" onClick={() => setShowSensorKitsModal(false)}>
+                    <div className="modal-content sensor-kits-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>
+                                <FaMicrochip style={{ marginRight: 8, color: "#2196F3" }} />
+                                All Sensor Kits
+                            </h3>
+                            <button 
+                                className="close-modal-btn" 
+                                onClick={() => setShowSensorKitsModal(false)}
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="sensor-kits-table">
+                                <table className="modal-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Kit ID</th>
+                                            <th>Status</th>
+                                            <th>User ID</th>
+                                            <th>Last Activity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[
+                                            { id: 'SK-001', status: 'Active', user: 'user123', lastActivity: '2024-01-15 14:30' },
+                                            { id: 'SK-002', status: 'Inactive', user: 'user456', lastActivity: '2024-01-14 09:15' }
+                                        ].map((kit) => (
+                                            <tr key={kit.id}>
+                                                <td>
+                                                    <span className="kit-id-badge">
+                                                        <FaMicrochip size={12} style={{ marginRight: 4 }} />
+                                                        {kit.id}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className={`status-badge ${kit.status.toLowerCase()}`}>
+                                                        {kit.status}
+                                                    </span>
+                                                </td>
+                                                <td>{kit.user}</td>
+                                                <td>{kit.lastActivity}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                className="add-kit-btn"
+                                onClick={() => alert('Add New Sensor Kit - Feature coming soon!')}
+                            >
+                                <FaPlus size={14} style={{ marginRight: 6 }} />
+                                Add New Sensor Kit
+                            </button>
+                            <button 
+                                className="close-modal-btn-secondary"
+                                onClick={() => setShowSensorKitsModal(false)}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                    </div>
+            )}
+
+            {/* Report Tickets Modal */}
+            {showReportsModal && (
+                <div className="modal-overlay" onClick={() => setShowReportsModal(false)}>
+                    <div className="modal-content reports-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>
+                                <FaMicrochip style={{ marginRight: 8, color: "#FF9800" }} />
+                                All Report Tickets ({allReportTickets.length})
+                            </h3>
+                            <button 
+                                className="close-modal-btn" 
+                                onClick={() => setShowReportsModal(false)}
+                            >
+                                <FaTimes />
+                            </button>
+                    </div>
+                        <div className="modal-body">
+                            <div className="reports-table">
+                                <table className="modal-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Ticket ID</th>
+                                            <th>Message</th>
+                                            <th>Type</th>
+                                            <th>User ID</th>
+                                            <th>Date & Time</th>
+                                            <th>Image</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {allReportTickets.length > 0 ? (
+                                            allReportTickets.map((ticket) => (
+                                                <tr key={ticket.id}>
+                                                    <td>
+                                                        <span className="ticket-id-badge">
+                                                            <FaMicrochip size={12} style={{ marginRight: 4 }} />
+                                                            {ticket.id}
+                                                        </span>
+                                                    </td>
+                                                    <td className="ticket-message-cell">
+                                                        <span className="ticket-message-text" title={ticket.fullMessage || ticket.title}>
+                                                            {ticket.title.length > 60 ? ticket.title.substring(0, 60) + '...' : ticket.title}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status-badge ${ticket.type.toLowerCase().replace(' ', '-')}`}>
+                                                            {ticket.type}
+                                                        </span>
+                                                    </td>
+                                                    <td className="user-id-cell">
+                                                        <span title={ticket.fullUserId || ticket.userId}>
+                                                            {ticket.userId.substring(0, 15)}...
+                                                        </span>
+                                                    </td>
+                                                    <td className="datetime-cell">
+                                                        <div className="datetime-info">
+                                                            <div>{ticket.timestamp.toLocaleDateString()}</div>
+                                                            <div className="time-info">{ticket.timestamp.toLocaleTimeString()}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="image-cell">
+                                                        {ticket.imageUrl ? (
+                                                            <span className="has-image">📷</span>
+                                                        ) : (
+                                                            <span className="no-image">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        <button 
+                                                            className={`status-btn ${ticket.type.toLowerCase().includes('resolved') ? 'resolved' : 'pending'}`}
+                                                            onClick={() => {
+                                                                if (ticket.type.toLowerCase().includes('resolved')) {
+                                                                    alert('This ticket has already been resolved!');
+                                                                } else {
+                                                                    alert('Mark as resolved - Feature coming soon!');
+                                                                }
+                                                            }}
+                                                        >
+                                                            {ticket.type.toLowerCase().includes('resolved') ? 'Resolved' : 'Mark as Resolved'}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="7" className="no-data-cell">
+                                                    <div className="no-tickets">
+                                                        <p>No report tickets found</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                className="close-modal-btn-secondary"
+                                onClick={() => setShowReportsModal(false)}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Print Confirmation Modal */}
+            {showPrintConfirmModal && (
+                <div className="modal-overlay" onClick={handlePrintCancel}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Confirm Print Dashboard Summary</h3>
+                            <button className="close-modal-btn" onClick={handlePrintCancel}>
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p>Are you sure you want to print the dashboard summary?</p>
+                            <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+                                This will generate a PDF file with all dashboard data and charts.
+                            </p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="cancel-btn" onClick={handlePrintCancel}>
+                                <FaTimes style={{ marginRight: 4 }} /> Cancel
+                            </button>
+                            <button 
+                                className="submit-btn" 
+                                onClick={handlePrintConfirm}
+                                style={{
+                                    background: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontWeight: '500',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    marginLeft: '10px'
+                                }}
+                            >
+                                Print Summary
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
