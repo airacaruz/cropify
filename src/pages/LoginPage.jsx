@@ -14,6 +14,7 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const auth = getAuth(app);
+  const db = getFirestore(app);
 
   useEffect(() => {
     document.body.classList.add("login-page");
@@ -24,28 +25,52 @@ function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage("");
+
+    // ✅ Empty fields check
+    if (!email || !password) {
+      setMessage("Please fill in both email and password.");
+      return;
+    }
+
+    setLoading(true);
     try {
+      // ✅ Step 1: Check if email exists in admins collection
+      const q = query(collection(db, "admins"), where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        setMessage("Email not found. Please check or register first.");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Step 2: Email exists, now try signing in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      const db = getFirestore(app);
-      const q = query(collection(db, "admins"), where("email", "==", user.email));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const adminData = querySnapshot.docs[0].data();
-        const name = adminData.name;
-        // Instead of navigating directly to dashboard, go to MFA page
-        localStorage.setItem("adminName", name);
-        setMessage("Login successful! Proceeding to verification...");
-        navigate("/login-mfa", { state: { email, password } });
-      } else {
-        setMessage("Access denied: Not an admin.");
-        await auth.signOut();
-      }
+
+      // ✅ Step 3: If login successful, get admin name from Firestore
+      const adminData = querySnapshot.docs[0].data();
+      localStorage.setItem("adminName", adminData.name);
+
+      setMessage("Login successful! Proceeding to verification...");
+      navigate("/login-mfa", { state: { email, password } });
+
     } catch (error) {
-      console.error("Login error message:", error.message);
-      setMessage(error.message);
+      console.error("Login error:", error.code, error.message);
+
+      // ✅ Differentiate password errors from other issues
+      if (error.code === "auth/invalid-credential") {
+        setMessage("Invalid password. Please try again.");
+      } else if (error.code === "auth/invalid-email") {
+        setMessage("Invalid email format.");
+      } else if (error.code === "auth/too-many-requests") {
+        setMessage("Too many failed attempts. Please try again later.");
+      } else if (error.code === "auth/user-disabled") {
+        setMessage("This account has been disabled. Contact support.");
+      } else {
+        setMessage("Login failed. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }
