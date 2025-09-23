@@ -1,13 +1,13 @@
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  addDoc,
-  collection,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  where,
+    addDoc,
+    collection,
+    getDocs,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { FaEye, FaNewspaper, FaPlus, FaTimes, FaVideo } from "react-icons/fa";

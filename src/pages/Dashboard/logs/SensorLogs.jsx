@@ -1,5 +1,7 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import React, { useEffect, useState } from 'react';
 import { FaCheckCircle, FaClock, FaCloudRain, FaCloudSun, FaEye, FaFlask, FaList, FaMicrochip, FaTemperatureHigh, FaTimes, FaTint, FaUser, FaWater } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
@@ -84,10 +86,156 @@ const SensorLogsPage = () => {
     setSelectedData(null);
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    
+    let yPosition = margin;
+    
+    // Helper function to check if we need a new page
+    const checkPageBreak = (requiredSpace = 20) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        doc.addPage();
+        yPosition = margin;
+        return true;
+      }
+      return false;
+    };
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Sensor Logs Report', margin, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Comprehensive sensor kit and session data', margin, yPosition);
+    yPosition += 15;
+
+    // Sensor Kits Section
+    checkPageBreak(30);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Sensor Kits', margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Kits: ${sensorKits.length}`, margin, yPosition);
+    yPosition += 5;
+    doc.text(`Active Kits: ${sensorKits.filter(kit => kit.isActive).length}`, margin, yPosition);
+    yPosition += 5;
+    doc.text(`Inactive Kits: ${sensorKits.filter(kit => !kit.isActive).length}`, margin, yPosition);
+    yPosition += 10;
+
+    // Sensor Kits Table
+    checkPageBreak(40);
+    const kitsTableData = sensorKits.map(kit => [
+      kit.id,
+      kit.isActive ? 'Yes' : 'No',
+      kit.uid
+    ]);
+
+    doc.autoTable({
+      startY: yPosition,
+      head: [['Sensor Kit ID', 'Is Active', 'UID']],
+      body: kitsTableData,
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 50 }
+      },
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: {
+        fontSize: 9,
+        fontStyle: 'bold',
+        fillColor: [76, 175, 80]
+      }
+    });
+
+    // Sensor Sessions Section
+    checkPageBreak(30);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Sensor Sessions', margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Sessions: ${sensorSessions.length}`, margin, yPosition);
+    yPosition += 10;
+
+    // Sensor Sessions Table
+    checkPageBreak(40);
+    const sessionsTableData = sensorSessions.map(session => [
+      session.skid,
+      session.uid,
+      session.sensorType,
+      session.ph,
+      session.tds,
+      session.waterTemp,
+      session.airTemp,
+      session.humidity,
+      session.timestamp
+    ]);
+
+    doc.autoTable({
+      startY: yPosition,
+      head: [['Kit ID', 'UID', 'Type', 'pH', 'TDS', 'Water Temp', 'Air Temp', 'Humidity', 'Timestamp']],
+      body: sessionsTableData,
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 15 },
+        3: { cellWidth: 15 },
+        4: { cellWidth: 15 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 20 },
+        7: { cellWidth: 20 },
+        8: { cellWidth: 30 }
+      },
+      styles: {
+        fontSize: 7,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: {
+        fontSize: 8,
+        fontStyle: 'bold',
+        fillColor: [76, 175, 80]
+      }
+    });
+
+    // Add footer to all pages
+    const pageCount = doc.internal.getNumberOfPages();
+    const generatedDateTime = `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
+    
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Page ${i} of ${pageCount}`, margin, pageHeight - 10);
+      doc.text('Cropify Sensor Logs Report', pageWidth - 80, pageHeight - 10);
+      doc.text(generatedDateTime, margin, pageHeight - 20);
+    }
+
+    doc.save('Cropify_Sensor_Logs_Report.pdf');
+  };
+
   return (
     <div className="user-records-container">
-      <Navbar role={role} adminName={adminName} adminId={uid} />
-
+      <Navbar role={role} adminName={adminName} adminId={uid} onPrintSummary={exportToPDF} />
 
       <div className="tab-buttons">
         <button

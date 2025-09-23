@@ -63,20 +63,31 @@ const exportChartsAndPrescriptivePDF = async ({
     sensorChartData,
     plantTypeData
 }) => {
-    const doc = new jsPDF();
-    let yPosition = 30;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    
+    let yPosition = margin;
+    
+    // Helper function to check if we need a new page
+    const checkPageBreak = (requiredSpace = 20) => {
+        if (yPosition + requiredSpace > pageHeight - margin) {
+            doc.addPage();
+            yPosition = margin;
+            return true;
+        }
+        return false;
+    };
 
     // Add title page
     doc.setFontSize(24);
-    doc.text('Cropify Dashboard Analytics Report', 20, yPosition);
+    doc.text('Cropify Dashboard Analytics Report', margin, yPosition);
     yPosition += 15;
     
-    doc.setFontSize(14);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, yPosition);
-    yPosition += 20;
-    
     doc.setFontSize(12);
-    doc.text('Comprehensive analytics and insights for Cropify hydroponic management system', 20, yPosition);
+    doc.text('Comprehensive analytics and insights for Cropify hydroponic management system', margin, yPosition);
     yPosition += 30;
 
     // Add Executive Summary
@@ -125,10 +136,9 @@ const exportChartsAndPrescriptivePDF = async ({
     yPosition = doc.lastAutoTable.finalY + 20;
 
     // Add User Analytics Section
-    doc.addPage();
-    yPosition = 30;
+    checkPageBreak(60);
     doc.setFontSize(16);
-    doc.text('User Analytics & Growth Metrics', 20, yPosition);
+    doc.text('User Analytics & Growth Metrics', margin, yPosition);
     yPosition += 15;
     
     if (newUsersData && newUsersData.length > 0) {
@@ -138,7 +148,7 @@ const exportChartsAndPrescriptivePDF = async ({
         const highestMonth = newUsersData.reduce((max, month) => month.newUsers > max.newUsers ? month : max, newUsersData[0]);
         
         doc.setFontSize(12);
-        doc.text('Monthly User Growth Analysis:', 20, yPosition);
+        doc.text('Monthly User Growth Analysis:', margin, yPosition);
         yPosition += 10;
         
         const growthMetrics = [
@@ -149,11 +159,12 @@ const exportChartsAndPrescriptivePDF = async ({
         ];
         
         growthMetrics.forEach(metric => {
-            doc.text(metric, 25, yPosition);
+            checkPageBreak(8);
+            doc.text(metric, margin + 5, yPosition);
             yPosition += 7;
         });
         
-        yPosition += 10;
+        yPosition += 15;
         
         // Enhanced monthly data table
         const monthlyData = newUsersData.map(month => [
@@ -237,10 +248,9 @@ const exportChartsAndPrescriptivePDF = async ({
     }
 
     // Add Plant Type Distribution Section
-    doc.addPage();
-    yPosition = 30;
+    checkPageBreak(60);
     doc.setFontSize(16);
-    doc.text('Hydroponic Plant Type Distribution', 20, yPosition);
+    doc.text('Hydroponic Plant Type Distribution', margin, yPosition);
     yPosition += 15;
     
     if (plantTypeData && plantTypeData.length > 0) {
@@ -292,7 +302,7 @@ const exportChartsAndPrescriptivePDF = async ({
     
     if (prescriptiveInsights && prescriptiveInsights.length > 0) {
         doc.setFontSize(11);
-        prescriptiveInsights.forEach((insight, idx) => {
+        prescriptiveInsights.forEach((insight) => {
             if (yPosition > 250) {
                 doc.addPage();
                 yPosition = 30;
@@ -333,38 +343,52 @@ const exportChartsAndPrescriptivePDF = async ({
         chartImages.push({ ...chartList[i], img });
     }
 
-    // Add charts to PDF
+    // Add charts to PDF with proper spacing
     let chartIdx = 0;
     while (chartIdx < chartImages.length) {
-        if (chartIdx > 0) doc.addPage();
-        doc.setFontSize(18);
-        doc.text('Visual Analytics Charts', 20, 20);
+        checkPageBreak(120);
+        if (chartIdx > 0) {
+            doc.addPage();
+            yPosition = margin;
+        }
+        
+        doc.setFontSize(16);
+        doc.text('Visual Analytics Charts', margin, yPosition);
+        yPosition += 20;
 
-        const chartsOnPage = chartImages.slice(chartIdx, chartIdx + 2);
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const chartHeight = 80;
-        const chartWidth = pageWidth - 40;
-        let y = 35;
+        const chartsOnPage = chartImages.slice(chartIdx, chartIdx + 1); // One chart per page for better layout
+        const chartHeight = 100;
+        const chartWidth = contentWidth;
 
         chartsOnPage.forEach((chart) => {
+            checkPageBreak(120);
             doc.setFontSize(12);
-            doc.text(chart.title, 20, y);
+            doc.text(chart.title, margin, yPosition);
+            yPosition += 10;
+            
             if (chart.img) {
-                doc.addImage(chart.img, 'PNG', 20, y + 5, chartWidth, chartHeight);
+                doc.addImage(chart.img, 'PNG', margin, yPosition, chartWidth, chartHeight);
+                yPosition += chartHeight + 20;
+            } else {
+                doc.setFontSize(10);
+                doc.text('Chart not available', margin, yPosition);
+                yPosition += 20;
             }
-            y += chartHeight + 25;
         });
 
-        chartIdx += 2;
+        chartIdx += 1;
     }
 
     // Add footer to all pages
     const pageCount = doc.internal.getNumberOfPages();
+    const generatedDateTime = `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
+    
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.text(`Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
-        doc.text('Cropify Dashboard Analytics Report', doc.internal.pageSize.width - 80, doc.internal.pageSize.height - 10);
+        doc.text(`Page ${i} of ${pageCount}`, margin, pageHeight - 10);
+        doc.text('Cropify Dashboard Analytics Report', pageWidth - 80, pageHeight - 10);
+        doc.text(generatedDateTime, margin, pageHeight - 20);
     }
 
     doc.save('Cropify_Dashboard_Analytics_Report.pdf');
@@ -649,7 +673,8 @@ const Dashboard = () => {
             
             console.log('Fetched report tickets:', sortedReports.length, 'total reports');
 
-        } catch (err) {
+        } catch (error) {
+            console.error('Error fetching analytics data:', error);
             setSensorSessions(hardcodedSessions);
             setPlantTypeData(hardcodedPlantTypes);
             setReportTickets([]);
@@ -672,9 +697,13 @@ const Dashboard = () => {
     }));
 
 
+    const handlePrintSummary = () => {
+        setShowPrintConfirmModal(true);
+    };
+
     return (
         <div className="dashboard-container">
-            <Navbar role={role} adminName={adminName} adminId={uid} />
+            <Navbar role={role} adminName={adminName} adminId={uid} onPrintSummary={handlePrintSummary} />
 
 
             {role === "superadmin" && (
@@ -694,23 +723,6 @@ const Dashboard = () => {
 
             {(role === "superadmin" || role === "admin") && (
                 <div className="dashboard-analytics-section">
-                    <div style={{ textAlign: 'right', marginBottom: '2rem' }}>
-                        <button
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                background: 'transparent',
-                                color: '#2e7d32',
-                                border: '2px solid #2e7d32',
-                                borderRadius: 6,
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                fontWeight: 'bold'
-                            }}
-                            onClick={() => setShowPrintConfirmModal(true)}
-                        >
-                            Print Dashboard Summary
-                        </button>
-                    </div>
                     <div className="kpi-cards-container">
                         <div className="kpi-card">
                                 <h4 className="kpi-card-title">
@@ -735,7 +747,7 @@ const Dashboard = () => {
                             </div>
                             <div className="app-reports-list">
                                 {reportTickets.length > 0 ? (
-                                    reportTickets.map((ticket, index) => (
+                                    reportTickets.map((ticket) => (
                                         <div key={ticket.id} className="app-report-item">
                                             <div className="ticket-info">
                                                 <span className="ticket-id">{ticket.id}</span>
@@ -778,7 +790,7 @@ const Dashboard = () => {
                                 {[
                                     { id: 'SK-001', status: 'Active', user: 'user123' },
                                     { id: 'SK-002', status: 'Inactive', user: 'user456' }
-                                ].map((kit, index) => (
+                                ].map((kit) => (
                                     <div key={kit.id} className="sensor-kit-item">
                                         <div className="kit-info">
                                             <span className="kit-id">{kit.id}</span>
