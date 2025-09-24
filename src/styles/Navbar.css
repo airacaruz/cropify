@@ -432,7 +432,7 @@ body {
   z-index: 1005;
 }
 
-.settings-modal-content {
+.settings-modal {
   background: white;
   border-radius: 12px;
   max-width: 600px;
@@ -478,8 +478,750 @@ body {
   color: #333;
 }
 
-.settings-modal-body {
+.settings-modal-content {
   padding: 24px;
   flex: 1;
   overflow-y: auto;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-section h4 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item label {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.setting-item span {
+  color: #666;
+  font-size: 14px;
+}
+
+.setting-item select {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  color: #333;
+}
+
+.setting-item select:focus {
+  outline: none;
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.toggle-2fa-btn {
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.toggle-2fa-btn:hover {
+  background-color: #1b5e20;
+}
+
+.settings-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.settings-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.settings-btn.cancel-btn {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.settings-btn.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.settings-btn.save-btn {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.settings-btn.save-btn:hover {
+  background-color: #1b5e20;
+}
+
+.settings-btn.disable-2fa-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.settings-btn.disable-2fa-btn:hover {
+  background-color: #d32f2f;
+}
+
+/* 2FA Setup Modal Styles */
+.twofa-setup-container {
+  max-width: 100%;
+}
+
+.setup-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.setup-header h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.setup-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.twofa-status-enabled {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background-color: #e8f5e8;
+  border: 1px solid #4caf50;
+  border-radius: 6px;
+  color: #2e7d32;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Progress Steps */
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.progress-steps::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  background-color: #e0e0e0;
+  z-index: 1;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.step.completed .step-number {
+  background-color: #4caf50;
+  color: white;
+}
+
+.step-label {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  font-weight: 500;
+}
+
+.step.active .step-label {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.step.completed .step-label {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+/* Step Content */
+.step-content {
+  min-height: 300px;
+}
+
+.step-panel {
+  padding: 20px 0;
+}
+
+.step-panel h5 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.step-panel p {
+  margin: 0 0 16px 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* App Options */
+.app-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.app-option {
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  text-align: center;
+  background-color: #f9f9f9;
+}
+
+.app-option strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #333;
+  font-size: 14px;
+}
+
+.app-option p {
+  margin: 0;
+  color: #666;
+  font-size: 12px;
+}
+
+/* QR Code Section */
+.qr-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 20px 0;
+  align-items: start;
+}
+
+.qr-code-container {
+  text-align: center;
+}
+
+.qr-code {
+  width: 200px;
+  height: 200px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px;
+  background-color: white;
+}
+
+.qr-placeholder {
+  width: 200px;
+  height: 200px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 14px;
+  margin: 0 auto;
+}
+
+.manual-setup {
+  padding: 16px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.manual-setup p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+}
+
+.secret-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.secret-code {
+  flex: 1;
+  padding: 8px 12px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.copy-btn {
+  padding: 8px 12px;
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.3s;
+}
+
+.copy-btn:hover {
+  background-color: #1b5e20;
+}
+
+/* Verification Section */
+.verification-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  justify-content: center;
+}
+
+.verification-input {
+  width: 120px;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 18px;
+  text-align: center;
+  font-family: monospace;
+  letter-spacing: 2px;
+}
+
+.verification-input:focus {
+  outline: none;
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+.verify-btn {
+  padding: 12px 24px;
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.verify-btn:hover:not(:disabled) {
+  background-color: #1b5e20;
+}
+
+.verify-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Success Panel */
+.success-panel {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.success-panel h5 {
+  color: #4caf50;
+  margin-bottom: 16px;
+}
+
+.success-panel p {
+  margin-bottom: 12px;
+  color: #666;
+}
+
+/* Buttons */
+.step-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.next-btn, .back-btn, .reset-btn, .complete-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.next-btn, .complete-btn {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.next-btn:hover, .complete-btn:hover {
+  background-color: #1b5e20;
+}
+
+.back-btn {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.back-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.reset-btn {
+  background-color: #ff9800;
+  color: white;
+}
+
+.reset-btn:hover {
+  background-color: #f57c00;
+}
+
+.completion-actions {
+  margin-top: 24px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .progress-steps {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+  
+  .progress-steps::before {
+    display: none;
+  }
+  
+  .step {
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .step-number {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+    margin-bottom: 0;
+  }
+  
+  .step-label {
+    font-size: 14px;
+  }
+  
+  .qr-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .qr-code {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .qr-placeholder {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .verification-section {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .step-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .step-buttons button {
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .app-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-modal {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .settings-modal-content {
+    padding: 16px;
+  }
+  
+  .step-panel {
+    padding: 16px 0;
+  }
+}
+
+/* 2FA Status Display Styles */
+.twofa-status-disabled {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  color: #856404;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.twofa-enabled-content {
+  padding: 20px 0;
+}
+
+.twofa-disabled-content {
+  padding: 20px 0;
+}
+
+.twofa-re-enable-content {
+  padding: 20px 0;
+}
+
+.status-panel {
+  text-align: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.status-panel h5 {
+  margin: 0 0 12px 0;
+  color: #28a745;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.status-panel p {
+  margin: 0 0 20px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.security-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.info-item strong {
+  color: #333;
+  font-size: 14px;
+}
+
+.status-active {
+  color: #28a745;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.status-inactive {
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.status-archived {
+  color: #6c757d;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.warning-message {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+}
+
+.warning-message p {
+  margin: 0;
+  color: #856404;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.info-message {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background-color: #d1ecf1;
+  border: 1px solid #bee5eb;
+  border-radius: 6px;
+}
+
+.info-message p {
+  margin: 0;
+  color: #0c5460;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.enable-2fa-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.enable-2fa-btn:hover {
+  background-color: #218838;
+}
+
+.disable-2fa-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.disable-2fa-btn:hover {
+  background-color: #c82333;
+}
+
+.settings-modal-footer .twofa-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.settings-modal-footer .twofa-buttons .back-btn {
+  flex: 1;
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.settings-modal-footer .twofa-buttons .back-btn:hover {
+  background-color: #e0e0e0;
+  border-color: #ccc;
+}
+
+.settings-modal-footer .twofa-buttons .enable-2fa-btn {
+  flex: 2;
+}
+
+/* Responsive adjustments for 2FA status */
+@media (max-width: 768px) {
+  .security-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .status-panel {
+    padding: 16px;
+  }
 }
