@@ -128,3 +128,97 @@ body.login-page {
   letter-spacing: 0.5px;
 }
 
+/* 2FA Verification Styles */
+.twofa-input-container {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.twofa-code-input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 24px;
+  text-align: center;
+  letter-spacing: 4px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.twofa-code-input:focus {
+  outline: none;
+  border-color: #5c8f46;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(92, 143, 70, 0.1);
+}
+
+.twofa-code-input:disabled {
+  background-color: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.twofa-help-text {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.twofa-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.twofa-buttons .back-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.twofa-buttons .back-btn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+  border-color: #ccc;
+}
+
+.twofa-buttons .back-btn:disabled {
+  background-color: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.twofa-buttons .login-btn {
+  flex: 2;
+}
+
+/* Responsive adjustments for 2FA */
+@media (max-width: 768px) {
+  .twofa-code-input {
+    font-size: 20px;
+    letter-spacing: 3px;
+    padding: 14px;
+  }
+  
+  .twofa-buttons {
+    flex-direction: column;
+  }
+  
+  .twofa-buttons .back-btn,
+  .twofa-buttons .login-btn {
+    flex: none;
+  }
+}
+

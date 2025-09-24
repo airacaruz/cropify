@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
@@ -10,6 +10,7 @@ function RegisterPage() {
   const [role, setRole] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [superAdminCount, setSuperAdminCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,8 +20,30 @@ function RegisterPage() {
     };
   }, []);
 
+  // Fetch Super Admin count
+  useEffect(() => {
+    const fetchSuperAdminCount = async () => {
+      try {
+        const q = query(collection(db, "admins"), where("role", "==", "Super Admin"));
+        const querySnapshot = await getDocs(q);
+        setSuperAdminCount(querySnapshot.size);
+      } catch (error) {
+        console.error("Error fetching super admin count:", error);
+      }
+    };
+
+    fetchSuperAdminCount();
+  }, []);
+
   const handleRegister = async (e) => {
     e.preventDefault();
+    
+    // Check Super Admin limit
+    if (role === "Super Admin" && superAdminCount >= 3) {
+      alert("Maximum number of Super Admins (3) has been reached. Please select a different role.");
+      return;
+    }
+    
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -59,12 +82,21 @@ function RegisterPage() {
             onChange={(e) => setName(e.target.value)}
           />
           <label>Role</label>
-          <input
-            type="text"
-            placeholder="Admin, Accounting, etc."
+          <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-          />
+            className="role-select"
+            required
+          >
+            <option value="">Select a role</option>
+            <option 
+              value="Super Admin" 
+              disabled={superAdminCount >= 3}
+            >
+              Super Admin {superAdminCount >= 3 ? "(Limit Reached)" : ""}
+            </option>
+            <option value="Admin">Admin</option>
+          </select>
           <label>Email</label>
           <input
             type="email"

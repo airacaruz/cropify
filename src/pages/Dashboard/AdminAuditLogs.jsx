@@ -289,7 +289,7 @@ const AdminAuditLogsPage = () => {
       case 'create': return '➕';
       case 'update': return '✏️';
       case 'delete': return '🗑️';
-      case 'click': return '👆';
+      case 'print': return '🖨️';
       default: return '📝';
     }
   };
@@ -302,7 +302,7 @@ const AdminAuditLogsPage = () => {
       case 'create': return '#ff9800';
       case 'update': return '#9c27b0';
       case 'delete': return '#f44336';
-      case 'click': return '#607d8b';
+      case 'print': return '#607d8b';
       default: return '#795548';
     }
   };
@@ -320,13 +320,13 @@ const AdminAuditLogsPage = () => {
     { value: 'create', label: 'Create' },
     { value: 'update', label: 'Update' },
     { value: 'delete', label: 'Delete' },
-    { value: 'click', label: 'Click' }
+    { value: 'print', label: 'Print' }
   ];
 
   const handlePrintConfirm = async () => {
     // Log the print action
     if (uid && adminName) {
-      await adminAuditActions.custom(uid, adminName, 'click', 'Admin printed audit logs summary');
+      await adminAuditActions.custom(uid, adminName, 'print', 'Admin printed audit logs summary');
     }
     
     // Calculate audit metrics
