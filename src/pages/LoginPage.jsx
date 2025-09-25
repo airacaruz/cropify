@@ -1,11 +1,12 @@
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { collection, getDocs, getFirestore, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import cropifyLogo from "../assets/images/cropifylogo.png";
 import { isAdmin2FAEnabled, verifyAdmin2FA } from "../Authentication";
 import { app } from "../firebase";
 import "../styles/LoginPage.css";
+import SecurityUtils from "../utils/security.jsx";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,16 +18,30 @@ function LoginPage() {
   const [adminId, setAdminId] = useState("");
   const [adminName, setAdminName] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const auth = getAuth(app);
   const db = getFirestore(app);
 
   useEffect(() => {
     document.body.classList.add("login-page");
+    
+    // Check if user is already authenticated and redirect
+    const checkExistingAuth = async () => {
+      const session = await SecurityUtils.validateSession();
+      if (session.isValid) {
+        // User is already authenticated, redirect to dashboard
+        const from = location.state?.from?.pathname || '/dashboard';
+        navigate(from, { replace: true });
+      }
+    };
+    
+    checkExistingAuth();
+    
     return () => {
       document.body.classList.remove("login-page");
     };
-  }, []);
+  }, [navigate, location]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -73,12 +88,31 @@ function LoginPage() {
       } else {
         // No 2FA enabled, proceed to dashboard
         localStorage.setItem("adminName", adminData.name);
+        
+        // Log successful login
+        SecurityUtils.logSecurityEvent('successful_login', {
+          userId: currentAdminId,
+          adminName: adminData.name,
+          role: adminData.role
+        });
+        
         setMessage("Login successful! Redirecting to dashboard...");
-        navigate("/dashboard");
+        
+        // Redirect to intended page or dashboard
+        const from = location.state?.from?.pathname || '/dashboard';
+        navigate(from, { replace: true });
       }
 
     } catch (error) {
       console.error("Login error:", error.code, error.message);
+
+      // Log failed login attempt
+      SecurityUtils.logSecurityEvent('failed_login_attempt', {
+        email,
+        errorCode: error.code,
+        errorMessage: error.message,
+        timestamp: new Date().toISOString()
+      });
 
       // ✅ Differentiate password errors from other issues
       if (error.code === "auth/invalid-credential") {
@@ -114,9 +148,25 @@ function LoginPage() {
       if (isValid) {
         // 2FA verification successful, proceed to dashboard
         localStorage.setItem("adminName", adminName);
+        
+        // Log successful 2FA login
+        SecurityUtils.logSecurityEvent('successful_2fa_login', {
+          userId: adminId,
+          adminName: adminName
+        });
+        
         setMessage("2FA verification successful! Redirecting to dashboard...");
-        navigate("/dashboard");
+        
+        // Redirect to intended page or dashboard
+        const from = location.state?.from?.pathname || '/dashboard';
+        navigate(from, { replace: true });
       } else {
+        // Log failed 2FA attempt
+        SecurityUtils.logSecurityEvent('failed_2fa_attempt', {
+          userId: adminId,
+          adminName: adminName
+        });
+        
         setMessage("Invalid 2FA code. Please try again.");
         setTwoFACode("");
       }

@@ -220,7 +220,7 @@ const ManageAppPage = () => {
 
   return (
     <div className="manage-app-container">
-      <Navbar role={role} adminName={adminName} />
+      <Navbar role={role} adminName={adminName} adminId={uid} />
 
       <div className="tab-buttons">
         <button

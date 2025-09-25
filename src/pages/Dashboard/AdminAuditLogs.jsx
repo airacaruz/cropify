@@ -379,7 +379,7 @@ const AdminAuditLogsPage = () => {
 
   return (
     <div className="admin-audit-logs-container">
-      <Navbar role={role} adminName={adminName} onPrintSummary={handlePrintSummary} />
+      <Navbar role={role} adminName={adminName} adminId={uid} onPrintSummary={handlePrintSummary} />
       
       <div className="audit-logs-header">
         <h2>Admin Audit Logs</h2>

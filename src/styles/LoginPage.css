@@ -222,3 +222,124 @@ body.login-page {
   }
 }
 
+/* Responsive Login Page Styles */
+@media (max-width: 1200px) {
+  .login-left-panel,
+  .login-right-panel {
+    padding: 80px;
+  }
+  
+  .login-logo img {
+    width: 400px;
+    height: 400px;
+  }
+}
+
+@media (max-width: 992px) {
+  .login-left-panel,
+  .login-right-panel {
+    padding: 60px;
+  }
+  
+  .login-logo img {
+    width: 350px;
+    height: 350px;
+  }
+  
+  .login-card {
+    max-width: 320px;
+  }
+  
+  .login-form {
+    width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-main-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    padding: 20px 0;
+  }
+  
+  .login-left-panel,
+  .login-right-panel {
+    flex: none;
+    padding: 40px 20px;
+  }
+  
+  .login-divider {
+    width: 80%;
+    height: 1px;
+    margin: 20px 0;
+  }
+  
+  .login-logo img {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .login-card {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .login-form {
+    width: 100%;
+  }
+  
+  .login-welcome {
+    font-size: 1.8rem;
+  }
+  
+  .login-instruction {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .login-left-panel,
+  .login-right-panel {
+    padding: 20px 15px;
+  }
+  
+  .login-logo img {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .login-card {
+    padding: 30px 20px;
+  }
+  
+  .login-welcome {
+    font-size: 1.6rem;
+  }
+  
+  .login-instruction {
+    font-size: 0.85rem;
+    margin-bottom: 25px;
+  }
+  
+  .login-form input {
+    padding: 12px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .login-btn {
+    padding: 14px;
+    font-size: 16px;
+  }
+  
+  .twofa-code-input {
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 12px;
+  }
+  
+  .twofa-help-text {
+    font-size: 11px;
+  }
+}
+
