@@ -110,7 +110,7 @@ const UserRecordsPage = () => {
 
   return (
     <div className="user-records-container">
-      <Navbar role={role} adminName={adminName} />
+      <Navbar role={role} adminName={adminName} adminId={uid} />
       
       <div className="table-wrapper">
         <table className="records-table">

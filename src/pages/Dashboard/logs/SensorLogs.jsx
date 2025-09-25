@@ -25,7 +25,7 @@ const SensorLogsPage = () => {
     { id: 'SK-002', isActive: false, uid: 'user456' },
   ];
 
-  // Hardcoded Sensor Sessions
+  // Hardcoded Sensor Logs
   const sensorSessions = [
     {
       skid: 'SK-001',
@@ -101,7 +101,7 @@ const SensorLogsPage = () => {
           className={activeTab === 'sessions' ? 'active' : ''}
           onClick={() => setActiveTab('sessions')}
         >
-          <FaFlask style={{ marginRight: 4 }} /> Sensor Sessions
+          <FaFlask style={{ marginRight: 4 }} /> Logs
         </button>
       </div>
 
@@ -154,7 +154,7 @@ const SensorLogsPage = () => {
         </table>
       )}
 
-      {/* Sensor Sessions Table */}
+      {/* Sensor Logs Table */}
       {activeTab === 'sessions' && (
         <table className="records-table">
           <thead>
@@ -216,7 +216,7 @@ const SensorLogsPage = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
-                {activeTab === 'kits' ? 'Sensor Kit Details' : 'Sensor Session Details'}
+                {activeTab === 'kits' ? 'Sensor Kit Details' : 'Sensor Log Details'}
               </h3>
               <button className="close-modal-btn" onClick={closeModal}>
                 <FaTimes />

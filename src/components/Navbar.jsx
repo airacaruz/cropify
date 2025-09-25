@@ -3,17 +3,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/images/cropifytextlogo.png';
 import {
-  complete2FASetup,
-  disableAdmin2FA,
-  enable2FA,
-  generateCurrentToken,
-  getTimeRemaining,
-  isAdmin2FAEnabled,
-  mfaManager
+    complete2FASetup,
+    disableAdmin2FA,
+    enable2FA,
+    generateCurrentToken,
+    getTimeRemaining,
+    isAdmin2FAEnabled,
+    mfaManager
 } from '../Authentication';
 import { app } from "../firebase";
 import '../styles/Navbar.css';
 import { adminAuditActions } from '../utils/adminAuditLogger';
+import SecurityUtils from '../utils/security.jsx';
 
 // Accept role, adminName, adminId, and onPrintSummary as props
 function Navbar({ role, adminName, adminId, onPrintSummary }) {
@@ -92,11 +93,25 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
         await adminAuditActions.logout(adminId, adminName);
       }
       
+      // Log security event
+      SecurityUtils.logSecurityEvent('user_logout', {
+        userId: adminId,
+        adminName: adminName,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Clear sensitive data
+      SecurityUtils.clearSensitiveData();
+      
       const auth = getAuth(app);
       await signOut(auth);
       navigate("/", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
+      SecurityUtils.logSecurityEvent('logout_error', {
+        error: error.message,
+        userId: adminId
+      });
       alert("Failed to logout.");
     }
     setShowLogoutConfirm(false);
@@ -359,7 +374,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
           </button>
           <img src={logo} alt="Cropify Logo" className="header-logo" />
         </div>
-        <h2 className="header-title" style={{ fontWeight: 'bold' }}>{getPageTitle()}</h2>
+        <h2 className="header-title">{getPageTitle()}</h2>
         <div className="header-right">
           {/* Print Summary Button - only show for specific pages */}
           {onPrintSummary && (location.pathname === '/dashboard' || location.pathname === '/userrecords' || location.pathname === '/userlogs' || location.pathname === '/sensorlogs' || location.pathname === '/adminauditlogs') && (

@@ -60,7 +60,7 @@ const routes = [
       {
         path: 'userrecords',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="admin">
             <UserRecordsPage />
           </ProtectedRoute>
         ),
@@ -68,7 +68,7 @@ const routes = [
       {
         path: 'adminrecords',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="admin">
             <AdminRecords />
           </ProtectedRoute>
         ),
@@ -108,7 +108,7 @@ const routes = [
       {
         path: 'manageapp',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="superadmin">
             <ManageAppPage />
           </ProtectedRoute>
         ),
@@ -116,7 +116,7 @@ const routes = [
       {
         path: 'manageadmin',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="superadmin">
             <ManageAdmin />
           </ProtectedRoute>
         ),
@@ -124,7 +124,7 @@ const routes = [
       {
         path: 'adminauditlogs',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="superadmin">
             <AdminAuditLogs />
           </ProtectedRoute>
         ),

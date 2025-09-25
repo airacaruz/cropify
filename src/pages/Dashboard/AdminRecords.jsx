@@ -214,7 +214,7 @@ const AdminRecordsPage = () => {
 
   return (
     <div className="user-records-container">
-      <Navbar role={role} adminName={adminName} onPrintSummary={handlePrintSummary} />
+      <Navbar role={role} adminName={adminName} adminId={uid} onPrintSummary={handlePrintSummary} />
       
       <div className="back-button" onClick={() => navigate(-1)}>← Back</div>
       <div className="header">

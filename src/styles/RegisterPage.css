@@ -149,10 +149,33 @@ body.register-page {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
   .register-card {
-    width: 90%;
+    width: 480px;
+    max-width: 480px;
+  }
+}
+
+@media (max-width: 992px) {
+  .register-card {
+    width: 450px;
     max-width: 450px;
+    padding: 36px 28px;
+  }
+  
+  .register-title {
+    font-size: 1.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-main-container {
+    padding: 20px;
+  }
+  
+  .register-card {
+    width: 100%;
+    max-width: 500px;
     padding: 32px 24px;
   }
   
@@ -163,17 +186,56 @@ body.register-page {
   .register-subtitle {
     font-size: 0.9rem;
   }
+  
+  .register-form {
+    gap: 16px;
+  }
+  
+  .register-form input,
+  .role-select {
+    padding: 14px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .register-btn {
+    padding: 14px;
+    font-size: 16px;
+  }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 576px) {
+  .register-main-container {
+    padding: 15px;
+  }
+  
   .register-card {
-    width: 95%;
-    max-width: 400px;
+    width: 100%;
+    max-width: 100%;
     padding: 24px 20px;
   }
   
   .register-title {
     font-size: 1.6rem;
+  }
+  
+  .register-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+  }
+  
+  .register-form {
+    gap: 14px;
+  }
+  
+  .register-form input,
+  .role-select {
+    padding: 12px;
+    font-size: 16px;
+  }
+  
+  .register-btn {
+    padding: 12px;
+    font-size: 16px;
   }
   
   .back-button {
@@ -184,5 +246,29 @@ body.register-page {
   
   .back-icon {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-main-container {
+    padding: 10px;
+  }
+  
+  .register-card {
+    padding: 20px 16px;
+  }
+  
+  .register-title {
+    font-size: 1.5rem;
+  }
+  
+  .register-subtitle {
+    font-size: 0.8rem;
+  }
+  
+  .back-button {
+    top: 12px;
+    left: 12px;
+    font-size: 0.85rem;
   }
 }

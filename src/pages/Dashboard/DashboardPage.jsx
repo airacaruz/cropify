@@ -16,11 +16,8 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
-    Cell,
     Line,
     LineChart,
-    Pie,
-    PieChart,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -60,8 +57,7 @@ const exportChartsAndPrescriptivePDF = async ({
     newUsersData,
     totalUsers,
     prescriptiveInsights,
-    sensorChartData,
-    plantTypeData
+    sensorChartData
 }) => {
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.width;
@@ -120,8 +116,7 @@ const exportChartsAndPrescriptivePDF = async ({
         ['New Users (Current Month)', kpiData.newUsersCount || '0', kpiData.newUsersTrend || 'N/A', 'Active'],
         ['Total Users', totalUsers || 'N/A', 'Growing', 'Good'],
         ['Active Users', 'N/A', 'Stable', 'Good'],
-        ['Sensor Sessions', sensorChartData.length.toString(), 'Active', 'Good'],
-        ['Plant Types Tracked', plantTypeData.length.toString(), 'Diverse', 'Good']
+        ['Sensor Logs', sensorChartData.length.toString(), 'Active', 'Good'],
     ];
     
     autoTable(doc, {
@@ -253,47 +248,6 @@ const exportChartsAndPrescriptivePDF = async ({
     doc.text('Hydroponic Plant Type Distribution', margin, yPosition);
     yPosition += 15;
     
-    if (plantTypeData && plantTypeData.length > 0) {
-        const totalPlants = plantTypeData.reduce((sum, p) => sum + p.value, 0);
-        const mostPopular = plantTypeData.reduce((max, plant) => plant.value > max.value ? plant : max, plantTypeData[0]);
-        
-        doc.setFontSize(12);
-        doc.text('Plant Type Analysis:', 20, yPosition);
-        yPosition += 10;
-        
-        const plantMetrics = [
-            `• Total plants tracked: ${totalPlants}`,
-            `• Number of different plant types: ${plantTypeData.length}`,
-            `• Most popular plant: ${mostPopular.name} (${mostPopular.value} plants, ${((mostPopular.value / totalPlants) * 100).toFixed(1)}%)`,
-            `• Plant diversity index: ${plantTypeData.length > 1 ? 'High' : 'Low'}`
-        ];
-        
-        plantMetrics.forEach(metric => {
-            doc.text(metric, 25, yPosition);
-            yPosition += 7;
-        });
-        
-        yPosition += 10;
-        
-        // Enhanced plant type table
-        const plantTableData = plantTypeData.map(plant => [
-            plant.name,
-            plant.value.toString(),
-            `${((plant.value / totalPlants) * 100).toFixed(1)}%`,
-            plant.value === mostPopular.value ? 'Most Popular' : 'Standard'
-        ]);
-        
-        autoTable(doc, {
-            head: [['Plant Type', 'Count', 'Percentage', 'Status']],
-            body: plantTableData,
-            startY: yPosition,
-            styles: { fontSize: 10 },
-            headStyles: { fillColor: [76, 175, 80] },
-            alternateRowStyles: { fillColor: [245, 245, 245] }
-        });
-        
-        yPosition = doc.lastAutoTable.finalY + 20;
-    }
 
     // Add Prescriptive Insights Section
     doc.setFontSize(16);
@@ -394,11 +348,6 @@ const exportChartsAndPrescriptivePDF = async ({
     doc.save('Cropify_Dashboard_Analytics_Report.pdf');
 };
 
-const hardcodedPlantTypes = [
-    { name: "Lettuce", value: 4 },
-    { name: "Tomato", value: 1 }
-];
-const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#009688', '#9C27B0'];
 
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -413,7 +362,6 @@ const Dashboard = () => {
     const [activeUsersCount, setActiveUsersCount] = useState(0);
 
     const [sensorSessions, setSensorSessions] = useState([]);
-    const [plantTypeData, setPlantTypeData] = useState([]);
     const [showSensorKitsModal, setShowSensorKitsModal] = useState(false);
     const [showReportsModal, setShowReportsModal] = useState(false);
     const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
@@ -431,8 +379,7 @@ const Dashboard = () => {
             newUsersData,
             totalUsers: "...",
             prescriptiveInsights,
-            sensorChartData,
-            plantTypeData
+            sensorChartData
         });
         setShowPrintConfirmModal(false);
     };
@@ -612,7 +559,7 @@ const Dashboard = () => {
             setDailyActiveUsersData(monthlyActiveUsersArray);
             setActiveUsersCount(new Set(logSnapshot.docs.map((d) => d.data().userId)).size);
 
-            // Fetch sensor sessions from Firestore
+            // Fetch sensor logs from Firestore
             const sensorSnapshot = await getDocs(collection(db, 'sensor_sessions'));
             const sessions = sensorSnapshot.docs.map(doc => {
                 const data = doc.data();
@@ -632,21 +579,6 @@ const Dashboard = () => {
             allSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             setSensorSessions(allSessions);
 
-            // Fetch plant types for pie chart
-            const plantSnapshot = await getDocs(collection(db, 'plants'));
-            const typeCounts = {};
-            plantSnapshot.forEach(doc => {
-                const kind = doc.data().kind || 'Unknown';
-                typeCounts[kind] = (typeCounts[kind] || 0) + 1;
-            });
-            hardcodedPlantTypes.forEach(hard => {
-                typeCounts[hard.name] = (typeCounts[hard.name] || 0) + hard.value;
-            });
-            const pieData = Object.entries(typeCounts).map(([kind, count]) => ({
-                name: kind,
-                value: count,
-            }));
-            setPlantTypeData(pieData);
 
             // Fetch report tickets from Firestore
             const reportsSnapshot = await getDocs(collection(db, 'reports'));
@@ -676,7 +608,6 @@ const Dashboard = () => {
         } catch (error) {
             console.error('Error fetching analytics data:', error);
             setSensorSessions(hardcodedSessions);
-            setPlantTypeData(hardcodedPlantTypes);
             setReportTickets([]);
         }
     };
@@ -837,55 +768,6 @@ const Dashboard = () => {
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="chart-card pie-chart-main-card" id="chart-plant-types">
-                                <h2 className="chart-title">Hydroponic Plant Types Distribution</h2>
-                                <p className="chart-summary">
-                                    Distribution of hydroponic plant types input by users.
-                                </p>
-                            <div className="pie-chart-container">
-                                <div className="pie-chart-wrapper">
-                                <PieChart width={300} height={300}>
-                                    <Pie
-                                        data={plantTypeData}
-                                        dataKey="value"
-                                        nameKey="name"
-                                        cx="50%"
-                                        cy="50%"
-                                        outerRadius={100}
-                                        label
-                                    >
-                                        {plantTypeData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                </PieChart>
-                            </div>
-                                <div className="plant-types-card">
-                                    <div className="plant-types-header">
-                                        <h3>Plant Types</h3>
-                                        <span className="total-count">
-                                            Total: {plantTypeData.reduce((sum, item) => sum + item.value, 0)}
-                                        </span>
-                                    </div>
-                                    <div className="plant-types-list">
-                                    {plantTypeData.map((entry, idx) => (
-                                            <div key={entry.name} className="plant-type-item">
-                                                <div className="plant-type-info">
-                                            <span
-                                                        className="plant-type-color"
-                                                style={{
-                                                    background: COLORS[idx % COLORS.length],
-                                                }}
-                                            ></span>
-                                                    <span className="plant-type-name">{entry.name}</span>
-                                                </div>
-                                                <span className="plant-type-count">{entry.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         <div className="chart-card" id="chart-new-users">
                             <h2 className="chart-title">Monthly New User Trend</h2>

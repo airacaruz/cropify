@@ -6,16 +6,16 @@ import { useEffect, useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import {
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
+    CartesianGrid,
+    Cell,
+    Line,
+    LineChart,
+    Pie,
+    PieChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis
 } from 'recharts';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
@@ -108,7 +108,7 @@ function AnalyticsPage() {
   useEffect(() => {
     if (role !== "superadmin" && !isAdminUid) return;
 
-    // Fetch sensor sessions
+    // Fetch sensor logs
     const fetchSensorSessions = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'sensor_sessions'));
@@ -211,7 +211,7 @@ function AnalyticsPage() {
       
       const kpiData = [
         ['Metric', 'Average Value', 'Status'],
-        ['Total Sensor Sessions', totalSessions.toString(), totalSessions > 0 ? 'Good' : 'No Data'],
+        ['Total Sensor Logs', totalSessions.toString(), totalSessions > 0 ? 'Good' : 'No Data'],
         ['Average pH Level', avgPH, (avgPH >= 5.5 && avgPH <= 7.5) ? 'Optimal' : 'Needs Attention'],
         ['Average TDS (ppm)', avgTDS, (avgTDS >= 500 && avgTDS <= 1500) ? 'Optimal' : 'Needs Attention'],
         ['Average Water Temp (°C)', avgWaterTemp, (avgWaterTemp >= 18 && avgWaterTemp <= 24) ? 'Optimal' : 'Needs Attention'],

@@ -61,6 +61,9 @@ export const adminAuditActions = {
   addAdmin: (adminId, adminName, newAdminName) => 
     logAdminAction(adminId, adminName, 'create', `Admin added new admin: ${newAdminName}`),
   
+  createAdmin: (adminId, adminName, newAdminName) => 
+    logAdminAction(adminId, adminName, 'create', `Admin created new admin: ${newAdminName}`),
+  
   editAdmin: (adminId, adminName, targetAdminName) => 
     logAdminAction(adminId, adminName, 'update', `Admin edited admin: ${targetAdminName}`),
   
