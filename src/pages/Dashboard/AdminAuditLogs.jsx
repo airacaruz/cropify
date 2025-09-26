@@ -285,6 +285,8 @@ const AdminAuditLogsPage = () => {
     switch (action) {
       case 'login': return '🔐';
       case 'logout': return '🚪';
+      case 'browser_exit': return '🌐';
+      case 'session_timeout': return '⏰';
       case 'view': return '👁️';
       case 'create': return '➕';
       case 'update': return '✏️';
@@ -298,6 +300,8 @@ const AdminAuditLogsPage = () => {
     switch (action) {
       case 'login': return '#4caf50';
       case 'logout': return '#f44336';
+      case 'browser_exit': return '#ff5722';
+      case 'session_timeout': return '#ff9800';
       case 'view': return '#2196f3';
       case 'create': return '#ff9800';
       case 'update': return '#9c27b0';
@@ -316,6 +320,8 @@ const AdminAuditLogsPage = () => {
     { value: 'all', label: 'All Actions' },
     { value: 'login', label: 'Login' },
     { value: 'logout', label: 'Logout' },
+    { value: 'browser_exit', label: 'Browser Exit' },
+    { value: 'session_timeout', label: 'Session Timeout' },
     { value: 'view', label: 'View' },
     { value: 'create', label: 'Create' },
     { value: 'update', label: 'Update' },

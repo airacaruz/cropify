@@ -34,6 +34,12 @@ export const adminAuditActions = {
   logout: (adminId, adminName) => 
     logAdminAction(adminId, adminName, 'logout', 'Admin logged out of the system'),
   
+  browserExit: (adminId, adminName) => 
+    logAdminAction(adminId, adminName, 'browser_exit', 'Admin exited browser or closed tab'),
+  
+  sessionTimeout: (adminId, adminName) => 
+    logAdminAction(adminId, adminName, 'session_timeout', 'Admin session timed out'),
+  
   // Dashboard actions
   viewDashboard: (adminId, adminName) => 
     logAdminAction(adminId, adminName, 'view', 'Admin viewed the dashboard'),

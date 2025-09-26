@@ -2,7 +2,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
+import { adminAuditActions } from '../utils/adminAuditLogger';
 import SecurityUtils from '../utils/security.jsx';
+import sessionTracker from '../utils/sessionTracker';
 import Navbar from './Navbar';
 
 function Layout() {
@@ -42,6 +44,12 @@ function Layout() {
         if (adminCheck.adminData) {
           const cleanName = (adminCheck.adminData.name || "Admin").replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
           setAdminName(cleanName);
+          
+          // Start session tracking for the authenticated admin
+          sessionTracker.startTracking(user.uid, cleanName);
+          
+          // Log the login action
+          await adminAuditActions.login(user.uid, cleanName);
         }
 
       } catch (error) {
@@ -57,7 +65,11 @@ function Layout() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      // Stop session tracking when component unmounts
+      sessionTracker.stopTracking();
+    };
   }, [navigate]);
 
   if (loading) {
