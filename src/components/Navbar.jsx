@@ -493,7 +493,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
                     </div>
                   ) : (
                     <div className="twofa-status-disabled">
-                      ⚠️ 2FA is currently disabled for your account
+                      ⚠️ 2FA hasn't been setup in your account
                     </div>
                   )}
                 </div>
@@ -567,15 +567,17 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
                           <p>Available for iOS, Android, and Desktop</p>
                         </div>
                       </div>
-                      <button 
-                        className="next-btn"
-                        onClick={async () => {
-                          await generate2FASecret();
-                          setCurrentStep(2);
-                        }}
-                      >
-                        Next: Generate QR Code
-                      </button>
+                      <div className="step-buttons">
+                        <button 
+                          className="next-btn"
+                          onClick={async () => {
+                            await generate2FASecret();
+                            setCurrentStep(2);
+                          }}
+                        >
+                          Next: Generate QR Code
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -695,7 +697,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
               </div>
             </div>
             <div className="settings-modal-footer">
-              {is2FAEnabled ? (
+              {is2FAEnabled && (
                 <button 
                   className="settings-btn disable-2fa-btn"
                   onClick={() => {
@@ -706,22 +708,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
                 >
                   Disable 2FA
                 </button>
-              ) : (
-                <button 
-                  className="settings-btn enable-2fa-btn"
-                  onClick={() => {
-                    setCurrentStep(1);
-                  }}
-                >
-                  Enable 2FA
-                </button>
               )}
-              <button 
-                className="settings-btn cancel-btn"
-                onClick={closeSettingsModal}
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>

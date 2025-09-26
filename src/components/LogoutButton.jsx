@@ -2,6 +2,7 @@ import { getAuth, signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { app } from "../firebase";
 import { adminAuditActions } from "../utils/adminAuditLogger";
+import sessionTracker from "../utils/sessionTracker";
 
 function LogoutButton({ adminId, adminName }) {
   const navigate = useNavigate();
@@ -9,6 +10,9 @@ function LogoutButton({ adminId, adminName }) {
 
   const handleLogout = async () => {
     try {
+      // Stop session tracking before logout
+      sessionTracker.stopTracking();
+      
       // Log the logout action before signing out
       if (adminId && adminName) {
         await adminAuditActions.logout(adminId, adminName);

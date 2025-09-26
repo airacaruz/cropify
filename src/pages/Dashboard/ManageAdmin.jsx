@@ -1,7 +1,7 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
-import { FaSave, FaTimes, FaUserEdit, FaUserPlus } from "react-icons/fa";
+import { FaSave, FaTimes, FaTrash, FaUserEdit, FaUserPlus } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
@@ -12,6 +12,7 @@ const ManageAdmin = () => {
   const [admins, setAdmins] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
   const [editedData, setEditedData] = useState({});
   const [registerData, setRegisterData] = useState({
@@ -25,6 +26,7 @@ const ManageAdmin = () => {
   const [adminName, setAdminName] = useState('');
   const [loading, setLoading] = useState(true);
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [uid, setUid] = useState(null);
   const [onlineStatus, setOnlineStatus] = useState({});
@@ -152,6 +154,84 @@ const ManageAdmin = () => {
 
   const handleRegisterChange = (e) => {
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
+  };
+
+  const handleDelete = () => {
+    if (!selectedAdmin) return;
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedAdmin) {
+      alert('No admin selected for deletion.');
+      return;
+    }
+    
+    if (!selectedAdmin.id) {
+      alert('Invalid admin data. Cannot delete admin without ID.');
+      return;
+    }
+    
+    if (deleteLoading) {
+      return; // Prevent multiple deletion attempts
+    }
+    
+    setDeleteLoading(true);
+    
+    try {
+      console.log('Attempting to delete admin:', selectedAdmin);
+      console.log('Admin ID:', selectedAdmin.id);
+      
+      // Delete from Firestore database
+      await deleteDoc(doc(db, 'admins', selectedAdmin.id));
+      console.log('Successfully deleted admin from Firestore');
+      
+      // Log the delete admin action
+      if (uid && adminName) {
+        try {
+          await adminAuditActions.deleteAdmin(uid, adminName, selectedAdmin.name);
+          console.log('Successfully logged delete action');
+        } catch (auditError) {
+          console.warn('Failed to log delete action:', auditError);
+          // Don't fail the entire operation if audit logging fails
+        }
+      }
+      
+      alert('Admin deleted successfully from the database!');
+      setShowDeleteModal(false);
+      closeEditModal();
+    } catch (error) {
+      console.error("Error deleting admin:", error);
+      console.error("Error details:", {
+        code: error.code,
+        message: error.message,
+        adminId: selectedAdmin?.id,
+        adminName: selectedAdmin?.name
+      });
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to delete admin.";
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = "Permission denied. You don't have the right to delete this admin.";
+      } else if (error.code === 'not-found') {
+        errorMessage = "Admin not found in the database.";
+      } else if (error.code === 'unavailable') {
+        errorMessage = "Service temporarily unavailable. Please try again.";
+      } else if (error.code === 'failed-precondition') {
+        errorMessage = "Cannot delete admin. The document may have been modified.";
+      } else if (error.message) {
+        errorMessage = `Failed to delete admin: ${error.message}`;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
   };
 
   const handleRegister = async (e) => {
@@ -565,12 +645,19 @@ const ManageAdmin = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="save-btn" onClick={handleSave}>
-                <FaSave style={{ marginRight: 4 }} /> Save Changes
-              </button>
-              <button className="cancel-btn" onClick={closeEditModal}>
-                <FaTimes style={{ marginRight: 4 }} /> Cancel
-              </button>
+              <div className="modal-footer-left">
+                <button className="cancel-btn" onClick={closeEditModal}>
+                  <FaTimes style={{ marginRight: 4 }} /> Cancel
+                </button>
+              </div>
+              <div className="modal-footer-right">
+                <button className="delete-btn" onClick={handleDelete}>
+                  <FaTrash style={{ marginRight: 4 }} /> Delete Admin
+                </button>
+                <button className="save-btn" onClick={handleSave}>
+                  <FaSave style={{ marginRight: 4 }} /> Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -710,6 +797,74 @@ const ManageAdmin = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Delete Admin</h3>
+              <button className="close-modal-btn" onClick={cancelDelete}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="delete-warning">
+                <div className="warning-icon">⚠️</div>
+                <h4>Are you sure you want to delete this admin?</h4>
+                <p>
+                  You are about to delete <strong>{selectedAdmin?.name}</strong> from the system.
+                </p>
+                <div className="admin-details">
+                  <p><strong>Email:</strong> {selectedAdmin?.email}</p>
+                  <p><strong>Role:</strong> {selectedAdmin?.role}</p>
+                  <p><strong>Username:</strong> {selectedAdmin?.username || 'N/A'}</p>
+                </div>
+                <div className="warning-message">
+                  <p><strong>⚠️ Warning:</strong> This action cannot be undone. The admin will be permanently removed from the database and will lose access to the system.</p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <div className="modal-footer-left">
+                <button 
+                  className="cancel-btn" 
+                  onClick={cancelDelete}
+                  disabled={deleteLoading}
+                >
+                  <FaTimes style={{ marginRight: 4 }} /> Cancel
+                </button>
+              </div>
+              <div className="modal-footer-right">
+                <button 
+                  className="delete-btn" 
+                  onClick={confirmDelete}
+                  disabled={deleteLoading}
+                >
+                  {deleteLoading ? (
+                    <>
+                      <div style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid #fff',
+                        borderTop: '2px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        marginRight: '8px'
+                      }}></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash style={{ marginRight: 4 }} /> Delete Admin
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
