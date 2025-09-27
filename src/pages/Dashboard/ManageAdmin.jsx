@@ -1,10 +1,11 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
-import React, { useCallback, useEffect, useState } from 'react';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import { FaSave, FaTimes, FaTrash, FaUserEdit, FaUserPlus } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
+import useAdminOnlineStatus from '../../hooks/useAdminOnlineStatus';
 import '../../styles/AdminRecordsPage.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
 
@@ -29,7 +30,8 @@ const ManageAdmin = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [uid, setUid] = useState(null);
-  const [onlineStatus, setOnlineStatus] = useState({});
+  // Use the custom hook for real-time online status
+  const { onlineStatus } = useAdminOnlineStatus();
   const [registerMessage, setRegisterMessage] = useState('');
   const navigate = useNavigate();
 
@@ -325,132 +327,7 @@ const ManageAdmin = () => {
     }
   };
 
-  // Function to update current user's last seen timestamp
-  const updateLastSeen = useCallback(async () => {
-    if (!uid) return;
-    
-    try {
-      // Find the admin document for current user
-      const adminQuery = query(collection(db, "admins"), where("adminId", "==", uid));
-      const adminSnapshot = await getDocs(adminQuery);
-      
-      if (!adminSnapshot.empty) {
-        const adminDoc = adminSnapshot.docs[0];
-        await updateDoc(doc(db, "admins", adminDoc.id), {
-          lastSeen: serverTimestamp()
-        });
-      }
-    } catch (error) {
-      console.error("Error updating last seen:", error);
-    }
-  }, [uid]);
-
-  // Function to mark user as offline
-  const markUserOffline = useCallback(async () => {
-    if (!uid) return;
-    
-    try {
-      // Find the admin document for current user
-      const adminQuery = query(collection(db, "admins"), where("adminId", "==", uid));
-      const adminSnapshot = await getDocs(adminQuery);
-      
-      if (!adminSnapshot.empty) {
-        const adminDoc = adminSnapshot.docs[0];
-        // Set lastSeen to a timestamp that's older than 2 minutes to mark as offline
-        const offlineTime = new Date(Date.now() - 3 * 60 * 1000); // 3 minutes ago
-        await updateDoc(doc(db, "admins", adminDoc.id), {
-          lastSeen: offlineTime
-        });
-      }
-    } catch (error) {
-      console.error("Error marking user offline:", error);
-    }
-  }, [uid]);
-
-  // Function to check if admin is online based on lastSeen timestamp
-  const checkOnlineStatus = (admin) => {
-    if (!admin.lastSeen) return false;
-    
-    try {
-      const lastSeen = admin.lastSeen.toDate ? admin.lastSeen.toDate() : new Date(admin.lastSeen);
-      const now = new Date();
-      const diffInMinutes = (now - lastSeen) / (1000 * 60);
-      return diffInMinutes < 2; // Consider online if last seen within 2 minutes
-    } catch (error) {
-      console.error("Error checking online status:", error);
-      return false;
-    }
-  };
-
-  // Function to update online status for all admins
-  const updateOnlineStatus = useCallback(() => {
-    const status = {};
-    admins.forEach(admin => {
-      // Use adminId (Firebase Auth UID) as the key instead of document ID
-      status[admin.adminId] = checkOnlineStatus(admin);
-    });
-    setOnlineStatus(status);
-  }, [admins]);
-
-  // Update online status when admins data changes
-  useEffect(() => {
-    updateOnlineStatus();
-  }, [updateOnlineStatus]);
-
-  // Update last seen timestamp every 30 seconds for current user
-  useEffect(() => {
-    if (!uid) return;
-    
-    // Update immediately
-    updateLastSeen();
-    
-    // Then update every 30 seconds
-    const interval = setInterval(updateLastSeen, 30000);
-    return () => clearInterval(interval);
-  }, [uid, updateLastSeen]);
-
-  // Update online status every 10 seconds
-  useEffect(() => {
-    const interval = setInterval(updateOnlineStatus, 10000);
-    return () => clearInterval(interval);
-  }, [updateOnlineStatus]);
-
-  // Handle page visibility change to update online status
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Page is hidden, user might be offline
-        console.log('Page hidden - user might be offline');
-      } else {
-        // Page is visible again, update last seen
-        updateLastSeen();
-      }
-    };
-
-    const handleBeforeUnload = () => {
-      // Mark user as offline when leaving the page
-      if (uid) {
-        markUserOffline();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [uid, updateLastSeen, markUserOffline]);
-
-  // Cleanup: Mark user as offline when component unmounts
-  useEffect(() => {
-    return () => {
-      if (uid) {
-        markUserOffline();
-      }
-    };
-  }, [uid, markUserOffline]);
+  // Online status is now handled by the centralized adminStatusTracker
 
 
   if (loading) {
