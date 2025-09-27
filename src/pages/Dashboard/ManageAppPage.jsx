@@ -1,19 +1,20 @@
 import { onAuthStateChanged } from "firebase/auth";
 import {
-    addDoc,
-    collection,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    where,
+  addDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { FaEye, FaNewspaper, FaPlus, FaTimes, FaVideo } from "react-icons/fa";
+import { FaCalendarAlt, FaEye, FaNewspaper, FaPlus, FaTimes, FaVideo } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase";
+import "../../styles/ManageApp.css";
 import { adminAuditActions } from "../../utils/adminAuditLogger";
 
 const ManageAppPage = () => {
@@ -22,7 +23,6 @@ const ManageAppPage = () => {
   const [media, setMedia] = useState("");
   const [newsList, setNewsList] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [activeTab, setActiveTab] = useState("news");
   const [expandedNewsId, setExpandedNewsId] = useState(null);
 
   // Tutorial states
@@ -33,6 +33,9 @@ const ManageAppPage = () => {
   const [showTutorialForm, setShowTutorialForm] = useState(false);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [selectedTutorial, setSelectedTutorial] = useState(null);
+  const [showTutorialsModal, setShowTutorialsModal] = useState(false);
+  const [showNewsDetailsModal, setShowNewsDetailsModal] = useState(false);
+  const [selectedNews, setSelectedNews] = useState(null);
 
   // Role and user info
   const [role, setRole] = useState(null);
@@ -125,6 +128,7 @@ const ManageAppPage = () => {
       });
     });
 
+
     return () => {
       unsubscribeNews();
       unsubscribeTutorials();
@@ -196,9 +200,20 @@ const ManageAppPage = () => {
     setShowTutorialModal(true);
   };
 
+  const openNewsModal = (news) => {
+    setSelectedNews(news);
+    setShowNewsDetailsModal(true);
+  };
+
+
   const closeTutorialModal = () => {
     setShowTutorialModal(false);
     setSelectedTutorial(null);
+  };
+
+  const closeNewsModal = () => {
+    setShowNewsDetailsModal(false);
+    setSelectedNews(null);
   };
 
   if (loading) {
@@ -222,71 +237,215 @@ const ManageAppPage = () => {
     <div className="manage-app-container">
       <Navbar role={role} adminName={adminName} adminId={uid} />
 
-      <div className="tab-buttons">
+
+      {/* Tab Navigation */}
+      <div className="tab-navigation">
         <button
-          className={activeTab === "news" ? "active" : ""}
-          onClick={() => setActiveTab("news")}
+          className={`tab-button ${!showTutorialsModal ? 'active' : ''}`}
+          onClick={() => {
+            setShowTutorialsModal(false);
+          }}
         >
-          <FaNewspaper style={{ marginRight: 4 }} /> News
+          <FaNewspaper /> News Management
         </button>
         <button
-          className={activeTab === "tutorials" ? "active" : ""}
-          onClick={() => setActiveTab("tutorials")}
+          className={`tab-button ${showTutorialsModal ? 'active' : ''}`}
+          onClick={() => {
+            setShowTutorialsModal(true);
+          }}
         >
-          <FaVideo style={{ marginRight: 4 }} /> Tutorials
+          <FaVideo /> Tutorials Management
         </button>
       </div>
 
-      {activeTab === "news" && (
-        <>
-          <div className="header-buttons">
+      {/* Content Area */}
+      <div className="content-area">
+        {!showTutorialsModal ? (
+          /* News Management Table */
+          <div className="management-table">
+            <div className="table-header">
+              <div className="header-actions">
             <button className="add-btn" onClick={() => setShowForm(true)}>
-              <FaPlus style={{ marginRight: 4 }} /> Add News
+                  <FaPlus /> Add News
             </button>
+              </div>
           </div>
 
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th><FaNewspaper /> TITLE</th>
+                    <th><FaCalendarAlt /> DESCRIPTION</th>
+                    <th><FaCalendarAlt /> CREATED DATE</th>
+                    <th><FaEye /> ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {newsList.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="empty-state">
+                        <FaNewspaper className="empty-icon" />
+                        <p>No news articles found</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    newsList.map((news, index) => (
+                      <tr key={news.id} className={index % 2 === 0 ? 'even' : 'odd'}>
+                        <td className="title-cell">
+                          <div className="title-content">
+                            <FaNewspaper className="item-icon" />
+                            <span>{news.title}</span>
+                          </div>
+                        </td>
+                        <td className="description-cell">
+                          {news.description.length > 50 
+                            ? news.description.slice(0, 50) + '...' 
+                            : news.description}
+                        </td>
+                        <td className="date-cell">
+                          {news.timestamp 
+                            ? new Date(news.timestamp.seconds ? news.timestamp.seconds * 1000 : news.timestamp).toLocaleDateString()
+                            : news.createdAt 
+                            ? new Date(news.createdAt.seconds ? news.createdAt.seconds * 1000 : news.createdAt).toLocaleDateString()
+                            : 'N/A'
+                          }
+                        </td>
+                        <td className="actions-cell">
+                          <button 
+                            className="view-btn"
+                            onClick={() => openNewsModal(news)}
+                          >
+                            <FaEye /> View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* Tutorials Management Table */
+          <div className="management-table">
+            <div className="table-header">
+              <div className="header-actions">
+                <button className="add-btn" onClick={() => setShowTutorialForm(true)}>
+                  <FaPlus /> Add Tutorial
+                </button>
+              </div>
+            </div>
+            
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th><FaVideo /> TITLE</th>
+                    <th><FaCalendarAlt /> DESCRIPTION</th>
+                    <th><FaCalendarAlt /> CREATED DATE</th>
+                    <th><FaEye /> ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tutorialList.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="empty-state">
+                        <FaVideo className="empty-icon" />
+                        <p>No tutorials found</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    tutorialList.map((tutorial, index) => (
+                      <tr key={tutorial.id} className={index % 2 === 0 ? 'even' : 'odd'}>
+                        <td className="title-cell">
+                          <div className="title-content">
+                            <FaVideo className="item-icon" />
+                            <span>{tutorial.title}</span>
+                          </div>
+                        </td>
+                        <td className="description-cell">
+                          {tutorial.description.length > 50 
+                            ? tutorial.description.slice(0, 50) + '...' 
+                            : tutorial.description}
+                        </td>
+                        <td className="date-cell">
+                          {tutorial.createdAt 
+                            ? new Date(tutorial.createdAt.seconds ? tutorial.createdAt.seconds * 1000 : tutorial.createdAt).toLocaleDateString()
+                            : 'N/A'
+                          }
+                        </td>
+                        <td className="actions-cell">
+                          <button 
+                            className="view-btn"
+                            onClick={() => openTutorialModal(tutorial)}
+                          >
+                            <FaEye /> View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+
+
+      {/* Add News Form Modal */}
           {showForm && (
-            <div className="modal-overlay">
-              <div className="modal-form">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3>
-                    <FaNewspaper style={{ marginRight: 6, color: "#4CAF50" }} />
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-form" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+              <h3>
+                <FaNewspaper style={{ marginRight: 8, color: "#4CAF50" }} />
                     Add News
                   </h3>
                   <button
                     type="button"
                     className="close-modal-btn"
                     onClick={() => setShowForm(false)}
-                    style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer" }}
                   >
                     <FaTimes />
                   </button>
                 </div>
                 <form onSubmit={handleSubmit}>
+              <div className="form-group">
                   <label>Title:</label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
+                    required
                   />
+              </div>
 
-                  <label>Description:</label>
-                  <textarea
+                  <div className="form-group">
+                    <label>Description:</label>
+                    <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                  />
+                      required
+                    />
+                  </div>
 
+              <div className="form-group">
                   <label>Media Link (Image or Video URL):</label>
                   <input
                     type="url"
                     value={media}
                     onChange={(e) => setMedia(e.target.value)}
                     placeholder="https://..."
+                    required
                   />
+              </div>
 
                   <div className="modal-buttons">
                     <button type="submit" className="submit-btn">
-                      <FaPlus style={{ marginRight: 4 }} /> Submit
+                  <FaPlus /> Submit
                     </button>
                     <button type="button" className="cancel-btn" onClick={() => setShowForm(false)}>
                       Cancel
@@ -297,275 +456,26 @@ const ManageAppPage = () => {
             </div>
           )}
 
-          <div className="news-grid">
-            {newsList.length === 0 ? (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666" }}>
-                <FaNewspaper style={{ fontSize: "48px", color: "#ddd", marginBottom: "16px" }} />
-                <p style={{ fontSize: "18px", margin: 0 }}>No news articles yet.</p>
-                <p style={{ fontSize: "14px", margin: "8px 0 0 0", color: "#999" }}>Add your first news article to get started.</p>
-              </div>
-            ) : (
-              newsList.map((news) => (
-                <div key={news.id} className="news-card">
-                  
-                  {/* Header */}
-                  <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
-                    <div style={{
-                      width: "48px",
-                      height: "48px",
-                      borderRadius: "12px",
-                      background: "linear-gradient(135deg, #4CAF50, #45a049)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: "16px"
-                    }}>
-                      <FaNewspaper style={{ color: "white", fontSize: "20px" }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ 
-                        margin: 0, 
-                        fontSize: "18px", 
-                        fontWeight: "600", 
-                        color: "#333",
-                        lineHeight: "1.3"
-                      }}>
-                        {news.title}
-                      </h3>
-                    </div>
-                  </div>
 
-                  {/* Description */}
-                  <div style={{ 
-                    color: "#666", 
-                    fontSize: "14px", 
-                    lineHeight: "1.6",
-                    marginBottom: "16px",
-                    flex: 1
-                  }}>
-                    {news.description.length > 120
-                      ? news.description.slice(0, 120) + "..."
-                      : news.description}
-                  </div>
-
-                  {/* Timestamp - Support both createdAt and timestamp fields */}
-                  {(news.timestamp || news.createdAt) && (
-                    <div style={{ 
-                      fontSize: "12px", 
-                      color: "#888", 
-                      marginBottom: "20px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px"
-                    }}>
-                      <span>📅</span>
-                      {news.timestamp 
-                        ? new Date(news.timestamp.seconds ? news.timestamp.seconds * 1000 : news.timestamp).toLocaleDateString()
-                        : new Date(news.createdAt.seconds ? news.createdAt.seconds * 1000 : news.createdAt).toLocaleDateString()
-                      }
-                    </div>
-                  )}
-
-                  {/* View Details Button */}
-                  <div style={{ marginTop: "auto" }}>
-                    <button
-                      onClick={() => toggleExpand(news.id)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        background: "#4CAF50",
-                        color: "white",
-                        padding: "12px 24px",
-                        borderRadius: "8px",
-                        border: "none",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        width: "100%",
-                        justifyContent: "center"
-                      }}
-                      onMouseOver={(e) => e.target.style.background = "#45a049"}
-                      onMouseOut={(e) => e.target.style.background = "#4CAF50"}
-                    >
-                      <FaEye style={{ fontSize: "14px" }} />
-                      View Details
-                    </button>
-                  </div>
-
-                  {/* Expanded Content */}
-                  {expandedNewsId === news.id && (
-                    <div style={{ 
-                      marginTop: "20px",
-                      paddingTop: "20px",
-                      borderTop: "1px solid #e9ecef"
-                    }}>
-                      <div style={{ marginBottom: "16px" }}>
-                        <h4 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                          Full Description
-                        </h4>
-                        <p style={{ margin: 0, color: "#666", fontSize: "14px", lineHeight: "1.6" }}>
-                          {news.description}
-                        </p>
-                      </div>
-                      
-                      {/* Display imageUrl if available (News Type 2) */}
-                      {news.imageUrl && (
-                        <div style={{ marginBottom: "16px" }}>
-                          <h4 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                            Image
-                          </h4>
-                          <img
-                            src={news.imageUrl}
-                            alt={news.title}
-                            style={{ 
-                              maxWidth: "100%", 
-                              height: "auto", 
-                              borderRadius: "8px", 
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                            }}
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Display linkUrl if available (News Type 2) */}
-                      {news.linkUrl && (
-                        <div style={{ marginBottom: "16px" }}>
-                          <h4 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                            External Link
-                          </h4>
-                          <a
-                            href={news.linkUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              background: "#FF9800",
-                              color: "white",
-                              padding: "10px 16px",
-                              borderRadius: "6px",
-                              textDecoration: "none",
-                              fontSize: "14px",
-                              fontWeight: "500",
-                              transition: "all 0.2s ease"
-                            }}
-                            onMouseOver={(e) => e.target.style.background = "#F57C00"}
-                            onMouseOut={(e) => e.target.style.background = "#FF9800"}
-                          >
-                            <FaNewspaper style={{ fontSize: "12px" }} />
-                            Visit Article
-                          </a>
-                        </div>
-                      )}
-
-                      {/* Display mediaUrl if available (News Type 1) */}
-                      {news.mediaUrl && (
-                        <div style={{ marginBottom: "16px" }}>
-                          <h4 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                            Media Content
-                          </h4>
-                          {news.mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                              <img
-                                src={news.mediaUrl}
-                                alt={news.title}
-                              style={{ 
-                                maxWidth: "100%", 
-                                height: "auto", 
-                                borderRadius: "8px", 
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                              }}
-                            />
-                          ) : news.mediaUrl.match(/\.(mp4|webm)$/i) ? (
-                              <video
-                                controls
-                                src={news.mediaUrl}
-                              style={{ 
-                                maxWidth: "100%", 
-                                height: "auto", 
-                                borderRadius: "8px", 
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                              }}
-                            />
-                          ) : (
-                      <a
-                        href={news.mediaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                background: "#2196F3",
-                                color: "white",
-                                padding: "10px 16px",
-                                borderRadius: "6px",
-                                textDecoration: "none",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                transition: "all 0.2s ease"
-                              }}
-                              onMouseOver={(e) => e.target.style.background = "#1976D2"}
-                              onMouseOut={(e) => e.target.style.background = "#2196F3"}
-                            >
-                              <FaNewspaper style={{ fontSize: "12px" }} />
-                        View Content
-                      </a>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Display timestamp/createdAt if available */}
-                      {(news.timestamp || news.createdAt) && (
-                        <div style={{ marginBottom: "16px" }}>
-                          <h4 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                            Published Date
-                          </h4>
-                          <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
-                            {news.timestamp 
-                              ? new Date(news.timestamp.seconds ? news.timestamp.seconds * 1000 : news.timestamp).toLocaleString()
-                              : new Date(news.createdAt.seconds ? news.createdAt.seconds * 1000 : news.createdAt).toLocaleString()
-                            }
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      {activeTab === "tutorials" && (
-        <>
-          <div className="header-buttons">
-            <button className="add-btn" onClick={() => setShowTutorialForm(true)}>
-              <FaPlus style={{ marginRight: 4 }} /> Add Tutorial
-            </button>
-          </div>
-
+      {/* Add Tutorial Form Modal */}
           {showTutorialForm && (
-            <div className="modal-overlay">
-              <div className="modal-form">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3>
-                    <FaVideo style={{ marginRight: 6, color: "#4CAF50" }} />
+        <div className="modal-overlay" onClick={() => setShowTutorialForm(false)}>
+          <div className="modal-form" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+              <h3>
+                <FaVideo style={{ marginRight: 8, color: "#4CAF50" }} />
                     Add Tutorial
                   </h3>
                   <button
                     type="button"
                     className="close-modal-btn"
                     onClick={() => setShowTutorialForm(false)}
-                    style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer" }}
                   >
                     <FaTimes />
                   </button>
                 </div>
                 <form onSubmit={handleTutorialSubmit}>
+              <div className="form-group">
                   <label>Tutorial Title:</label>
                   <input
                     type="text"
@@ -574,6 +484,7 @@ const ManageAppPage = () => {
                     placeholder="Enter tutorial title"
                     required
                   />
+              </div>
                   <div className="form-group">
                     <label>Description:</label>
                     <textarea
@@ -584,6 +495,7 @@ const ManageAppPage = () => {
                       required
                     />
                   </div>
+              <div className="form-group">
                   <label>Video URL:</label>
                   <input
                     type="url"
@@ -592,9 +504,10 @@ const ManageAppPage = () => {
                     placeholder="Enter YouTube or video URL"
                     required
                   />
+              </div>
                   <div className="modal-buttons">
                     <button type="submit" className="submit-btn">
-                      <FaPlus style={{ marginRight: 4 }} /> Submit
+                  <FaPlus /> Submit
                     </button>
                     <button type="button" className="cancel-btn" onClick={() => setShowTutorialForm(false)}>
                       Cancel
@@ -603,90 +516,6 @@ const ManageAppPage = () => {
                 </form>
               </div>
             </div>
-          )}
-
-          <div className="tutorials-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px", marginTop: "20px" }}>
-            {tutorialList.length === 0 ? (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666" }}>
-                <FaVideo style={{ fontSize: "48px", color: "#ddd", marginBottom: "16px" }} />
-                <p style={{ fontSize: "18px", margin: 0 }}>No tutorials yet.</p>
-                <p style={{ fontSize: "14px", margin: "8px 0 0 0", color: "#999" }}>Add your first tutorial to get started.</p>
-              </div>
-            ) : (
-              tutorialList.map((tutorial) => (
-                <div key={tutorial.id} className="tutorial-card">
-                  
-                  {/* Header */}
-                  <div style={{ display: "flex", alignItems: "center", marginBottom: "16px" }}>
-                    <div style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "8px",
-                      background: "linear-gradient(135deg, #4CAF50, #45a049)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: "12px"
-                    }}>
-                      <FaVideo style={{ color: "white", fontSize: "18px" }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ 
-                        margin: 0, 
-                        fontSize: "16px", 
-                        fontWeight: "600", 
-                        color: "#333",
-                        lineHeight: "1.3"
-                      }}>
-                        {tutorial.title}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div style={{ 
-                    color: "#666", 
-                    fontSize: "14px", 
-                    lineHeight: "1.5",
-                    marginBottom: "20px"
-                  }}>
-                    {tutorial.description.length > 100
-                      ? tutorial.description.slice(0, 100) + "..."
-                      : tutorial.description}
-                  </div>
-
-                  {/* View Button */}
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <button
-                      onClick={() => openTutorialModal(tutorial)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        background: "#4CAF50",
-                        color: "white",
-                        padding: "10px 20px",
-                        borderRadius: "6px",
-                        border: "none",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        width: "100%",
-                        justifyContent: "center"
-                      }}
-                      onMouseOver={(e) => e.target.style.background = "#45a049"}
-                      onMouseOut={(e) => e.target.style.background = "#4CAF50"}
-                    >
-                      <FaEye style={{ fontSize: "12px" }} />
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </>
       )}
 
       {/* Tutorial Details Modal */}
@@ -759,10 +588,11 @@ const ManageAppPage = () => {
 
             {/* Modal Content */}
             <div style={{ marginBottom: "20px" }}>
+              {/* Tutorial Title */}
               <div style={{ marginBottom: "20px" }}>
                 <h3 style={{ 
                   margin: "0 0 8px 0", 
-                  fontSize: "18px", 
+                  fontSize: "20px", 
                   fontWeight: "600", 
                   color: "#333" 
                 }}>
@@ -771,22 +601,114 @@ const ManageAppPage = () => {
                 <p style={{ 
                   margin: 0, 
                   color: "#666", 
-                  fontSize: "14px", 
+                  fontSize: "15px", 
                   lineHeight: "1.6" 
                 }}>
                   {selectedTutorial.description}
                 </p>
               </div>
 
+              {/* Tutorial Information Grid */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "15px",
+                marginBottom: "20px"
+              }}>
+                <div style={{
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef"
+                }}>
+                  <h4 style={{ 
+                    margin: "0 0 8px 0", 
+                    fontSize: "14px", 
+                    fontWeight: "600", 
+                    color: "#495057",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px"
+                  }}>
+                    Tutorial ID
+                  </h4>
+                  <p style={{ 
+                    margin: 0, 
+                    color: "#6c757d", 
+                    fontSize: "14px",
+                    fontFamily: "monospace"
+                  }}>
+                    {selectedTutorial.id}
+                  </p>
+                </div>
+
+                <div style={{
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef"
+                }}>
+                  <h4 style={{ 
+                    margin: "0 0 8px 0", 
+                    fontSize: "14px", 
+                    fontWeight: "600", 
+                    color: "#495057",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px"
+                  }}>
+                    Created Date
+                  </h4>
+                  <p style={{ 
+                    margin: 0, 
+                    color: "#6c757d", 
+                    fontSize: "14px"
+                  }}>
+                    {selectedTutorial.createdAt 
+                      ? new Date(selectedTutorial.createdAt.seconds ? selectedTutorial.createdAt.seconds * 1000 : selectedTutorial.createdAt).toLocaleDateString()
+                      : 'N/A'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Video Tutorial Section */}
               <div style={{ marginBottom: "20px" }}>
                 <h4 style={{ 
-                  margin: "0 0 10px 0", 
+                  margin: "0 0 15px 0", 
                   fontSize: "16px", 
                   fontWeight: "600", 
                   color: "#333" 
                 }}>
                   Video Tutorial
                 </h4>
+                
+                {/* Video URL Display */}
+                <div style={{
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef",
+                  marginBottom: "15px"
+                }}>
+                  <p style={{ 
+                    margin: "0 0 8px 0", 
+                    fontSize: "14px", 
+                    fontWeight: "500", 
+                    color: "#495057" 
+                  }}>
+                    Video URL:
+                  </p>
+                  <p style={{ 
+                    margin: 0, 
+                    color: "#6c757d", 
+                    fontSize: "13px",
+                    wordBreak: "break-all",
+                    fontFamily: "monospace"
+                  }}>
+                    {selectedTutorial.videoUrl}
+                  </p>
+                </div>
+
+                {/* Watch Button */}
                 <a
                   href={selectedTutorial.videoUrl}
                   target="_blank"
@@ -843,6 +765,280 @@ const ManageAppPage = () => {
           </div>
         </div>
       )}
+
+      {/* News Details Modal */}
+      {showNewsDetailsModal && selectedNews && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: "white",
+            borderRadius: "12px",
+            padding: "30px",
+            maxWidth: "600px",
+            width: "90%",
+            maxHeight: "80vh",
+            overflow: "auto",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)"
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "20px",
+              paddingBottom: "15px",
+              borderBottom: "1px solid #e9ecef"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "8px",
+                  background: "linear-gradient(135deg, #4CAF50, #45a049)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
+                  <FaNewspaper style={{ color: "white", fontSize: "18px" }} />
+                </div>
+                <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "600", color: "#333" }}>
+                  News Details
+                </h2>
+              </div>
+              <button
+                onClick={closeNewsModal}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#666",
+                  padding: "5px",
+                  borderRadius: "4px",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = "#f8f9fa"}
+                onMouseOut={(e) => e.target.style.backgroundColor = "transparent"}
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{ marginBottom: "20px" }}>
+              {/* News Title */}
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ 
+                  margin: "0 0 8px 0", 
+                  fontSize: "20px", 
+                  fontWeight: "600", 
+                  color: "#333" 
+                }}>
+                  {selectedNews.title}
+                </h3>
+                <p style={{ 
+                  margin: 0, 
+                  color: "#666", 
+                  fontSize: "15px", 
+                  lineHeight: "1.6" 
+                }}>
+                  {selectedNews.description}
+                </p>
+              </div>
+
+              {/* News Information Grid */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "15px",
+                marginBottom: "20px"
+              }}>
+                <div style={{
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef"
+                }}>
+                  <h4 style={{ 
+                    margin: "0 0 8px 0", 
+                    fontSize: "14px", 
+                    fontWeight: "600", 
+                    color: "#495057",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px"
+                  }}>
+                    News ID
+                  </h4>
+                  <p style={{ 
+                    margin: 0, 
+                    color: "#6c757d", 
+                    fontSize: "14px",
+                    fontFamily: "monospace"
+                  }}>
+                    {selectedNews.id}
+                  </p>
+                </div>
+
+                <div style={{
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef"
+                }}>
+                  <h4 style={{ 
+                    margin: "0 0 8px 0", 
+                    fontSize: "14px", 
+                    fontWeight: "600", 
+                    color: "#495057",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px"
+                  }}>
+                    Created Date
+                  </h4>
+                  <p style={{ 
+                    margin: 0, 
+                    color: "#6c757d", 
+                    fontSize: "14px"
+                  }}>
+                    {selectedNews.timestamp 
+                      ? new Date(selectedNews.timestamp.seconds ? selectedNews.timestamp.seconds * 1000 : selectedNews.timestamp).toLocaleDateString()
+                      : selectedNews.createdAt 
+                      ? new Date(selectedNews.createdAt.seconds ? selectedNews.createdAt.seconds * 1000 : selectedNews.createdAt).toLocaleDateString()
+                      : 'N/A'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Media Content Section */}
+              {selectedNews.mediaUrl && (
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ 
+                    margin: "0 0 15px 0", 
+                    fontSize: "16px", 
+                    fontWeight: "600", 
+                    color: "#333" 
+                  }}>
+                    Media Content
+                  </h4>
+                  
+                  {/* Media URL Display */}
+                  <div style={{
+                    padding: "15px",
+                    background: "#f8f9fa",
+                    borderRadius: "8px",
+                    border: "1px solid #e9ecef",
+                    marginBottom: "15px"
+                  }}>
+                    <p style={{ 
+                      margin: "0 0 8px 0", 
+                      fontSize: "14px", 
+                      fontWeight: "500", 
+                      color: "#495057" 
+                    }}>
+                      Media URL:
+                    </p>
+                    <p style={{ 
+                      margin: 0, 
+                      color: "#6c757d", 
+                      fontSize: "13px",
+                      wordBreak: "break-all",
+                      fontFamily: "monospace"
+                    }}>
+                      {selectedNews.mediaUrl}
+                    </p>
+                  </div>
+
+                  {/* Media Display */}
+                  <div style={{
+                    padding: "15px",
+                    background: "#f8f9fa",
+                    borderRadius: "8px",
+                    border: "1px solid #e9ecef",
+                    textAlign: "center"
+                  }}>
+                    {selectedNews.mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                      <img
+                        src={selectedNews.mediaUrl}
+                        alt={selectedNews.title}
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "300px",
+                          borderRadius: "8px",
+                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+                        }}
+                      />
+                    ) : (
+                      <a
+                        href={selectedNews.mediaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          background: "#4CAF50",
+                          color: "white",
+                          padding: "12px 24px",
+                          borderRadius: "8px",
+                          textDecoration: "none",
+                          fontSize: "16px",
+                          fontWeight: "500",
+                          transition: "all 0.2s ease"
+                        }}
+                        onMouseOver={(e) => e.target.style.background = "#45a049"}
+                        onMouseOut={(e) => e.target.style.background = "#4CAF50"}
+                      >
+                        <FaNewspaper style={{ fontSize: "16px" }} />
+                        View Media Content
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "12px",
+              paddingTop: "15px",
+              borderTop: "1px solid #e9ecef"
+            }}>
+              <button
+                onClick={closeNewsModal}
+                style={{
+                  background: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e) => e.target.style.background = "#5a6268"}
+                onMouseOut={(e) => e.target.style.background = "#6c757d"}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
