@@ -31,12 +31,14 @@ const SensorLogsPage = () => {
   // Fetch sensor data from both Firestore and Realtime Database
   const fetchSensorData = useCallback(async () => {
     try {
+      console.log('Starting sensor data fetch...');
       setLoading(true);
       const kits = [];
       const sessions = [];
       
       // Fetch from Firestore Sensor Kits collection
       try {
+        console.log('Fetching from Firestore Sensor Kits collection...');
         const sensorKitsRef = collection(db, 'Sensor Kits');
         const sensorKitsSnapshot = await getDocs(sensorKitsRef);
         
@@ -54,18 +56,26 @@ const SensorLogsPage = () => {
           kits.push(kit);
         });
         
-        console.log('Firestore sensor kits fetched:', kits);
+        console.log('Firestore sensor kits fetched:', kits.length, 'kits');
       } catch (firestoreError) {
         console.log('No Firestore sensor kits found or error:', firestoreError);
       }
       
-      // Fetch from Realtime Database Sensors path
+      // Fetch from Realtime Database Sensors path with timeout
       try {
+        console.log('Fetching from Realtime Database...');
         const sensorsRef = ref(realtimeDb, 'Sensors');
-        const snapshot = await get(sensorsRef);
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Realtime Database fetch timeout')), 5000); // 5 second timeout
+        });
+        
+        const snapshot = await Promise.race([get(sensorsRef), timeoutPromise]);
         
         if (snapshot.exists()) {
           const sensorsData = snapshot.val();
+          console.log('Realtime Database data found:', Object.keys(sensorsData).length, 'sensors');
           
           // Process each sensor from Realtime Database
           Object.keys(sensorsData).forEach(sensorId => {
@@ -110,22 +120,28 @@ const SensorLogsPage = () => {
             sessions.push(session);
           });
           
-          console.log('Realtime Database sensor data fetched:', { kits, sessions });
+          console.log('Realtime Database sensor data processed:', { kits: kits.length, sessions: sessions.length });
+        } else {
+          console.log('No data found in Realtime Database');
         }
       } catch (realtimeError) {
-        console.log('No Realtime Database sensor data found or error:', realtimeError);
+        console.log('Realtime Database error or timeout:', realtimeError);
+        // Continue with just Firestore data - this is normal if no realtime data exists
       }
       
       setSensorKits(kits);
       setSensorSessions(sessions);
       setLastUpdated(new Date());
-      console.log('Combined sensor data:', { kits, sessions });
+      console.log('Sensor data fetch completed:', { kits: kits.length, sessions: sessions.length });
       
     } catch (error) {
       console.error('Error fetching sensor data:', error);
+      // Set empty arrays but still show the page
       setSensorKits([]);
       setSensorSessions([]);
+      setLastUpdated(new Date());
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   }, []);
@@ -149,8 +165,10 @@ const SensorLogsPage = () => {
           setRole("unknown");
         }
         
-        // Fetch sensor data after authentication
-        fetchSensorData();
+        // Fetch sensor data after authentication with a small delay
+        setTimeout(() => {
+          fetchSensorData();
+        }, 100);
       }
     });
     return () => unsubscribe();
