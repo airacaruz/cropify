@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { adminAuditActions } from '../utils/adminAuditLogger';
+import adminStatusTracker from '../utils/adminStatusTracker';
 import SecurityUtils from '../utils/security.jsx';
 import sessionTracker from '../utils/sessionTracker';
 import Navbar from './Navbar';
@@ -48,6 +49,9 @@ function Layout() {
           // Start session tracking for the authenticated admin
           sessionTracker.startTracking(user.uid, cleanName);
           
+          // Start admin status tracking for online/offline status
+          adminStatusTracker.startTracking(user.uid, cleanName);
+          
           // Log the login action
           await adminAuditActions.login(user.uid, cleanName);
         }
@@ -69,6 +73,8 @@ function Layout() {
       unsubscribe();
       // Stop session tracking when component unmounts
       sessionTracker.stopTracking();
+      // Stop admin status tracking when component unmounts
+      adminStatusTracker.stopTracking();
     };
   }, [navigate]);
 

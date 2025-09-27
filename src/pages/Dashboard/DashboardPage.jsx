@@ -1,4 +1,5 @@
 import { onAuthStateChanged } from 'firebase/auth';
+import { get, ref } from 'firebase/database';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -6,7 +7,6 @@ import autoTable from 'jspdf-autotable';
 import { useEffect, useState } from 'react';
 import {
     FaMicrochip,
-    FaPlus,
     FaTimes,
     FaUserPlus,
     FaUsers
@@ -24,9 +24,10 @@ import {
     YAxis
 } from 'recharts';
 import Navbar from '../../components/Navbar';
-import { auth, db } from '../../firebase';
+import { auth, db, realtimeDb } from '../../firebase';
 import '../../styles/DashboardPage.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
+import userSessionManager from '../../utils/userSessionManager';
 
 function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsers) {
     const insights = [];
@@ -362,11 +363,48 @@ const Dashboard = () => {
     const [activeUsersCount, setActiveUsersCount] = useState(0);
 
     const [sensorSessions, setSensorSessions] = useState([]);
-    const [showSensorKitsModal, setShowSensorKitsModal] = useState(false);
     const [showReportsModal, setShowReportsModal] = useState(false);
     const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
     const [reportTickets, setReportTickets] = useState([]);
     const [allReportTickets, setAllReportTickets] = useState([]);
+    const [recentSensorKits, setRecentSensorKits] = useState([]);
+    const [reportsLoading, setReportsLoading] = useState(false);
+
+    // Fetch recent sensor data for dashboard
+    const fetchRecentSensorData = async () => {
+        try {
+            const sensorsRef = ref(realtimeDb, 'Sensors');
+            const snapshot = await get(sensorsRef);
+            
+            if (snapshot.exists()) {
+                const sensorsData = snapshot.val();
+                const kits = [];
+                
+                // Process each sensor (limit to 2 for dashboard)
+                Object.keys(sensorsData).slice(0, 2).forEach(sensorId => {
+                    const sensorData = sensorsData[sensorId];
+                    kits.push({
+                        id: sensorId,
+                        status: 'Active', // Assume active if data is being received
+                        user: 'system',
+                        code: sensorData.code || 'N/A',
+                        linked: sensorData.linked || false,
+                        temperature: sensorData.temperature || 0,
+                        humidity: sensorData.humidity || 0,
+                        ph: sensorData.ph || 0
+                    });
+                });
+                
+                setRecentSensorKits(kits);
+                console.log('Recent sensor data fetched for dashboard:', kits);
+            } else {
+                setRecentSensorKits([]);
+            }
+        } catch (error) {
+            console.error('Error fetching recent sensor data:', error);
+            setRecentSensorKits([]);
+        }
+    };
 
     const handlePrintConfirm = async () => {
         // Log the print dashboard action
@@ -472,15 +510,98 @@ const Dashboard = () => {
                 setRole("unknown");
             } finally {
                 setLoading(false);
-                fetchAnalyticsData();
+                // Fetch analytics data after role is set
+                setTimeout(() => {
+                    fetchAnalyticsData();
+                }, 100);
             }
         };
 
         fetchRole();
     }, [uid]);
 
+    // Separate useEffect to fetch analytics data when user is authenticated
+    useEffect(() => {
+        if (uid && role && (role === 'admin' || role === 'superadmin')) {
+            console.log('User authenticated, fetching analytics data...');
+            console.log('Current user:', { uid, role, adminName });
+            fetchAnalyticsData();
+        }
+    }, [uid, role]);
+
+    // Separate useEffect to fetch report tickets when user is authenticated
+    useEffect(() => {
+        if (uid && role && (role === 'admin' || role === 'superadmin')) {
+            console.log('User authenticated, fetching report tickets...');
+            fetchReportTickets();
+        }
+    }, [uid, role]);
+
+    // Separate function to fetch report tickets
+    const fetchReportTickets = async () => {
+        try {
+            console.log('Fetching report tickets from Firestore...');
+            setReportsLoading(true);
+            const reportsSnapshot = await getDocs(collection(db, 'reports'));
+            console.log('Reports snapshot:', reportsSnapshot.docs.length, 'documents found');
+            
+            const reports = reportsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                console.log('Processing report document:', doc.id, data);
+                
+                // Handle timestamp properly - it might be a string or Firestore timestamp
+                let timestamp;
+                if (data.timestamp) {
+                    if (data.timestamp.toDate && typeof data.timestamp.toDate === 'function') {
+                        timestamp = data.timestamp.toDate();
+                    } else if (typeof data.timestamp === 'string') {
+                        timestamp = new Date(data.timestamp);
+                    } else {
+                        timestamp = new Date(data.timestamp);
+                    }
+                } else {
+                    timestamp = new Date();
+                }
+                
+                return {
+                    id: doc.id,
+                    title: data.message || 'No title',
+                    type: data.type || 'Unknown',
+                    userId: data.userId || 'Unknown',
+                    timestamp: timestamp,
+                    imageUrl: data.imageUrl || null,
+                    fullMessage: data.message || '', // Keep full message for modal
+                    fullUserId: data.userId || '' // Keep full user ID for modal
+                };
+            });
+            
+            console.log('Processed reports:', reports);
+            
+            // Sort by timestamp (newest first)
+            const sortedReports = reports.sort((a, b) => b.timestamp - a.timestamp);
+            setAllReportTickets(sortedReports);
+            
+            // Take first 3 for the dashboard card
+            setReportTickets(sortedReports.slice(0, 3));
+            
+            console.log('Fetched report tickets:', sortedReports.length, 'total reports');
+            console.log('Report tickets for dashboard:', sortedReports.slice(0, 3));
+            setReportsLoading(false);
+        } catch (error) {
+            console.error('Error fetching report tickets:', error);
+            setReportsLoading(false);
+            setReportTickets([]);
+            setAllReportTickets([]);
+        }
+    };
+
+
     const fetchAnalyticsData = async () => {
         try {
+            console.log('fetchAnalyticsData called');
+            // Clean up expired sessions before calculating active users
+            await userSessionManager.cleanupExpiredSessions();
+            
             const usersCollection = collection(db, 'users');
             const snapshot = await getDocs(usersCollection);
 
@@ -557,7 +678,60 @@ const Dashboard = () => {
             });
 
             setDailyActiveUsersData(monthlyActiveUsersArray);
-            setActiveUsersCount(new Set(logSnapshot.docs.map((d) => d.data().userId)).size);
+            
+            // Fix: Calculate truly active users (not just all users who ever logged in)
+            const now = new Date();
+            const ACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+            
+            const activeSessions = logSnapshot.docs.filter(doc => {
+                const data = doc.data();
+                
+                // Must have a userId
+                if (!data.userId) return false;
+                
+                // Check if session is marked as active (if field exists)
+                if (data.isActive === false) return false;
+                
+                // Check if user has logged out (if logoutTime exists)
+                if (data.logoutTime) return false;
+                
+                // Check if user has recent activity (if lastActivity exists)
+                if (data.lastActivity) {
+                    try {
+                        const lastActivity = data.lastActivity.toDate ? data.lastActivity.toDate() : new Date(data.lastActivity);
+                        const timeSinceActivity = now - lastActivity;
+                        if (timeSinceActivity > ACTIVITY_TIMEOUT) return false;
+                    } catch {
+                        // If we can't parse the date, consider it inactive
+                        return false;
+                    }
+                }
+                
+                // If no lastActivity field, check loginTime as fallback
+                if (data.loginTime) {
+                    try {
+                        const loginTime = data.loginTime.toDate ? data.loginTime.toDate() : new Date(data.loginTime);
+                        const timeSinceLogin = now - loginTime;
+                        // If logged in more than 24 hours ago without activity tracking, consider inactive
+                        if (timeSinceLogin > 24 * 60 * 60 * 1000) return false;
+                    } catch {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            // Count unique active users
+            const uniqueActiveUsers = new Set(activeSessions.map(doc => doc.data().userId));
+            const activeUserCount = uniqueActiveUsers.size;
+            
+            console.log(`Active users calculation: ${activeSessions.length} active sessions, ${activeUserCount} unique active users`);
+            
+            setActiveUsersCount(activeUserCount);
+
+            // Fetch recent sensor data for dashboard
+            await fetchRecentSensorData();
 
             // Fetch sensor logs from Firestore
             const sensorSnapshot = await getDocs(collection(db, 'sensor_sessions'));
@@ -580,35 +754,14 @@ const Dashboard = () => {
             setSensorSessions(allSessions);
 
 
-            // Fetch report tickets from Firestore
-            const reportsSnapshot = await getDocs(collection(db, 'reports'));
-            const reports = reportsSnapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    title: data.message || 'No title',
-                    type: data.type || 'Unknown',
-                    userId: data.userId || 'Unknown',
-                    timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(),
-                    imageUrl: data.imageUrl || null,
-                    fullMessage: data.message || '', // Keep full message for modal
-                    fullUserId: data.userId || '' // Keep full user ID for modal
-                };
-            });
-            
-            // Sort by timestamp (newest first)
-            const sortedReports = reports.sort((a, b) => b.timestamp - a.timestamp);
-            setAllReportTickets(sortedReports);
-            
-            // Take first 3 for the dashboard card
-            setReportTickets(sortedReports.slice(0, 3));
-            
-            console.log('Fetched report tickets:', sortedReports.length, 'total reports');
+            // Fetch report tickets from Firestore - moved outside main try-catch for better error handling
+            await fetchReportTickets();
 
         } catch (error) {
             console.error('Error fetching analytics data:', error);
             setSensorSessions(hardcodedSessions);
             setReportTickets([]);
+            setReportsLoading(false);
         }
     };
 
@@ -677,7 +830,11 @@ const Dashboard = () => {
                                 </h4>
                             </div>
                             <div className="app-reports-list">
-                                {reportTickets.length > 0 ? (
+                                {reportsLoading ? (
+                                    <div className="loading-reports">
+                                        <p>Loading report tickets...</p>
+                                    </div>
+                                ) : reportTickets.length > 0 ? (
                                     reportTickets.map((ticket) => (
                                         <div key={ticket.id} className="app-report-item">
                                             <div className="ticket-info">
@@ -713,28 +870,33 @@ const Dashboard = () => {
                                     <FaMicrochip color="#2196F3" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                     Recent Sensor Kits
                                 </h4>
-                                <button className="quick-add-btn" onClick={() => alert('Quick Add Sensor Kit - Feature coming soon!')}>
-                                    <FaPlus size={16} /> Quick Add
-                                </button>
                             </div>
                             <div className="sensor-kits-list">
-                                {[
-                                    { id: 'SK-001', status: 'Active', user: 'user123' },
-                                    { id: 'SK-002', status: 'Inactive', user: 'user456' }
-                                ].map((kit) => (
-                                    <div key={kit.id} className="sensor-kit-item">
-                                        <div className="kit-info">
-                                            <span className="kit-id">{kit.id}</span>
-                                            <span className={`kit-status ${kit.status.toLowerCase()}`}>
-                                                {kit.status}
-                                            </span>
+                                {recentSensorKits.length > 0 ? (
+                                    recentSensorKits.map((kit) => (
+                                        <div key={kit.id} className="sensor-kit-item">
+                                            <div className="kit-info">
+                                                <span className="kit-id">{kit.id}</span>
+                                                <span className={`kit-status ${kit.status.toLowerCase()}`}>
+                                                    {kit.status}
+                                                </span>
+                                            </div>
+                                            <div className="kit-details">
+                                                <span className="kit-user">{kit.user}</span>
+                                                <span className="kit-code">Code: {kit.code}</span>
+                                                {kit.linked && <span className="kit-linked">🔗 Linked</span>}
+                                            </div>
                                         </div>
-                                        <span className="kit-user">{kit.user}</span>
+                                    ))
+                                ) : (
+                                    <div className="no-sensor-data">
+                                        <p>No sensor data available</p>
+                                        <small>There's no user connected to their sensor device yet</small>
+                                    </div>
+                                )}
                             </div>
-                        ))}
-                    </div>
                             <div className="view-all-container">
-                                <button className="view-all-btn" onClick={() => setShowSensorKitsModal(true)}>
+                                <button className="view-all-btn" onClick={() => navigate('/sensorlogs')}>
                                     View All Sensor Kits
                                 </button>
                             </div>
@@ -791,76 +953,6 @@ const Dashboard = () => {
                         </div>
             )}
 
-            {/* Sensor Kits Modal */}
-            {showSensorKitsModal && (
-                <div className="modal-overlay" onClick={() => setShowSensorKitsModal(false)}>
-                    <div className="modal-content sensor-kits-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>
-                                <FaMicrochip style={{ marginRight: 8, color: "#2196F3" }} />
-                                All Sensor Kits
-                            </h3>
-                            <button 
-                                className="close-modal-btn" 
-                                onClick={() => setShowSensorKitsModal(false)}
-                            >
-                                <FaTimes />
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="sensor-kits-table">
-                                <table className="modal-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Kit ID</th>
-                                            <th>Status</th>
-                                            <th>User ID</th>
-                                            <th>Last Activity</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {[
-                                            { id: 'SK-001', status: 'Active', user: 'user123', lastActivity: '2024-01-15 14:30' },
-                                            { id: 'SK-002', status: 'Inactive', user: 'user456', lastActivity: '2024-01-14 09:15' }
-                                        ].map((kit) => (
-                                            <tr key={kit.id}>
-                                                <td>
-                                                    <span className="kit-id-badge">
-                                                        <FaMicrochip size={12} style={{ marginRight: 4 }} />
-                                                        {kit.id}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className={`status-badge ${kit.status.toLowerCase()}`}>
-                                                        {kit.status}
-                                                    </span>
-                                                </td>
-                                                <td>{kit.user}</td>
-                                                <td>{kit.lastActivity}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button 
-                                className="add-kit-btn"
-                                onClick={() => alert('Add New Sensor Kit - Feature coming soon!')}
-                            >
-                                <FaPlus size={14} style={{ marginRight: 6 }} />
-                                Add New Sensor Kit
-                            </button>
-                            <button 
-                                className="close-modal-btn-secondary"
-                                onClick={() => setShowSensorKitsModal(false)}
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                    </div>
-            )}
 
             {/* Report Tickets Modal */}
             {showReportsModal && (
