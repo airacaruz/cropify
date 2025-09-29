@@ -37,99 +37,114 @@ const routes = [
     element: <LoginLinkPage />,
   },
   {
-    path: '/',
-    element: <Layout />,
-    errorElement: <NotFoundPage />,
-    children: [
-      {
-        path: 'dashboard',
-        element: (
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'analytics',
-        element: (
-          <ProtectedRoute>
-            <AnalyticsPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'userrecords',
-        element: (
-          <ProtectedRoute requiredRole="admin">
-            <UserRecordsPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'adminrecords',
-        element: (
-          <ProtectedRoute requiredRole="admin">
-            <AdminRecords />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'userlogs',
-        element: (
-          <ProtectedRoute>
-            <UserLogs />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'usersessions',
-        element: (
-          <ProtectedRoute>
-            <UserSessions />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'userreportlogs',
-        element: (
-          <ProtectedRoute>
-            <UserReportLogs />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'sensorlogs',
-        element: (
-          <ProtectedRoute>
-            <SensorLogs />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'manageapp',
-        element: (
-          <ProtectedRoute requiredRole="superadmin">
-            <ManageAppPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'manageadmin',
-        element: (
-          <ProtectedRoute requiredRole="superadmin">
-            <ManageAdmin />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'adminauditlogs',
-        element: (
-          <ProtectedRoute requiredRole="superadmin">
-            <AdminAuditLogs />
-          </ProtectedRoute>
-        ),
-      },
-    ],
+    path: '/dashboard',
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <DashboardPage />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/analytics',
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <AnalyticsPage />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/userrecords',
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <Layout>
+          <UserRecordsPage />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/adminrecords',
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <Layout>
+          <AdminRecords />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/userlogs',
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <UserLogs />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/usersessions',
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <UserSessions />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/userreportlogs',
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <UserReportLogs />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/sensorlogs',
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <SensorLogs />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/manageapp',
+    element: (
+      <ProtectedRoute requiredRole="superadmin">
+        <Layout>
+          <ManageAppPage />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/manageadmin',
+    element: (
+      <ProtectedRoute requiredRole="superadmin">
+        <Layout>
+          <ManageAdmin />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/adminauditlogs',
+    element: (
+      <ProtectedRoute requiredRole="superadmin">
+        <Layout>
+          <AdminAuditLogs />
+        </Layout>
+      </ProtectedRoute>
+    ),
   },
   // Add a catch-all route for 404s
   {

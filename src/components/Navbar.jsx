@@ -14,6 +14,7 @@ import {
 import { app } from "../firebase";
 import '../styles/Navbar.css';
 import { adminAuditActions } from '../utils/adminAuditLogger';
+import adminStatusTracker from '../utils/adminStatusTracker';
 import SecurityUtils from '../utils/security.jsx';
 
 // Accept role, adminName, adminId, and onPrintSummary as props
@@ -102,6 +103,9 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
       
       // Clear sensitive data
       SecurityUtils.clearSensitiveData();
+      
+      // Stop admin status tracking
+      adminStatusTracker.stopTracking();
       
       const auth = getAuth(app);
       await signOut(auth);
@@ -357,6 +361,21 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isDropdownOpen]);
+
+  // Start/stop admin status tracking
+  useEffect(() => {
+    if (adminId && adminName) {
+      // Start tracking when admin info is available
+      adminStatusTracker.startTracking(adminId, adminName);
+    }
+
+    // Cleanup function to stop tracking when component unmounts
+    return () => {
+      if (adminId) {
+        adminStatusTracker.stopTracking();
+      }
+    };
+  }, [adminId, adminName]);
 
   return (
     <>

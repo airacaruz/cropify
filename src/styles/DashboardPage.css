@@ -805,16 +805,80 @@ body {
   border: 1px solid #e9ecef;
 }
 
-.kit-info {
+.kit-main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.kit-left-main {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+}
+
+.kit-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kit-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.kit-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.loading-sensor-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.refresh-btn-small {
+  transition: all 0.3s ease;
+}
+
+.refresh-btn-small:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.refresh-btn-small:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.refresh-btn-small .spin {
+  animation: spin 1s linear infinite;
 }
 
 .kit-id {
   font-weight: 600;
   font-size: 14px;
   color: #333;
+}
+
+.kit-user {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
 }
 
 .kit-status {

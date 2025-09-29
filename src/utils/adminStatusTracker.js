@@ -282,4 +282,3 @@ class AdminStatusTracker {
 // Create and export a singleton instance
 const adminStatusTracker = new AdminStatusTracker();
 export default adminStatusTracker;
-
