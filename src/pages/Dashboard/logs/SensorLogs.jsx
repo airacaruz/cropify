@@ -36,22 +36,22 @@ const SensorLogsPage = () => {
       const kits = [];
       const sessions = [];
       
-      // Fetch from Firestore Sensor Kits collection
+      // Fetch from Firestore SensorKits collection
       try {
-        console.log('Fetching from Firestore Sensor Kits collection...');
-        const sensorKitsRef = collection(db, 'Sensor Kits');
+        console.log('Fetching from Firestore SensorKits collection...');
+        const sensorKitsRef = collection(db, 'SensorKits');
         const sensorKitsSnapshot = await getDocs(sensorKitsRef);
         
         sensorKitsSnapshot.forEach((doc) => {
           const data = doc.data();
           const kit = {
             id: doc.id,
-            code: data.code || 'N/A',
-            key: data.key || 'N/A',
+            code: data.sensorCode || 'N/A',
             linked: data.linked || false,
-            isActive: data.isActive || false,
-            uid: data.uid || 'system',
-            lastUpdate: data.lastUpdate || new Date().toISOString()
+            linkedPlantId: data.linkedPlantId || null,
+            plantName: data.plantName || 'N/A',
+            userId: data.userId || 'system',
+            lastLinkTimestamp: data.lastLinkTimestamp || new Date().toISOString()
           };
           kits.push(kit);
         });
@@ -86,21 +86,22 @@ const SensorLogsPage = () => {
             
             if (existingKit) {
               // Update existing kit with real-time data
-              existingKit.code = sensorData.code || existingKit.code;
-              existingKit.key = sensorData.key || existingKit.key;
+              existingKit.code = sensorData.sensorCode || existingKit.code;
               existingKit.linked = sensorData.linked !== undefined ? sensorData.linked : existingKit.linked;
-              existingKit.isActive = true; // Active if receiving real-time data
-              existingKit.lastUpdate = new Date().toISOString();
+              existingKit.linkedPlantId = sensorData.linkedPlantId || existingKit.linkedPlantId;
+              existingKit.plantName = sensorData.plantName || existingKit.plantName;
+              existingKit.userId = sensorData.userId || existingKit.userId;
+              existingKit.lastLinkTimestamp = new Date().toISOString();
             } else {
               // Create new kit entry from Realtime Database
               const kit = {
                 id: sensorId,
-                code: sensorData.code || 'N/A',
-                key: sensorData.key || 'N/A',
+                code: sensorData.sensorCode || 'N/A',
                 linked: sensorData.linked || false,
-                isActive: true,
-                uid: 'system',
-                lastUpdate: new Date().toISOString()
+                linkedPlantId: sensorData.linkedPlantId || null,
+                plantName: sensorData.plantName || 'N/A',
+                userId: sensorData.userId || 'system',
+                lastLinkTimestamp: new Date().toISOString()
               };
               kits.push(kit);
             }
@@ -108,14 +109,16 @@ const SensorLogsPage = () => {
             // Create sensor session entry
             const session = {
               skid: sensorId,
-              code: sensorData.code || 'N/A',
-              uid: 'system',
+              code: sensorData.sensorCode || 'N/A',
+              uid: sensorData.userId || 'system',
               sensorType: 'All',
               ph: sensorData.ph || 0,
               tds: sensorData.tds || 0,
               temperature: sensorData.temperature || 0,
               humidity: sensorData.humidity || 0,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              plantName: sensorData.plantName || 'N/A',
+              linked: sensorData.linked || false
             };
             sessions.push(session);
           });
@@ -312,15 +315,17 @@ const SensorLogsPage = () => {
                       <FaMicrochip style={{ marginRight: '8px', color: '#4CAF50' }} /> 
                       Sensor Kit ID
                     </th>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Code</th>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Key</th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Sensor Code</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
                       <FaCheckCircle style={{ marginRight: '8px', color: '#4CAF50' }} /> 
                       Linked
                     </th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
+                      🌱 Plant Name
+                    </th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
                       <FaUser style={{ marginRight: '8px', color: '#4CAF50' }} /> 
-                      UID
+                      User ID
                     </th>
                     <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #dee2e6', width: '120px' }}>Actions</th>
             </tr>
@@ -336,7 +341,6 @@ const SensorLogsPage = () => {
                     >
                       <td style={{ padding: '12px', fontWeight: '500' }}>{kit.id}</td>
                       <td style={{ padding: '12px' }}>{kit.code}</td>
-                      <td style={{ padding: '12px' }}>{kit.key}</td>
                       <td style={{ padding: '12px' }}>
                         {kit.linked
                           ? <span style={{ color: "#4CAF50", fontWeight: "bold", display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -347,7 +351,8 @@ const SensorLogsPage = () => {
                             </span>
                   }
                 </td>
-                      <td style={{ padding: '12px' }}>{kit.uid}</td>
+                      <td style={{ padding: '12px' }}>{kit.plantName}</td>
+                      <td style={{ padding: '12px' }}>{kit.userId}</td>
                       <td style={{ padding: '12px', textAlign: "center" }}>
                   <button 
                     className="view-btn"
@@ -425,10 +430,13 @@ const SensorLogsPage = () => {
                       <FaMicrochip style={{ marginRight: '8px', color: '#4CAF50' }} /> 
                       Sensor Kit ID
                     </th>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Code</th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Sensor Code</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
                       <FaUser style={{ marginRight: '8px', color: '#4CAF50' }} /> 
-                      UID
+                      User ID
+                    </th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
+                      🌱 Plant Name
                     </th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
                       <FaFlask style={{ marginRight: '8px', color: '#4CAF50' }} /> 
@@ -469,6 +477,7 @@ const SensorLogsPage = () => {
                       <td style={{ padding: '12px', fontWeight: '500' }}>{session.skid}</td>
                       <td style={{ padding: '12px' }}>{session.code}</td>
                       <td style={{ padding: '12px' }}>{session.uid}</td>
+                      <td style={{ padding: '12px' }}>{session.plantName || 'N/A'}</td>
                       <td style={{ padding: '12px' }}>{session.sensorType}</td>
                       <td style={{ padding: '12px' }}>{session.ph?.toFixed(2) || 'N/A'}</td>
                       <td style={{ padding: '12px' }}>{session.tds?.toFixed(2) || 'N/A'}</td>
@@ -612,7 +621,7 @@ const SensorLogsPage = () => {
                     border: '1px solid #e9ecef'
                   }}>
                     <div>
-                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Code</div>
+                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Sensor Code</div>
                       <div style={{ color: '#666' }}>{selectedData.code}</div>
                     </div>
                   </div>
@@ -625,8 +634,8 @@ const SensorLogsPage = () => {
                     border: '1px solid #e9ecef'
                   }}>
                     <div>
-                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Key</div>
-                      <div style={{ color: '#666' }}>{selectedData.key}</div>
+                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Plant Name</div>
+                      <div style={{ color: '#666' }}>{selectedData.plantName || 'N/A'}</div>
                     </div>
                   </div>
                   <div className="detail-item" style={{
@@ -656,10 +665,10 @@ const SensorLogsPage = () => {
                     <FaUser style={{ color: "#4CAF50", marginRight: "12px", fontSize: '18px' }} />
                     <div>
                       <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>User ID</div>
-                      <div style={{ color: '#666' }}>{selectedData.uid}</div>
+                      <div style={{ color: '#666' }}>{selectedData.userId}</div>
                     </div>
                   </div>
-                  {selectedData.lastUpdate && (
+                  {selectedData.lastLinkTimestamp && (
                     <div className="detail-item" style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -671,7 +680,7 @@ const SensorLogsPage = () => {
                       <FaClock style={{ color: "#4CAF50", marginRight: "12px", fontSize: '18px' }} />
                       <div>
                         <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Last Update</div>
-                        <div style={{ color: '#666' }}>{new Date(selectedData.lastUpdate).toLocaleString()}</div>
+                        <div style={{ color: '#666' }}>{new Date(selectedData.lastLinkTimestamp).toLocaleString()}</div>
                       </div>
                     </div>
                   )}
@@ -704,8 +713,21 @@ const SensorLogsPage = () => {
                     border: '1px solid #e9ecef'
                   }}>
                     <div>
-                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Code</div>
+                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Sensor Code</div>
                       <div style={{ color: '#666' }}>{selectedData.code}</div>
+                    </div>
+                  </div>
+                  <div className="detail-item" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Plant Name</div>
+                      <div style={{ color: '#666' }}>{selectedData.plantName || 'N/A'}</div>
                     </div>
                   </div>
                   <div className="detail-item" style={{
@@ -719,7 +741,7 @@ const SensorLogsPage = () => {
                     <FaUser style={{ color: "#4CAF50", marginRight: "12px", fontSize: '18px' }} />
                     <div>
                       <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>User ID</div>
-                      <div style={{ color: '#666' }}>{selectedData.uid}</div>
+                      <div style={{ color: '#666' }}>{selectedData.userId}</div>
                     </div>
                   </div>
                   <div className="detail-item" style={{

@@ -4,9 +4,10 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
     FaMicrochip,
+    FaRedo,
     FaTimes,
     FaUserPlus,
     FaUsers
@@ -350,82 +351,6 @@ const exportChartsAndPrescriptivePDF = async ({
 };
 
 
-const Dashboard = () => {
-    const [loading, setLoading] = useState(true);
-    const [role, setRole] = useState(null); 
-    const [adminName, setAdminName] = useState("");
-    const [uid, setUid] = useState(null); 
-    const navigate = useNavigate();
-
-    const [newUsersData, setNewUsersData] = useState([]);
-    const [dailyActiveUsersData, setDailyActiveUsersData] = useState([]);
-    const [kpiData, setKpiData] = useState({ newUsersCount: 0, newUsersTrend: '0%' });
-    const [activeUsersCount, setActiveUsersCount] = useState(0);
-
-    const [sensorSessions, setSensorSessions] = useState([]);
-    const [showReportsModal, setShowReportsModal] = useState(false);
-    const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
-    const [reportTickets, setReportTickets] = useState([]);
-    const [allReportTickets, setAllReportTickets] = useState([]);
-    const [recentSensorKits, setRecentSensorKits] = useState([]);
-    const [reportsLoading, setReportsLoading] = useState(false);
-
-    // Fetch recent sensor data for dashboard
-    const fetchRecentSensorData = async () => {
-        try {
-            const sensorsRef = ref(realtimeDb, 'Sensors');
-            const snapshot = await get(sensorsRef);
-            
-            if (snapshot.exists()) {
-                const sensorsData = snapshot.val();
-                const kits = [];
-                
-                // Process each sensor (limit to 2 for dashboard)
-                Object.keys(sensorsData).slice(0, 2).forEach(sensorId => {
-                    const sensorData = sensorsData[sensorId];
-                    kits.push({
-                        id: sensorId,
-                        status: 'Active', // Assume active if data is being received
-                        user: 'system',
-                        code: sensorData.code || 'N/A',
-                        linked: sensorData.linked || false,
-                        temperature: sensorData.temperature || 0,
-                        humidity: sensorData.humidity || 0,
-                        ph: sensorData.ph || 0
-                    });
-                });
-                
-                setRecentSensorKits(kits);
-                console.log('Recent sensor data fetched for dashboard:', kits);
-            } else {
-                setRecentSensorKits([]);
-            }
-        } catch (error) {
-            console.error('Error fetching recent sensor data:', error);
-            setRecentSensorKits([]);
-        }
-    };
-
-    const handlePrintConfirm = async () => {
-        // Log the print dashboard action
-        if (uid && adminName) {
-            await adminAuditActions.printDashboard(uid, adminName);
-        }
-        
-        exportChartsAndPrescriptivePDF({
-            kpiData,
-            newUsersData,
-            totalUsers: "...",
-            prescriptiveInsights,
-            sensorChartData
-        });
-        setShowPrintConfirmModal(false);
-    };
-
-    const handlePrintCancel = () => {
-        setShowPrintConfirmModal(false);
-    };
-
     const hardcodedSessions = [
         {
             id: 'demo1',
@@ -456,89 +381,29 @@ const Dashboard = () => {
         },
     ];
 
-    useEffect(() => {
-        const storedName = localStorage.getItem("adminName") || "";
-        const cleanName = storedName.replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
-        setAdminName(cleanName || "Admin");
+const Dashboard = () => {
+    const [loading, setLoading] = useState(true);
+    const [role, setRole] = useState(null); 
+    const [adminName, setAdminName] = useState("");
+    const [uid, setUid] = useState(null); 
+    const navigate = useNavigate();
 
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                navigate('/', { replace: true });
-            } else {
-                try {
-                    setUid(user.uid); 
-                } catch (err) {
-                    console.error("Error setting uid:", err);
-                }
-            }
-        });
+    const [newUsersData, setNewUsersData] = useState([]);
+    const [dailyActiveUsersData, setDailyActiveUsersData] = useState([]);
+    const [kpiData, setKpiData] = useState({ newUsersCount: 0, newUsersTrend: '0%' });
+    const [activeUsersCount, setActiveUsersCount] = useState(0);
 
-        return () => unsubscribe();
-    }, [navigate]);
-
-    // Track login action once when component is fully loaded
-    useEffect(() => {
-        if (uid && adminName && !loading) {
-            adminAuditActions.login(uid, adminName);
-        }
-    }, [uid, adminName, loading]);
-
-    useEffect(() => {
-        if (!uid) return;
-
-        const fetchRole = async () => {
-            try {
-                const q = query(
-                    collection(db, "admins"), 
-                    where("adminId", "==", uid)
-                );
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const userRole = (data.role || "unknown").toLowerCase();
-                        setRole(userRole);
-                        const cleanName = (data.name || "Admin").replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
-                        setAdminName(cleanName);
-                    });
-                } else {
-                    setRole("unknown");
-                }
-            } catch (err) {
-                console.error("Error fetching role:", err);
-                setRole("unknown");
-            } finally {
-                setLoading(false);
-                // Fetch analytics data after role is set
-                setTimeout(() => {
-                    fetchAnalyticsData();
-                }, 100);
-            }
-        };
-
-        fetchRole();
-    }, [uid]);
-
-    // Separate useEffect to fetch analytics data when user is authenticated
-    useEffect(() => {
-        if (uid && role && (role === 'admin' || role === 'superadmin')) {
-            console.log('User authenticated, fetching analytics data...');
-            console.log('Current user:', { uid, role, adminName });
-            fetchAnalyticsData();
-        }
-    }, [uid, role]);
-
-    // Separate useEffect to fetch report tickets when user is authenticated
-    useEffect(() => {
-        if (uid && role && (role === 'admin' || role === 'superadmin')) {
-            console.log('User authenticated, fetching report tickets...');
-            fetchReportTickets();
-        }
-    }, [uid, role]);
+    const [sensorSessions, setSensorSessions] = useState([]);
+    const [showReportsModal, setShowReportsModal] = useState(false);
+    const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+    const [reportTickets, setReportTickets] = useState([]);
+    const [allReportTickets, setAllReportTickets] = useState([]);
+    const [recentSensorKits, setRecentSensorKits] = useState([]);
+    const [sensorLoading, setSensorLoading] = useState(true);
+    const [reportsLoading, setReportsLoading] = useState(false);
 
     // Separate function to fetch report tickets
-    const fetchReportTickets = async () => {
+    const fetchReportTickets = useCallback(async () => {
         try {
             console.log('Fetching report tickets from Firestore...');
             setReportsLoading(true);
@@ -593,10 +458,123 @@ const Dashboard = () => {
             setReportTickets([]);
             setAllReportTickets([]);
         }
-    };
+    }, []);
 
+    // Fetch recent sensor data for dashboard (using same logic as SensorLogs)
+    const fetchRecentSensorData = useCallback(async () => {
+        try {
+            console.log('Fetching recent sensor data for dashboard...');
+            setSensorLoading(true);
+            const kits = [];
+            
+            // Fetch from Firestore SensorKits collection
+            try {
+                console.log('Fetching from Firestore SensorKits collection...');
+                const sensorKitsRef = collection(db, 'SensorKits');
+                const sensorKitsSnapshot = await getDocs(sensorKitsRef);
+                
+                sensorKitsSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const kit = {
+                        id: doc.id,
+                        code: data.sensorCode || 'N/A',
+                        linked: data.linked || false,
+                        linkedPlantId: data.linkedPlantId || null,
+                        plantName: data.plantName || 'N/A',
+                        userId: data.userId || 'system',
+                        lastLinkTimestamp: data.lastLinkTimestamp || new Date().toISOString(),
+                        status: data.linked ? 'Active' : 'Inactive',
+                        user: data.userId || 'system',
+                        temperature: 0,
+                        humidity: 0,
+                        ph: 0
+                    };
+                    kits.push(kit);
+                });
+                
+                console.log('Firestore sensor kits fetched for dashboard:', kits.length, 'kits');
+            } catch (firestoreError) {
+                console.log('No Firestore sensor kits found or error:', firestoreError);
+            }
+            
+            // Fetch from Realtime Database Sensors path with timeout
+            try {
+                console.log('Fetching from Realtime Database for dashboard...');
+                const sensorsRef = ref(realtimeDb, 'Sensors');
+                
+                // Add timeout to prevent hanging
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Realtime Database fetch timeout')), 5000); // 5 second timeout
+                });
+                
+                const snapshot = await Promise.race([get(sensorsRef), timeoutPromise]);
+                
+                if (snapshot.exists()) {
+                    const sensorsData = snapshot.val();
+                    console.log('Realtime Database data found for dashboard:', Object.keys(sensorsData).length, 'sensors');
+                    
+                    // Process each sensor from Realtime Database
+                    Object.keys(sensorsData).forEach(sensorId => {
+                        const sensorData = sensorsData[sensorId];
+                        
+                        // Check if this sensor kit already exists in Firestore data
+                        const existingKit = kits.find(kit => kit.id === sensorId);
+                        
+                        if (existingKit) {
+                            // Update existing kit with real-time data
+                            existingKit.code = sensorData.sensorCode || existingKit.code;
+                            existingKit.linked = sensorData.linked !== undefined ? sensorData.linked : existingKit.linked;
+                            existingKit.status = 'Active'; // Active if receiving real-time data
+                            existingKit.lastLinkTimestamp = new Date().toISOString();
+                            existingKit.temperature = sensorData.temperature || 0;
+                            existingKit.humidity = sensorData.humidity || 0;
+                            existingKit.ph = sensorData.ph || 0;
+                        } else {
+                            // Create new kit entry from Realtime Database
+                            const kit = {
+                                id: sensorId,
+                                code: sensorData.sensorCode || 'N/A',
+                                linked: sensorData.linked || false,
+                                linkedPlantId: sensorData.linkedPlantId || null,
+                                plantName: sensorData.plantName || 'N/A',
+                                userId: sensorData.userId || 'system',
+                                lastLinkTimestamp: new Date().toISOString(),
+                                status: 'Active',
+                                user: sensorData.userId || 'system',
+                                temperature: sensorData.temperature || 0,
+                                humidity: sensorData.humidity || 0,
+                                ph: sensorData.ph || 0
+                            };
+                            kits.push(kit);
+                        }
+                    });
+                    
+                    console.log('Realtime Database sensor data processed for dashboard:', { kits: kits.length });
+                } else {
+                    console.log('No data found in Realtime Database for dashboard');
+                }
+            } catch (realtimeError) {
+                console.log('Realtime Database error or timeout for dashboard:', realtimeError);
+                // Continue with just Firestore data - this is normal if no realtime data exists
+            }
+            
+            // Sort by lastLinkTimestamp (most recent first) and limit to 3 for dashboard
+            const sortedKits = kits
+                .sort((a, b) => new Date(b.lastLinkTimestamp) - new Date(a.lastLinkTimestamp))
+                .slice(0, 3);
+            
+            setRecentSensorKits(sortedKits);
+            console.log('Recent sensor data fetched for dashboard:', sortedKits);
+            
+        } catch (error) {
+            console.error('Error fetching recent sensor data for dashboard:', error);
+            setRecentSensorKits([]);
+        } finally {
+            setSensorLoading(false);
+        }
+    }, []);
 
-    const fetchAnalyticsData = async () => {
+    const fetchAnalyticsData = useCallback(async () => {
         try {
             console.log('fetchAnalyticsData called');
             // Clean up expired sessions before calculating active users
@@ -763,7 +741,110 @@ const Dashboard = () => {
             setReportTickets([]);
             setReportsLoading(false);
         }
+    }, [fetchRecentSensorData, fetchReportTickets]);
+
+    const handlePrintConfirm = async () => {
+        // Log the print dashboard action
+        if (uid && adminName) {
+            await adminAuditActions.printDashboard(uid, adminName);
+        }
+        
+        exportChartsAndPrescriptivePDF({
+            kpiData,
+            newUsersData,
+            totalUsers: "...",
+            prescriptiveInsights,
+            sensorChartData
+        });
+        setShowPrintConfirmModal(false);
     };
+
+    const handlePrintCancel = () => {
+        setShowPrintConfirmModal(false);
+    };
+
+
+    useEffect(() => {
+        const storedName = localStorage.getItem("adminName") || "";
+        const cleanName = storedName.replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
+        setAdminName(cleanName || "Admin");
+
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                navigate('/', { replace: true });
+            } else {
+                try {
+                    setUid(user.uid); 
+                } catch (err) {
+                    console.error("Error setting uid:", err);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [navigate]);
+
+    // Track login action once when component is fully loaded
+    useEffect(() => {
+        if (uid && adminName && !loading) {
+            adminAuditActions.login(uid, adminName);
+        }
+    }, [uid, adminName, loading]);
+
+    useEffect(() => {
+        if (!uid) return;
+
+        const fetchRole = async () => {
+            try {
+                const q = query(
+                    collection(db, "admins"), 
+                    where("adminId", "==", uid)
+                );
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const userRole = (data.role || "unknown").toLowerCase();
+                        setRole(userRole);
+                        const cleanName = (data.name || "Admin").replace(/\s*\(superadmin\)|\s*\(admin\)/gi, "");
+                        setAdminName(cleanName);
+                    });
+                } else {
+                    setRole("unknown");
+                }
+            } catch (err) {
+                console.error("Error fetching role:", err);
+                setRole("unknown");
+            } finally {
+                setLoading(false);
+                // Fetch analytics data after role is set
+                setTimeout(() => {
+                    fetchAnalyticsData();
+                }, 100);
+            }
+        };
+
+        fetchRole();
+    }, [uid, fetchAnalyticsData]);
+
+    // Separate useEffect to fetch analytics data when user is authenticated
+    useEffect(() => {
+        if (uid && role && (role === 'admin' || role === 'superadmin')) {
+            console.log('User authenticated, fetching analytics data...');
+            console.log('Current user:', { uid, role, adminName });
+            fetchAnalyticsData();
+        }
+    }, [uid, role, adminName, fetchAnalyticsData]);
+
+    // Separate useEffect to fetch report tickets when user is authenticated
+    useEffect(() => {
+        if (uid && role && (role === 'admin' || role === 'superadmin')) {
+            console.log('User authenticated, fetching report tickets...');
+            fetchReportTickets();
+        }
+    }, [uid, role, fetchReportTickets]);
+
 
     const prescriptiveInsights = getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, "...");
 
@@ -828,6 +909,28 @@ const Dashboard = () => {
                                     <FaMicrochip color="#FF9800" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                     App Report Tickets
                                 </h4>
+                                <button 
+                                    className="refresh-btn-small" 
+                                    onClick={fetchReportTickets}
+                                    disabled={reportsLoading}
+                                    style={{
+                                        backgroundColor: reportsLoading ? '#ccc' : '#FF9800',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '6px 10px',
+                                        borderRadius: '4px',
+                                        cursor: reportsLoading ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '12px',
+                                        fontWeight: '500',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <FaRedo className={reportsLoading ? 'spin' : ''} />
+                                    {reportsLoading ? 'Refreshing...' : 'Refresh'}
+                                </button>
                             </div>
                             <div className="app-reports-list">
                                 {reportsLoading ? (
@@ -870,21 +973,60 @@ const Dashboard = () => {
                                     <FaMicrochip color="#2196F3" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                     Recent Sensor Kits
                                 </h4>
+                                <button 
+                                    className="refresh-btn-small" 
+                                    onClick={fetchRecentSensorData}
+                                    disabled={sensorLoading}
+                                    style={{
+                                        backgroundColor: sensorLoading ? '#ccc' : '#2196F3',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '6px 10px',
+                                        borderRadius: '4px',
+                                        cursor: sensorLoading ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '12px',
+                                        fontWeight: '500',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <FaRedo className={sensorLoading ? 'spin' : ''} />
+                                    {sensorLoading ? 'Refreshing...' : 'Refresh'}
+                                </button>
                             </div>
                             <div className="sensor-kits-list">
-                                {recentSensorKits.length > 0 ? (
+                                {sensorLoading ? (
+                                    <div className="loading-sensor-data">
+                                        <div className="loading-spinner" style={{
+                                            width: '20px',
+                                            height: '20px',
+                                            border: '2px solid #f3f3f3',
+                                            borderTop: '2px solid #2196F3',
+                                            borderRadius: '50%',
+                                            animation: 'spin 1s linear infinite',
+                                            margin: '0 auto 10px'
+                                        }}></div>
+                                        <p style={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>Loading sensor data...</p>
+                                    </div>
+                                ) : recentSensorKits.length > 0 ? (
                                     recentSensorKits.map((kit) => (
                                         <div key={kit.id} className="sensor-kit-item">
-                                            <div className="kit-info">
+                                            <div className="kit-main-row">
+                                                <div className="kit-left-main">
                                                 <span className="kit-id">{kit.id}</span>
+                                                    <span className="kit-user">{kit.user}</span>
+                                                    <div className="kit-status-row">
                                                 <span className={`kit-status ${kit.status.toLowerCase()}`}>
                                                     {kit.status}
                                                 </span>
-                                            </div>
-                                            <div className="kit-details">
-                                                <span className="kit-user">{kit.user}</span>
-                                                <span className="kit-code">Code: {kit.code}</span>
                                                 {kit.linked && <span className="kit-linked">🔗 Linked</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="kit-right">
+                                                    {kit.plantName && <span className="kit-plant">🌱 {kit.plantName}</span>}
+                                                </div>
                                             </div>
                                         </div>
                                     ))

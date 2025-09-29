@@ -246,11 +246,11 @@ function LoginPage() {
                   </div>
                 </div>
                 <div className="twofa-buttons">
-                  <button type="button" className="back-btn" onClick={handleBackToLogin} disabled={loading}>
-                    Back to Login
-                  </button>
                   <button type="submit" className="login-btn" disabled={loading || twoFACode.length !== 6}>
                     {loading ? "Verifying..." : "VERIFY"}
+                  </button>
+                  <button type="button" className="back-btn" onClick={handleBackToLogin} disabled={loading}>
+                    Back to Login
                   </button>
                 </div>
                 {message && <div className="login-message error">{message}</div>}

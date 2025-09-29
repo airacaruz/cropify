@@ -23,7 +23,6 @@ const ManageAppPage = () => {
   const [media, setMedia] = useState("");
   const [newsList, setNewsList] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [expandedNewsId, setExpandedNewsId] = useState(null);
 
   // Tutorial states
   const [tutorialTitle, setTutorialTitle] = useState("");
@@ -191,9 +190,6 @@ const ManageAppPage = () => {
     }
   };
 
-  const toggleExpand = (id) => {
-    setExpandedNewsId(expandedNewsId === id ? null : id);
-  };
 
   const openTutorialModal = (tutorial) => {
     setSelectedTutorial(tutorial);

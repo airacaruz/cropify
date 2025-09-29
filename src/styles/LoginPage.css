@@ -7,13 +7,16 @@ body.login-page {
   width: 100vw;
   background-color: #5c8f46;
   font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
 .login-main-container {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   align-items: center;
   justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .login-left-panel,
@@ -23,18 +26,20 @@ body.login-page {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 100px;
+  padding: 40px 20px;
+  min-height: 100vh;
 }
 
 .login-left-card,
 .login-card {
-  padding: 36px 32px 28px 32px;
+  padding: 40px 36px 32px 36px;
   border-radius: 12px;
   width: 100%;
-  max-width: 350px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .login-left-card {
@@ -44,6 +49,14 @@ body.login-page {
 
 .login-logo {
   margin-bottom: 20px;
+  text-align: center;
+}
+
+.login-logo img {
+  max-width: 100%;
+  height: auto;
+  width: auto;
+  max-height: 400px;
 }
 
 .login-brand {
@@ -57,7 +70,8 @@ body.login-page {
   width: 1px;
   height: 80%;
   background: rgba(255, 255, 255, 0.24);
-  margin: 0 40px;
+  margin: 0 20px;
+  min-height: 400px;
 }
 
 .login-card {
@@ -66,54 +80,85 @@ body.login-page {
 }
 
 .login-welcome {
-  font-size: 2rem;
+  font-size: 2.2rem;
   color: #7C9770;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   text-align: center;
 }
 
 .login-instruction {
   color: #333;
-  font-size: 0.95rem;
-  margin-bottom: 30px;
+  font-size: 1rem;
+  margin-bottom: 35px;
   text-align: center;
   letter-spacing: 0.5px;
 }
 
 .login-form {
-  width: 300px;
+  width: 100%;
+  max-width: 380px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 18px;
 }
 
 .login-form input {
-  padding: 10px;
-  border-radius: 4px;
-  border: none;
-  font-size: 1rem;
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  font-size: 1.05rem;
   background: #fff;
   margin-bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: #7C9770;
 }
 
 .login-btn {
   width: 100%;
-  padding: 12px;
+  padding: 16px;
   background: #cce6bb;
   color: #1d2f1f;
   font-weight: 700;
-  border-radius: 4px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
-  margin-top: 10px;
+  font-size: 1.1rem;
+  margin-top: 12px;
   letter-spacing: 1px;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
 }
 
 .login-btn:hover {
   background: #c7e0c3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-message {
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.login-message.error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
 }
 
 .login-forgot {
@@ -128,165 +173,133 @@ body.login-page {
   letter-spacing: 0.5px;
 }
 
-/* 2FA Verification Styles */
+/* 2FA Specific Styles */
 .twofa-input-container {
   width: 100%;
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .twofa-code-input {
-  width: 100%;
+  width: 200px;
   padding: 16px;
-  border: 2px solid #e0e0e0;
   border-radius: 8px;
-  font-size: 24px;
+  border: 2px solid transparent;
+  font-size: 1.2rem;
+  background: #fff;
   text-align: center;
   letter-spacing: 4px;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  background-color: #f9f9f9;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
+  font-weight: 600;
+  transition: border-color 0.3s ease;
 }
 
 .twofa-code-input:focus {
   outline: none;
-  border-color: #5c8f46;
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(92, 143, 70, 0.1);
-}
-
-.twofa-code-input:disabled {
-  background-color: #f0f0f0;
-  color: #999;
-  cursor: not-allowed;
+  border-color: #7C9770;
 }
 
 .twofa-help-text {
-  font-size: 12px;
   color: #666;
+  font-size: 0.9rem;
   text-align: center;
-  margin-top: 8px;
-  line-height: 1.4;
+  margin-top: 5px;
 }
 
 .twofa-buttons {
-  display: flex;
-  gap: 12px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
 }
 
-.twofa-buttons .back-btn {
-  flex: 1;
-  padding: 12px 16px;
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
+.back-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: #f8f9fa;
+  color: #6c757d;
   font-weight: 600;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
   cursor: pointer;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
   transition: all 0.3s ease;
 }
 
-.twofa-buttons .back-btn:hover:not(:disabled) {
-  background-color: #e0e0e0;
-  border-color: #ccc;
+.back-btn:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+  transform: translateY(-1px);
 }
 
-.twofa-buttons .back-btn:disabled {
-  background-color: #f0f0f0;
-  color: #999;
+.back-btn:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
-.twofa-buttons .login-btn {
-  flex: 2;
-}
-
-/* Responsive adjustments for 2FA */
-@media (max-width: 768px) {
-  .twofa-code-input {
-    font-size: 20px;
-    letter-spacing: 3px;
-    padding: 14px;
-  }
-  
-  .twofa-buttons {
-    flex-direction: column;
-  }
-  
-  .twofa-buttons .back-btn,
-  .twofa-buttons .login-btn {
-    flex: none;
-  }
-}
-
-/* Responsive Login Page Styles */
-@media (max-width: 1200px) {
+/* Tablet Styles */
+@media (max-width: 1024px) {
   .login-left-panel,
   .login-right-panel {
-    padding: 80px;
-  }
-  
-  .login-logo img {
-    width: 400px;
-    height: 400px;
-  }
-}
-
-@media (max-width: 992px) {
-  .login-left-panel,
-  .login-right-panel {
-    padding: 60px;
-  }
-  
-  .login-logo img {
-    width: 350px;
-    height: 350px;
-  }
-  
-  .login-card {
-    max-width: 320px;
-  }
-  
-  .login-form {
-    width: 280px;
-  }
-}
-
-@media (max-width: 768px) {
-  .login-main-container {
-    flex-direction: column;
-    height: auto;
-    min-height: 100vh;
-    padding: 20px 0;
-  }
-  
-  .login-left-panel,
-  .login-right-panel {
-    flex: none;
-    padding: 40px 20px;
+    padding: 30px 15px;
   }
   
   .login-divider {
-    width: 80%;
-    height: 1px;
-    margin: 20px 0;
+    margin: 0 15px;
   }
   
   .login-logo img {
-    width: 250px;
-    height: 250px;
+    max-height: 320px;
+  }
+  
+  .login-welcome {
+    font-size: 2rem;
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .login-main-container {
+    flex-direction: column;
+    padding: 10px;
+    min-height: 100vh;
+  }
+  
+  .login-left-panel,
+  .login-right-panel {
+    flex: none;
+    width: 100%;
+    padding: 20px 15px;
+    min-height: auto;
+  }
+  
+  .login-left-panel {
+    order: 2;
+    padding-top: 10px;
+  }
+  
+  .login-right-panel {
+    order: 1;
+    padding-bottom: 10px;
+  }
+  
+  .login-divider {
+    display: none;
+  }
+  
+  .login-logo img {
+    max-height: 180px;
+    width: 180px;
+    height: 180px;
   }
   
   .login-card {
     max-width: 100%;
-    width: 100%;
-  }
-  
-  .login-form {
-    width: 100%;
+    padding: 28px 24px;
   }
   
   .login-welcome {
@@ -296,21 +309,52 @@ body.login-page {
   .login-instruction {
     font-size: 0.9rem;
   }
+  
+  .login-form {
+    max-width: 100%;
+  }
+  
+  .login-form input {
+    padding: 14px 16px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .login-btn {
+    padding: 16px;
+    font-size: 1.1rem;
+  }
+  
+  .twofa-code-input {
+    width: 180px;
+    padding: 14px;
+    font-size: 1.1rem;
+  }
+  
+  .back-btn {
+    width: 100%;
+    padding: 14px 18px;
+  }
 }
 
-@media (max-width: 576px) {
+/* Small Mobile Styles */
+@media (max-width: 480px) {
+  .login-main-container {
+    padding: 5px;
+  }
+  
   .login-left-panel,
   .login-right-panel {
+    padding: 15px 10px;
+  }
+  
+  .login-card {
     padding: 20px 15px;
   }
   
   .login-logo img {
-    width: 200px;
-    height: 200px;
-  }
-  
-  .login-card {
-    padding: 30px 20px;
+    max-height: 140px;
+    width: 140px;
+    height: 140px;
   }
   
   .login-welcome {
@@ -319,27 +363,83 @@ body.login-page {
   
   .login-instruction {
     font-size: 0.85rem;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+  }
+  
+  .login-form {
+    gap: 12px;
   }
   
   .login-form input {
-    padding: 12px;
-    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 12px 14px;
   }
   
   .login-btn {
     padding: 14px;
-    font-size: 16px;
+    font-size: 1rem;
   }
   
   .twofa-code-input {
-    font-size: 18px;
-    letter-spacing: 2px;
+    width: 160px;
     padding: 12px;
+    font-size: 1rem;
   }
   
-  .twofa-help-text {
-    font-size: 11px;
+  .back-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 0.9rem;
   }
 }
 
+/* Landscape Mobile Styles */
+@media (max-width: 768px) and (orientation: landscape) {
+  .login-main-container {
+    flex-direction: row;
+    padding: 10px;
+  }
+  
+  .login-left-panel,
+  .login-right-panel {
+    flex: 1;
+    padding: 10px;
+    min-height: 100vh;
+  }
+  
+  .login-divider {
+    display: block;
+    height: 60%;
+    margin: 0 10px;
+  }
+  
+  .login-logo img {
+    max-height: 120px;
+    width: 120px;
+    height: 120px;
+  }
+  
+  .login-card {
+    padding: 24px 18px;
+  }
+  
+  .login-welcome {
+    font-size: 1.6rem;
+  }
+  
+  .login-instruction {
+    font-size: 0.8rem;
+    margin-bottom: 15px;
+  }
+  
+  .twofa-code-input {
+    width: 140px;
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .back-btn {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+}
