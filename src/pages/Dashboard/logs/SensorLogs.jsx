@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db, realtimeDb } from '../../../firebase';
 import '../../../styles/UserRecordsPage.css';
+import { hashUID } from '../../../utils/hashUtils';
 
 // CSS will be handled through inline styles and existing CSS classes
 
@@ -323,7 +324,7 @@ const SensorLogsPage = () => {
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
                       🌱 Plant Name
                     </th>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }} title="User ID masked with asterisks, shows only last 3 characters">
                       <FaUser style={{ marginRight: '8px', color: '#4CAF50' }} /> 
                       User ID
                     </th>
@@ -352,7 +353,7 @@ const SensorLogsPage = () => {
                   }
                 </td>
                       <td style={{ padding: '12px' }}>{kit.plantName}</td>
-                      <td style={{ padding: '12px' }}>{kit.userId}</td>
+                      <td style={{ padding: '12px' }} title={`Original UID: ${kit.userId}`}>{hashUID(kit.userId)}</td>
                       <td style={{ padding: '12px', textAlign: "center" }}>
                   <button 
                     className="view-btn"
@@ -431,7 +432,7 @@ const SensorLogsPage = () => {
                       Sensor Kit ID
                     </th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Sensor Code</th>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }} title="User ID masked with asterisks, shows only last 3 characters">
                       <FaUser style={{ marginRight: '8px', color: '#4CAF50' }} /> 
                       User ID
                     </th>
@@ -476,7 +477,7 @@ const SensorLogsPage = () => {
                     >
                       <td style={{ padding: '12px', fontWeight: '500' }}>{session.skid}</td>
                       <td style={{ padding: '12px' }}>{session.code}</td>
-                      <td style={{ padding: '12px' }}>{session.uid}</td>
+                      <td style={{ padding: '12px' }} title={`Original UID: ${session.uid}`}>{hashUID(session.uid)}</td>
                       <td style={{ padding: '12px' }}>{session.plantName || 'N/A'}</td>
                       <td style={{ padding: '12px' }}>{session.sensorType}</td>
                       <td style={{ padding: '12px' }}>{session.ph?.toFixed(2) || 'N/A'}</td>
@@ -665,7 +666,7 @@ const SensorLogsPage = () => {
                     <FaUser style={{ color: "#4CAF50", marginRight: "12px", fontSize: '18px' }} />
                     <div>
                       <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>User ID</div>
-                      <div style={{ color: '#666' }}>{selectedData.userId}</div>
+                      <div style={{ color: '#666' }} title={`Original UID: ${selectedData.userId}`}>{hashUID(selectedData.userId)}</div>
                     </div>
                   </div>
                   {selectedData.lastLinkTimestamp && (
@@ -741,7 +742,7 @@ const SensorLogsPage = () => {
                     <FaUser style={{ color: "#4CAF50", marginRight: "12px", fontSize: '18px' }} />
                     <div>
                       <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>User ID</div>
-                      <div style={{ color: '#666' }}>{selectedData.userId}</div>
+                      <div style={{ color: '#666' }} title={`Original UID: ${selectedData.uid}`}>{hashUID(selectedData.uid)}</div>
                     </div>
                   </div>
                   <div className="detail-item" style={{

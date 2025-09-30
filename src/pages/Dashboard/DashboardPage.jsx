@@ -28,6 +28,7 @@ import Navbar from '../../components/Navbar';
 import { auth, db, realtimeDb } from '../../firebase';
 import '../../styles/DashboardPage.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
+import { hashUID } from '../../utils/hashUtils';
 import userSessionManager from '../../utils/userSessionManager';
 
 function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsers) {
@@ -1016,7 +1017,7 @@ const Dashboard = () => {
                                             <div className="kit-main-row">
                                                 <div className="kit-left-main">
                                                 <span className="kit-id">{kit.id}</span>
-                                                    <span className="kit-user">{kit.user}</span>
+                                                    <span className="kit-user" title={`Original UID: ${kit.user}`}>{hashUID(kit.user)}</span>
                                                     <div className="kit-status-row">
                                                 <span className={`kit-status ${kit.status.toLowerCase()}`}>
                                                     {kit.status}
