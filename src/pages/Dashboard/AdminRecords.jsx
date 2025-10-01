@@ -3,10 +3,11 @@ import { collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, wher
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import React, { useEffect, useState } from 'react';
+import { FaCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
-import '../../styles/AdminRecordsPage.css';
+import '../../styles/Dashboard/AdminRecords.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
 
 const AdminRecordsPage = () => {
@@ -14,6 +15,7 @@ const AdminRecordsPage = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [editedData, setEditedData] = useState({});
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+  const [showDownloadSuccessModal, setShowDownloadSuccessModal] = useState(false);
   const [role, setRole] = useState(null);
   const [adminName, setAdminName] = useState("");
   const [uid, setUid] = useState(null);
@@ -92,14 +94,12 @@ const AdminRecordsPage = () => {
   };
 
   const handlePrintConfirm = async () => {
-    console.log('Print confirm clicked');
     try {
       // Log the print action
       if (uid && adminName) {
         await adminAuditActions.custom(uid, adminName, 'click', 'Admin printed admin records summary');
       }
       
-      console.log('Starting PDF generation...');
       const doc = new jsPDF('p', 'mm', 'a4');
       const pageWidth = doc.internal.pageSize.width;
       const pageHeight = doc.internal.pageSize.height;
@@ -189,10 +189,16 @@ const AdminRecordsPage = () => {
         doc.text(generatedDateTime, margin, pageHeight - 20);
       }
 
-      console.log('Saving PDF...');
       doc.save('Cropify_Admin_Records_Report.pdf');
-      console.log('PDF saved successfully');
       setShowPrintConfirmModal(false);
+      
+      // Show download success modal
+      setShowDownloadSuccessModal(true);
+      
+      // Auto-hide success modal after 3 seconds
+      setTimeout(() => {
+        setShowDownloadSuccessModal(false);
+      }, 3000);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
@@ -325,6 +331,19 @@ const AdminRecordsPage = () => {
                 Print Summary
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Success Modal */}
+      {showDownloadSuccessModal && (
+        <div className="success-popup-overlay">
+          <div className="success-popup">
+            <div className="success-icon">
+              <FaCheck />
+            </div>
+            <h3>Download Successful!</h3>
+            <p>Admin records summary has been downloaded successfully.</p>
           </div>
         </div>
       )}

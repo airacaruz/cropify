@@ -3,10 +3,11 @@ import { collection, getDocs, onSnapshot, orderBy, query, where } from 'firebase
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useEffect, useState } from 'react';
+import { FaCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
-import '../../styles/AdminAuditLogsPage.css';
+import '../../styles/Dashboard/AdminAuditLogs.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
 
 const exportAdminAuditLogsPDF = async ({
@@ -213,6 +214,7 @@ const AdminAuditLogsPage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+  const [showDownloadSuccessModal, setShowDownloadSuccessModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -348,6 +350,14 @@ const AdminAuditLogsPage = () => {
       uniqueAdmins
     });
     setShowPrintConfirmModal(false);
+    
+    // Show download success modal
+    setShowDownloadSuccessModal(true);
+    
+    // Auto-hide success modal after 3 seconds
+    setTimeout(() => {
+      setShowDownloadSuccessModal(false);
+    }, 3000);
   };
 
   const handlePrintCancel = () => {
@@ -508,6 +518,19 @@ const AdminAuditLogsPage = () => {
                 Print Summary
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Success Modal */}
+      {showDownloadSuccessModal && (
+        <div className="success-popup-overlay">
+          <div className="success-popup">
+            <div className="success-icon">
+              <FaCheck />
+            </div>
+            <h3>Download Successful!</h3>
+            <p>Admin audit logs summary has been downloaded successfully.</p>
           </div>
         </div>
       )}

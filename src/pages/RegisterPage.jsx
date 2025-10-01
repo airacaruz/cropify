@@ -3,7 +3,7 @@ import { collection, doc, getDocs, query, setDoc, where } from "firebase/firesto
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import "../styles/RegisterPage.css";
+import "../styles/Pages/RegisterPage.css";
 
 function RegisterPage() {
   const [name, setName] = useState("");

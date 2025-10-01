@@ -5,7 +5,7 @@ import { FaBarcode, FaCalendarAlt, FaChevronDown, FaChevronUp, FaDesktop, FaIdBa
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
-import '../../../styles/UserRecordsPage.css';
+import '../../../styles/Logs/UserLogs.css';
 
 
 const UserLogsPage = () => {

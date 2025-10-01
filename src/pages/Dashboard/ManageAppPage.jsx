@@ -14,7 +14,7 @@ import { FaCalendarAlt, FaEye, FaNewspaper, FaPlus, FaTimes, FaVideo } from "rea
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase";
-import "../../styles/ManageApp.css";
+import "../../styles/Dashboard/ManageApp.css";
 import { adminAuditActions } from "../../utils/adminAuditLogger";
 
 const ManageAppPage = () => {

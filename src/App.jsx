@@ -14,6 +14,7 @@ import SensorLogs from './pages/Dashboard/logs/SensorLogs';
 import UserLogs from './pages/Dashboard/logs/UserLogs';
 import UserReportLogs from './pages/Dashboard/logs/UserReportLogs';
 import UserSessions from './pages/Dashboard/logs/UserSessions';
+import LandingPage from './pages/Landing/LandingPage';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import RegisterPage from './pages/RegisterPage';
@@ -22,7 +23,11 @@ import LoginLinkPage from './pages/js/LoginLinkPage';
 const routes = [
   {
     path: '/',
-    element: <LoginPage />, // Main login page
+    element: <LandingPage />, // Landing page
+  },
+  {
+    path: '/login',
+    element: <LoginPage />, // Login page
   },
   {
     path: '/register',

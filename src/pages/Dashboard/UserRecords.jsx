@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
-import '../../styles/UserRecordsPage.css';
+import '../../styles/Dashboard/UserRecords.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
+import { hashName, hashPhone } from '../../utils/hashUtils';
 
 
 const UserRecordsPage = () => {
@@ -117,9 +118,9 @@ const UserRecordsPage = () => {
           <thead>
             <tr>
               <th>UID</th>
-              <th>Name</th>
-              <th>Username</th>
-              <th>Phone Number</th>
+              <th title="Name masked with asterisks, shows only last 3 characters">Name</th>
+              <th title="Username masked with asterisks, shows only last 3 characters">Username</th>
+              <th title="Phone number masked with asterisks, shows only last 3 digits">Phone Number</th>
               <th>Date Created</th>
               <th>Actions</th>
             </tr>
@@ -128,9 +129,9 @@ const UserRecordsPage = () => {
             {users.map(user => (
               <tr key={user.uid}>
                 <td>{user.uid}</td>
-                <td>{user.name || 'N/A'}</td>
-                <td>{user.username || 'N/A'}</td>
-                <td>{user.contact || 'N/A'}</td>
+                <td title={`Original Name: ${user.name || 'N/A'}`}>{hashName(user.name)}</td>
+                <td title={`Original Username: ${user.username || 'N/A'}`}>{hashName(user.username)}</td>
+                <td title={`Original Phone: ${user.contact || 'N/A'}`}>{hashPhone(user.contact)}</td>
                 <td>
                   {user.createdAt 
                     ? (user.createdAt.toDate 
@@ -169,6 +170,17 @@ const UserRecordsPage = () => {
             </div>
             <form onSubmit={handleEditSubmit} className="modal-body">
               <div className="form-group">
+                <label htmlFor="edit-uid">User ID:</label>
+                <input
+                  type="text"
+                  id="edit-uid"
+                  value={editingUser ? editingUser.uid : ''}
+                  disabled
+                  style={{backgroundColor: '#f5f5f5', color: '#666'}}
+                  title="User ID"
+                />
+              </div>
+              <div className="form-group">
                 <label htmlFor="edit-name">Name:</label>
                 <input
                   type="text"
@@ -197,6 +209,17 @@ const UserRecordsPage = () => {
                   onChange={(e) => setEditForm({...editForm, contact: e.target.value})}
                   required
                 />
+                <small style={{color: '#666', fontSize: '12px'}}>
+                  Displayed as: {hashPhone(editForm.contact)} in the table (masked with asterisks, shows only last 3 digits)
+                </small>
+              </div>
+              <div className="form-group">
+                <label>Preview in Table:</label>
+                <div style={{padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px', fontSize: '14px'}}>
+                  <div><strong>Name:</strong> {hashName(editForm.name)}</div>
+                  <div><strong>Username:</strong> {hashName(editForm.username)}</div>
+                  <div><strong>Phone:</strong> {hashPhone(editForm.contact)}</div>
+                </div>
               </div>
               <div className="modal-footer">
                 <button 

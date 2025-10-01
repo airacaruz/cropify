@@ -10,9 +10,10 @@ const firebaseConfig = {
   apiKey: "AIzaSyDw76Wvqrckyz3jD7iscPHixaJ-I2M0r9Y",
   authDomain: "cropify-8e68d.firebaseapp.com",
   projectId: "cropify-8e68d",
-  storageBucket: "cropify-8e68d.appspot.com", // <-- FIXED: should be .appspot.com
+  storageBucket: "cropify-8e68d.appspot.com",
   messagingSenderId: "781285242880",
-  appId: "1:781285242880:web:b42465242f97da0adcc0e5"
+  appId: "1:781285242880:web:b42465242f97da0adcc0e5",
+  databaseURL: "https://cropify-8e68d-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // Initialize Firebase
@@ -25,3 +26,4 @@ const analytics = getAnalytics(app);
 const storage = getStorage(app);
 
 export { analytics, app, auth, db, logEvent, realtimeDb, storage };
+

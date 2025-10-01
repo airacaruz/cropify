@@ -12,7 +12,7 @@ import {
     mfaManager
 } from '../Authentication';
 import { app } from "../firebase";
-import '../styles/Navbar.css';
+import '../styles/Components/Navbar.css';
 import { adminAuditActions } from '../utils/adminAuditLogger';
 import adminStatusTracker from '../utils/adminStatusTracker';
 import SecurityUtils from '../utils/security.jsx';
@@ -33,6 +33,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
   const [copySuccess, setCopySuccess] = useState(false);
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [_timeRemaining, setTimeRemaining] = useState(0);
+  const [qrCodeError, setQrCodeError] = useState(false);
   const dropdownRef = useRef(null);
 
   // Function to get page title based on current route
@@ -161,6 +162,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
       
       setSecret(setupData.secret);
       setQrCodeUrl(setupData.qrCodeURL);
+      setQrCodeError(false); // Reset error state when generating new QR code
       
       console.log('✅ Generated 2FA secret for:', adminName);
       console.log('Secret:', setupData.secret);
@@ -264,6 +266,7 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
     setVerificationCode('');
     setIsVerified(false);
     setCopySuccess(false);
+    setQrCodeError(false);
   };
 
   // Check if 2FA is already enabled for this admin
@@ -606,21 +609,57 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
                       <p>Open your authenticator app and scan this QR code:</p>
                       
                       <div className="qr-section">
+                        {qrCodeError && (
+                          <div style={{color: 'orange', fontSize: '12px', marginBottom: '8px'}}>
+                            ⚠️ QR Code loading failed. Using manual setup below.
+                          </div>
+                        )}
                         <div className="qr-code-container">
                           {qrCodeUrl ? (
                             <>
                               <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
+                                src={qrCodeUrl}
                                 alt="QR Code for 2FA Setup"
                                 className="qr-code"
                                 onError={(e) => {
                                   console.error('QR Code failed to load:', e);
+                                  console.error('Failed QR Code URL:', qrCodeUrl);
+                                  setQrCodeError(true);
                                   e.target.style.display = 'none';
                                   e.target.nextSibling.style.display = 'block';
+                                }}
+                                onLoad={() => {
+                                  console.log('QR Code loaded successfully');
+                                  setQrCodeError(false);
                                 }}
                               />
                               <div className="qr-error" style={{display: 'none', color: 'red', fontSize: '12px'}}>
                                 QR Code failed to load. Please use manual setup.
+                                <br />
+                                <button 
+                                  className="retry-qr-btn"
+                                  onClick={() => {
+                                    setQrCodeError(false);
+                                    // Force reload the image
+                                    const img = document.querySelector('.qr-code');
+                                    if (img) {
+                                      img.style.display = 'block';
+                                      img.src = qrCodeUrl + '?t=' + Date.now(); // Add timestamp to force reload
+                                    }
+                                  }}
+                                  style={{
+                                    marginTop: '8px',
+                                    padding: '4px 8px',
+                                    fontSize: '11px',
+                                    backgroundColor: '#007bff',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '3px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Retry QR Code
+                                </button>
                               </div>
                             </>
                           ) : (
