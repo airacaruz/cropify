@@ -1,12 +1,12 @@
 import { onAuthStateChanged } from 'firebase/auth';
-import { get, ref } from 'firebase/database';
+import { get, off, onValue, ref } from 'firebase/database';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FaCheckCircle, FaClock, FaCloudRain, FaEye, FaFlask, FaList, FaMicrochip, FaRedo, FaTemperatureHigh, FaTimes, FaTint, FaUser, FaWater } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db, realtimeDb } from '../../../firebase';
-import '../../../styles/UserRecordsPage.css';
+import '../../../styles/Dashboard/UserRecords.css';
 import { hashUID } from '../../../utils/hashUtils';
 
 // CSS will be handled through inline styles and existing CSS classes
@@ -33,6 +33,8 @@ const SensorLogsPage = () => {
   const fetchSensorData = useCallback(async () => {
     try {
       console.log('Starting sensor data fetch...');
+      console.log('Environment:', process.env.NODE_ENV);
+      console.log('User UID:', uid);
       setLoading(true);
       const kits = [];
       const sessions = [];
@@ -45,16 +47,28 @@ const SensorLogsPage = () => {
         
         sensorKitsSnapshot.forEach((doc) => {
           const data = doc.data();
-          const kit = {
-            id: doc.id,
-            code: data.sensorCode || 'N/A',
-            linked: data.linked || false,
-            linkedPlantId: data.linkedPlantId || null,
-            plantName: data.plantName || 'N/A',
-            userId: data.userId || 'system',
-            lastLinkTimestamp: data.lastLinkTimestamp || new Date().toISOString()
-          };
-          kits.push(kit);
+          
+          // Filter out hardcoded entries only
+          const isHardcodedEntry = (
+            data.plantName === 'plantName' || 
+            data.userId === 'userId' ||
+            data.plantName === 'userId' ||
+            data.userId === 'plantName'
+          );
+          
+          // Only filter out hardcoded entries, show all sensors
+          if (!isHardcodedEntry) {
+            const kit = {
+              id: doc.id,
+              code: data.sensorCode || 'N/A',
+              linked: data.linked || false,
+              linkedPlantId: data.linkedPlantId || null,
+              plantName: data.plantName || 'N/A',
+              userId: data.userId || 'system',
+              lastLinkTimestamp: data.lastLinkTimestamp || new Date().toISOString()
+            };
+            kits.push(kit);
+          }
         });
         
         console.log('Firestore sensor kits fetched:', kits.length, 'kits');
@@ -77,51 +91,108 @@ const SensorLogsPage = () => {
         if (snapshot.exists()) {
           const sensorsData = snapshot.val();
           console.log('Realtime Database data found:', Object.keys(sensorsData).length, 'sensors');
+          console.log('Full sensors data:', sensorsData);
           
           // Process each sensor from Realtime Database
           Object.keys(sensorsData).forEach(sensorId => {
             const sensorData = sensorsData[sensorId];
+            console.log(`Processing sensor ${sensorId}:`, sensorData);
+            console.log(`Sensor ${sensorId} userId:`, sensorData.userId);
+            console.log(`Sensor ${sensorId} plantName:`, sensorData.plantName);
+            console.log(`Sensor ${sensorId} readings:`, {
+              ph: sensorData.ph,
+              tds: sensorData.tds,
+              temperature: sensorData.temperature,
+              humidity: sensorData.humidity
+            });
             
             // Check if this sensor kit already exists in Firestore data
             const existingKit = kits.find(kit => kit.id === sensorId);
             
             if (existingKit) {
-              // Update existing kit with real-time data
-              existingKit.code = sensorData.sensorCode || existingKit.code;
+              // Update existing kit with real-time data, but preserve plantName and userId from Firestore
+              existingKit.code = sensorData.code || sensorData.sensorCode || existingKit.code;
               existingKit.linked = sensorData.linked !== undefined ? sensorData.linked : existingKit.linked;
               existingKit.linkedPlantId = sensorData.linkedPlantId || existingKit.linkedPlantId;
+              // Keep plantName and userId from Firestore (don't overwrite with undefined values)
               existingKit.plantName = sensorData.plantName || existingKit.plantName;
               existingKit.userId = sensorData.userId || existingKit.userId;
               existingKit.lastLinkTimestamp = new Date().toISOString();
-            } else {
-              // Create new kit entry from Realtime Database
-              const kit = {
-                id: sensorId,
-                code: sensorData.sensorCode || 'N/A',
-                linked: sensorData.linked || false,
-                linkedPlantId: sensorData.linkedPlantId || null,
-                plantName: sensorData.plantName || 'N/A',
-                userId: sensorData.userId || 'system',
-                lastLinkTimestamp: new Date().toISOString()
+              
+              // Add real-time sensor readings to existing kit
+              existingKit.currentReadings = {
+                ph: sensorData.ph,
+                tds: sensorData.tds,
+                temperature: sensorData.temperature,
+                humidity: sensorData.humidity,
+                timestamp: new Date().toISOString()
               };
-              kits.push(kit);
+            } else {
+            // Only filter out hardcoded entries, show all sensors with readings
+            const isHardcodedEntry = (
+              sensorData.plantName === 'plantName' || 
+              sensorData.userId === 'userId' ||
+              sensorData.plantName === 'userId' ||
+              sensorData.userId === 'plantName'
+            );
+            
+            if (!isHardcodedEntry) {
+                const kit = {
+                  id: sensorId,
+                  code: sensorData.code || sensorData.sensorCode || 'N/A',
+                  linked: sensorData.linked || false,
+                  linkedPlantId: sensorData.linkedPlantId || null,
+                  plantName: sensorData.plantName || 'N/A',
+                  userId: sensorData.userId,
+                  lastLinkTimestamp: new Date().toISOString(),
+                  currentReadings: {
+                    ph: sensorData.ph,
+                    tds: sensorData.tds,
+                    temperature: sensorData.temperature,
+                    humidity: sensorData.humidity,
+                    timestamp: new Date().toISOString()
+                  }
+                };
+                kits.push(kit);
+              }
             }
             
-            // Create sensor session entry
-            const session = {
-              skid: sensorId,
-              code: sensorData.sensorCode || 'N/A',
-              uid: sensorData.userId || 'system',
-              sensorType: 'All',
-              ph: sensorData.ph || 0,
-              tds: sensorData.tds || 0,
-              temperature: sensorData.temperature || 0,
-              humidity: sensorData.humidity || 0,
-              timestamp: new Date().toISOString(),
-              plantName: sensorData.plantName || 'N/A',
-              linked: sensorData.linked || false
-            };
-            sessions.push(session);
+            // Create sensor session entry if userId exists (indicating sensor is in use) AND has valid readings
+            const hasUserId = sensorData.userId && sensorData.userId !== 'system';
+            const hasReadings = sensorData.ph !== undefined || sensorData.temperature !== undefined || sensorData.humidity !== undefined || sensorData.tds !== undefined;
+            
+            console.log(`Sensor ${sensorId} - hasUserId: ${hasUserId}, hasReadings: ${hasReadings}`);
+            
+            // Show all sensors with readings - simplified for production debugging
+            if (hasReadings) {
+              // Use preserved data from existing kit if available, otherwise use sensorData
+              const existingKit = kits.find(kit => kit.id === sensorId);
+              const session = {
+                skid: sensorId,
+                code: sensorData.code || sensorData.sensorCode || 'N/A',
+                uid: existingKit?.userId || sensorData.userId || 'system',
+                sensorType: 'All',
+                ph: sensorData.ph || 0,
+                tds: sensorData.tds || 0,
+                temperature: sensorData.temperature || 0,
+                humidity: sensorData.humidity || 0,
+                timestamp: new Date().toISOString(),
+                plantName: existingKit?.plantName || sensorData.plantName || 'N/A',
+                linked: sensorData.linked || false
+              };
+              sessions.push(session);
+              console.log(`✅ Added session for sensor ${sensorId}:`, session);
+              console.log(`✅ Session data:`, {
+                skid: session.skid,
+                ph: session.ph,
+                temperature: session.temperature,
+                humidity: session.humidity,
+                uid: session.uid
+              });
+            } else {
+              console.log(`❌ Skipping sensor ${sensorId} - no readings found`);
+              console.log(`❌ Sensor data:`, sensorData);
+            }
           });
           
           console.log('Realtime Database sensor data processed:', { kits: kits.length, sessions: sessions.length });
@@ -178,6 +249,146 @@ const SensorLogsPage = () => {
     return () => unsubscribe();
   }, [navigate, fetchSensorData]);
 
+  // Set up real-time listener for sensor data updates
+  useEffect(() => {
+    if (!uid) {
+      console.log('No UID available, skipping real-time listener setup');
+      return; // Don't set up listener if user is not authenticated
+    }
+    
+    console.log('Setting up real-time listener for sensor data...');
+    console.log('User UID:', uid);
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Firebase Realtime DB URL:', realtimeDb.app.options.databaseURL);
+    console.log('Firebase project ID:', realtimeDb.app.options.projectId);
+    const sensorsRef = ref(realtimeDb, 'Sensors');
+    
+    const unsubscribeRealtime = onValue(sensorsRef, (snapshot) => {
+      console.log('Real-time listener triggered');
+      if (snapshot.exists()) {
+        console.log('Real-time sensor data update received');
+        const sensorsData = snapshot.val();
+        console.log('Raw sensor data from Firebase:', sensorsData);
+        
+        // Update sensor kits with latest readings
+        let updatedKits = [];
+        setSensorKits(prevKits => {
+          updatedKits = [...prevKits];
+          
+          Object.keys(sensorsData).forEach(sensorId => {
+            const sensorData = sensorsData[sensorId];
+            const existingKitIndex = updatedKits.findIndex(kit => kit.id === sensorId);
+            
+            if (existingKitIndex !== -1) {
+              // Only update if it's not a system sensor kit
+              if (updatedKits[existingKitIndex].userId !== 'system') {
+                // Check if sensor is now unlinked - if so, remove it
+                if (sensorData.linked === false) {
+                  updatedKits.splice(existingKitIndex, 1);
+                  console.log(`Removed unlinked sensor ${sensorId} from kits`);
+                } else {
+                  // Update existing kit with latest readings, but preserve plantName and userId
+                  updatedKits[existingKitIndex] = {
+                    ...updatedKits[existingKitIndex],
+                    code: sensorData.code || sensorData.sensorCode || updatedKits[existingKitIndex].code,
+                    linked: sensorData.linked !== undefined ? sensorData.linked : updatedKits[existingKitIndex].linked,
+                    linkedPlantId: sensorData.linkedPlantId || updatedKits[existingKitIndex].linkedPlantId,
+                    // Preserve plantName and userId (don't overwrite with undefined)
+                    plantName: sensorData.plantName || updatedKits[existingKitIndex].plantName,
+                    userId: sensorData.userId || updatedKits[existingKitIndex].userId,
+                    lastLinkTimestamp: new Date().toISOString(),
+                    currentReadings: {
+                      ph: sensorData.ph,
+                      tds: sensorData.tds,
+                      temperature: sensorData.temperature,
+                      humidity: sensorData.humidity,
+                      timestamp: new Date().toISOString()
+                    }
+                  };
+                }
+              }
+            }
+          });
+          
+          return updatedKits;
+        });
+        
+        // Update sensor sessions with latest readings for linked sensors
+        setSensorSessions(prevSessions => {
+          const updatedSessions = [...prevSessions];
+          
+          Object.keys(sensorsData).forEach(sensorId => {
+            const sensorData = sensorsData[sensorId];
+            
+            // TEMPORARY: Show all sensors with readings for testing (remove userId requirement)
+            if (sensorData.ph !== undefined || sensorData.temperature !== undefined || sensorData.humidity !== undefined || sensorData.tds !== undefined) {
+              // Use preserved data from existing kit if available
+              const existingKit = updatedKits.find(kit => kit.id === sensorId);
+              const userId = existingKit?.userId || sensorData.userId;
+              
+              // Only filter out hardcoded entries, show all sensors with readings
+              const isHardcodedEntry = (
+                sensorData.plantName === 'plantName' || 
+                sensorData.userId === 'userId' ||
+                sensorData.plantName === 'userId' ||
+                sensorData.userId === 'plantName'
+              );
+              
+              if (!isHardcodedEntry) {
+                const session = {
+                  skid: sensorId,
+                  code: sensorData.code || sensorData.sensorCode || 'N/A',
+                  uid: userId,
+                  sensorType: 'All',
+                  ph: sensorData.ph || 0,
+                  tds: sensorData.tds || 0,
+                  temperature: sensorData.temperature || 0,
+                  humidity: sensorData.humidity || 0,
+                  timestamp: new Date().toISOString(),
+                  plantName: existingKit?.plantName || sensorData.plantName || 'N/A',
+                  linked: sensorData.linked || false
+                };
+                
+                // Find existing session and update it, or add new one
+                const existingIndex = updatedSessions.findIndex(s => s.skid === sensorId);
+                if (existingIndex !== -1) {
+                  updatedSessions[existingIndex] = session;
+                } else {
+                  updatedSessions.push(session);
+                }
+              } else if (sensorData.linked === false) {
+                // Remove session if sensor is unlinked
+                const existingIndex = updatedSessions.findIndex(s => s.skid === sensorId);
+                if (existingIndex !== -1) {
+                  updatedSessions.splice(existingIndex, 1);
+                  console.log(`Removed unlinked sensor ${sensorId} from sessions`);
+                }
+              }
+            }
+          });
+          
+          return updatedSessions;
+        });
+
+        
+        setLastUpdated(new Date());
+      }
+    }, (error) => {
+      console.error('Real-time listener error:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      console.error('This might be why sensor logs are not showing in production');
+    });
+    
+    return () => {
+      console.log('Cleaning up real-time listener');
+      off(sensorsRef, 'value', unsubscribeRealtime);
+    };
+  }, [uid]);
+
 
   const openModal = (data) => {
     setSelectedData(data);
@@ -192,6 +403,19 @@ const SensorLogsPage = () => {
 
   return (
     <div className="user-records-container">
+      <style>
+        {`
+          @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       <Navbar role={role} adminName={adminName} adminId={uid} />
 
       <div className="tab-buttons" style={{
@@ -272,9 +496,20 @@ const SensorLogsPage = () => {
           textAlign: 'right', 
           color: '#666', 
           fontSize: '12px', 
-          marginBottom: '10px' 
+          marginBottom: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: '8px'
         }}>
-          Last updated: {lastUpdated.toLocaleTimeString()}
+          <div style={{
+            width: '8px',
+            height: '8px',
+            backgroundColor: '#4CAF50',
+            borderRadius: '50%',
+            animation: 'pulse 2s infinite'
+          }}></div>
+          <span>Live data • Last updated: {lastUpdated.toLocaleTimeString()}</span>
         </div>
       )}
 
@@ -413,7 +648,7 @@ const SensorLogsPage = () => {
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               <FaFlask size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
               <p>No sensor logs available</p>
-              <p style={{ fontSize: '14px' }}>Sensor data will appear here when available</p>
+              <p style={{ fontSize: '14px' }}>Make sure your sensors are connected and sending data</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -438,10 +673,6 @@ const SensorLogsPage = () => {
                     </th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
                       🌱 Plant Name
-                    </th>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
-                      <FaFlask style={{ marginRight: '8px', color: '#4CAF50' }} /> 
-                      Sensor Type
                     </th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>
                       <FaTint style={{ marginRight: '8px', color: '#4CAF50' }} /> 
@@ -479,7 +710,6 @@ const SensorLogsPage = () => {
                       <td style={{ padding: '12px' }}>{session.code}</td>
                       <td style={{ padding: '12px' }} title={`Original UID: ${session.uid}`}>{hashUID(session.uid)}</td>
                       <td style={{ padding: '12px' }}>{session.plantName || 'N/A'}</td>
-                      <td style={{ padding: '12px' }}>{session.sensorType}</td>
                       <td style={{ padding: '12px' }}>{session.ph?.toFixed(2) || 'N/A'}</td>
                       <td style={{ padding: '12px' }}>{session.tds?.toFixed(2) || 'N/A'}</td>
                       <td style={{ padding: '12px' }}>{session.temperature?.toFixed(1) || 'N/A'}</td>
@@ -523,6 +753,7 @@ const SensorLogsPage = () => {
           )}
         </div>
       )}
+
 
       {/* Modal for displaying sensor information */}
       {showModal && selectedData && (
@@ -743,20 +974,6 @@ const SensorLogsPage = () => {
                     <div>
                       <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>User ID</div>
                       <div style={{ color: '#666' }} title={`Original UID: ${selectedData.uid}`}>{hashUID(selectedData.uid)}</div>
-                    </div>
-                  </div>
-                  <div className="detail-item" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '12px',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '8px',
-                    border: '1px solid #e9ecef'
-                  }}>
-                    <FaFlask style={{ color: "#4CAF50", marginRight: "12px", fontSize: '18px' }} />
-                    <div>
-                      <div style={{ fontWeight: '600', color: '#333', marginBottom: '4px' }}>Sensor Type</div>
-                      <div style={{ color: '#666' }}>{selectedData.sensorType}</div>
                     </div>
                   </div>
                   <div className="detail-item" style={{

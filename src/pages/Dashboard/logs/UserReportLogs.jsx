@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
-import '../../../styles/UserRecordsPage.css';
+import '../../../styles/Dashboard/UserRecords.css';
 import { adminAuditActions } from '../../../utils/adminAuditLogger';
 
 const UserReportLogPage = () => {

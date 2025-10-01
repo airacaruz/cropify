@@ -5,8 +5,7 @@ import { FaBarcode, FaCalendarAlt, FaChevronDown, FaChevronUp, FaDesktop, FaIdBa
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import { auth, db } from '../../../firebase';
-import '../../../styles/UserRecordsPage.css';
-import { hashUID } from '../../../utils/hashUtils';
+import '../../../styles/Logs/UserLogs.css';
 
 
 const UserLogsPage = () => {
@@ -206,7 +205,7 @@ const UserLogsPage = () => {
               {screenLogs.map(log => (
                 <tr key={log.visitId}>
                   <td>{log.visitId}</td>
-                  <td title={`Original UID: ${log.userId}`}>{hashUID(log.userId)}</td>
+                  <td>{log.userId}</td>
                   <td>{log.screenName}</td>
                   <td>
                     {log.timestamp?.seconds

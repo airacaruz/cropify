@@ -12,7 +12,7 @@ import {
     mfaManager
 } from '../Authentication';
 import { app } from "../firebase";
-import '../styles/Navbar.css';
+import '../styles/Components/Navbar.css';
 import { adminAuditActions } from '../utils/adminAuditLogger';
 import adminStatusTracker from '../utils/adminStatusTracker';
 import SecurityUtils from '../utils/security.jsx';

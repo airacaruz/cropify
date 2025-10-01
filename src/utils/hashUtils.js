@@ -102,3 +102,24 @@ export const maskSensitiveData = (input, visibleStart = 2, visibleEnd = 2) => {
   
   return `${start}${middle}${end}`;
 };
+
+/**
+ * Mask name/username for display showing last 3 characters
+ * @param {string} name - The name or username
+ * @returns {string} - Masked name with last 3 characters visible
+ */
+export const hashName = (name) => {
+  if (!name) return 'N/A';
+  
+  const str = String(name);
+  if (str.length <= 3) {
+    return '*'.repeat(str.length);
+  }
+  
+  // Show last 3 characters, mask the rest with asterisks
+  const visiblePart = str.substring(str.length - 3);
+  const hiddenPart = str.substring(0, str.length - 3);
+  const maskedPart = '*'.repeat(hiddenPart.length);
+  
+  return `${maskedPart}${visiblePart}`;
+};

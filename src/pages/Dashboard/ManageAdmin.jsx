@@ -1,12 +1,12 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { FaSave, FaTimes, FaTrash, FaUserEdit, FaUserPlus } from "react-icons/fa";
+import { FaCheck, FaSave, FaTimes, FaTrash, FaUserEdit, FaUserPlus } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
 import useAdminOnlineStatus from '../../hooks/useAdminOnlineStatus';
-import '../../styles/AdminRecordsPage.css';
+import '../../styles/Dashboard/AdminRecords.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
 
 const ManageAdmin = () => {
@@ -33,6 +33,7 @@ const ManageAdmin = () => {
   // Use the custom hook for real-time online status
   const { onlineStatus } = useAdminOnlineStatus();
   const [registerMessage, setRegisterMessage] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -142,8 +143,14 @@ const ManageAdmin = () => {
         await adminAuditActions.editAdmin(uid, adminName, editedData.name);
       }
       
-      alert('User updated successfully!');
+      // Show success popup
+      setShowSuccessPopup(true);
       closeEditModal();
+      
+      // Auto-hide success popup after 3 seconds
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 3000);
     } catch (error) {
       console.error("Error updating user:", error);
       alert("Failed to update user.");
@@ -742,6 +749,19 @@ const ManageAdmin = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="success-popup-overlay">
+          <div className="success-popup">
+            <div className="success-icon">
+              <FaCheck />
+            </div>
+            <h3>Editing Complete!</h3>
+            <p>Admin details have been successfully updated.</p>
           </div>
         </div>
       )}

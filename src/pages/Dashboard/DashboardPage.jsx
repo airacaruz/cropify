@@ -1,11 +1,12 @@
 import { onAuthStateChanged } from 'firebase/auth';
-import { get, ref } from 'firebase/database';
+import { get, off, onValue, ref } from 'firebase/database';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useCallback, useEffect, useState } from 'react';
 import {
+    FaCheck,
     FaMicrochip,
     FaRedo,
     FaTimes,
@@ -26,7 +27,7 @@ import {
 } from 'recharts';
 import Navbar from '../../components/Navbar';
 import { auth, db, realtimeDb } from '../../firebase';
-import '../../styles/DashboardPage.css';
+import '../../styles/Dashboard/DashboardPage.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
 import { hashUID } from '../../utils/hashUtils';
 import userSessionManager from '../../utils/userSessionManager';
@@ -355,7 +356,7 @@ const exportChartsAndPrescriptivePDF = async ({
     const hardcodedSessions = [
         {
             id: 'demo1',
-            timestamp: '2024-06-01T08:00:00',
+            timestamp: new Date(Date.now() - 86400000).toISOString(),
             ph: 6.8,
             tds: 750,
             waterTemp: 22,
@@ -364,7 +365,7 @@ const exportChartsAndPrescriptivePDF = async ({
         },
         {
             id: 'demo2',
-            timestamp: '2024-06-02T08:00:00',
+            timestamp: new Date(Date.now() - 172800000).toISOString(),
             ph: 7.0,
             tds: 800,
             waterTemp: 23,
@@ -373,7 +374,7 @@ const exportChartsAndPrescriptivePDF = async ({
         },
         {
             id: 'demo3',
-            timestamp: '2024-06-03T08:00:00',
+            timestamp: new Date(Date.now() - 259200000).toISOString(),
             ph: 6.7,
             tds: 780,
             waterTemp: 21,
@@ -397,23 +398,22 @@ const Dashboard = () => {
     const [sensorSessions, setSensorSessions] = useState([]);
     const [showReportsModal, setShowReportsModal] = useState(false);
     const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+    const [showDownloadSuccessModal, setShowDownloadSuccessModal] = useState(false);
     const [reportTickets, setReportTickets] = useState([]);
     const [allReportTickets, setAllReportTickets] = useState([]);
     const [recentSensorKits, setRecentSensorKits] = useState([]);
+    const [archivedSensorKits, setArchivedSensorKits] = useState([]); // Archived sensor kits
     const [sensorLoading, setSensorLoading] = useState(true);
     const [reportsLoading, setReportsLoading] = useState(false);
 
     // Separate function to fetch report tickets
     const fetchReportTickets = useCallback(async () => {
         try {
-            console.log('Fetching report tickets from Firestore...');
             setReportsLoading(true);
             const reportsSnapshot = await getDocs(collection(db, 'reports'));
-            console.log('Reports snapshot:', reportsSnapshot.docs.length, 'documents found');
             
             const reports = reportsSnapshot.docs.map(doc => {
                 const data = doc.data();
-                console.log('Processing report document:', doc.id, data);
                 
                 // Handle timestamp properly - it might be a string or Firestore timestamp
                 let timestamp;
@@ -441,17 +441,12 @@ const Dashboard = () => {
                 };
             });
             
-            console.log('Processed reports:', reports);
-            
             // Sort by timestamp (newest first)
             const sortedReports = reports.sort((a, b) => b.timestamp - a.timestamp);
             setAllReportTickets(sortedReports);
             
             // Take first 3 for the dashboard card
             setReportTickets(sortedReports.slice(0, 3));
-            
-            console.log('Fetched report tickets:', sortedReports.length, 'total reports');
-            console.log('Report tickets for dashboard:', sortedReports.slice(0, 3));
             setReportsLoading(false);
         } catch (error) {
             console.error('Error fetching report tickets:', error);
@@ -464,43 +459,61 @@ const Dashboard = () => {
     // Fetch recent sensor data for dashboard (using same logic as SensorLogs)
     const fetchRecentSensorData = useCallback(async () => {
         try {
-            console.log('Fetching recent sensor data for dashboard...');
             setSensorLoading(true);
-            const kits = [];
+            const activeKits = [];
+            const archivedKits = [];
             
             // Fetch from Firestore SensorKits collection
             try {
-                console.log('Fetching from Firestore SensorKits collection...');
                 const sensorKitsRef = collection(db, 'SensorKits');
                 const sensorKitsSnapshot = await getDocs(sensorKitsRef);
                 
                 sensorKitsSnapshot.forEach((doc) => {
                     const data = doc.data();
-                    const kit = {
-                        id: doc.id,
-                        code: data.sensorCode || 'N/A',
-                        linked: data.linked || false,
-                        linkedPlantId: data.linkedPlantId || null,
-                        plantName: data.plantName || 'N/A',
-                        userId: data.userId || 'system',
-                        lastLinkTimestamp: data.lastLinkTimestamp || new Date().toISOString(),
-                        status: data.linked ? 'Active' : 'Inactive',
-                        user: data.userId || 'system',
-                        temperature: 0,
-                        humidity: 0,
-                        ph: 0
-                    };
-                    kits.push(kit);
+                    
+                    // Filter out hardcoded/system entries
+                    const isHardcodedEntry = (
+                        data.plantName === 'plantName' || 
+                        data.userId === 'userId' ||
+                        data.plantName === 'userId' ||
+                        data.userId === 'plantName' ||
+                        data.userId === 'system' ||
+                        !data.userId ||
+                        !data.plantName ||
+                        data.plantName === 'N/A' ||
+                        data.userId === 'N/A'
+                    );
+                    
+                    if (!isHardcodedEntry) {
+                        const kit = {
+                            id: doc.id,
+                            code: data.sensorCode || 'N/A',
+                            linked: data.linked || false,
+                            linkedPlantId: data.linkedPlantId || null,
+                            plantName: data.plantName || 'N/A',
+                            userId: data.userId || 'system',
+                            lastLinkTimestamp: data.lastLinkTimestamp || new Date().toISOString(),
+                            status: data.linked ? 'Active' : 'Archived',
+                            user: data.userId || 'system',
+                            temperature: 0,
+                            humidity: 0,
+                            ph: 0
+                        };
+                        
+                        // Separate active and archived kits
+                        if (data.linked === true) {
+                            activeKits.push(kit);
+                        } else {
+                            archivedKits.push(kit);
+                        }
+                    }
                 });
                 
-                console.log('Firestore sensor kits fetched for dashboard:', kits.length, 'kits');
             } catch (firestoreError) {
-                console.log('No Firestore sensor kits found or error:', firestoreError);
             }
             
             // Fetch from Realtime Database Sensors path with timeout
             try {
-                console.log('Fetching from Realtime Database for dashboard...');
                 const sensorsRef = ref(realtimeDb, 'Sensors');
                 
                 // Add timeout to prevent hanging
@@ -512,7 +525,6 @@ const Dashboard = () => {
                 
                 if (snapshot.exists()) {
                     const sensorsData = snapshot.val();
-                    console.log('Realtime Database data found for dashboard:', Object.keys(sensorsData).length, 'sensors');
                     
                     // Process each sensor from Realtime Database
                     Object.keys(sensorsData).forEach(sensorId => {
@@ -525,51 +537,72 @@ const Dashboard = () => {
                             // Update existing kit with real-time data
                             existingKit.code = sensorData.sensorCode || existingKit.code;
                             existingKit.linked = sensorData.linked !== undefined ? sensorData.linked : existingKit.linked;
-                            existingKit.status = 'Active'; // Active if receiving real-time data
+                            existingKit.status = sensorData.linked ? 'Active' : 'Archived';
                             existingKit.lastLinkTimestamp = new Date().toISOString();
                             existingKit.temperature = sensorData.temperature || 0;
                             existingKit.humidity = sensorData.humidity || 0;
                             existingKit.ph = sensorData.ph || 0;
                         } else {
-                            // Create new kit entry from Realtime Database
-                            const kit = {
-                                id: sensorId,
-                                code: sensorData.sensorCode || 'N/A',
-                                linked: sensorData.linked || false,
-                                linkedPlantId: sensorData.linkedPlantId || null,
-                                plantName: sensorData.plantName || 'N/A',
-                                userId: sensorData.userId || 'system',
-                                lastLinkTimestamp: new Date().toISOString(),
-                                status: 'Active',
-                                user: sensorData.userId || 'system',
-                                temperature: sensorData.temperature || 0,
-                                humidity: sensorData.humidity || 0,
-                                ph: sensorData.ph || 0
-                            };
-                            kits.push(kit);
+                            // Only create new kit entry if it has a real userId (not system) AND is linked AND not hardcoded
+                            const isHardcodedEntry = (
+                                sensorData.plantName === 'plantName' || 
+                                sensorData.userId === 'userId' ||
+                                sensorData.plantName === 'userId' ||
+                                sensorData.userId === 'plantName' ||
+                                sensorData.userId === 'system' ||
+                                !sensorData.userId ||
+                                !sensorData.plantName ||
+                                sensorData.plantName === 'N/A' ||
+                                sensorData.userId === 'N/A'
+                            );
+                            
+                            if (sensorData.userId && sensorData.userId !== 'system' && !isHardcodedEntry) {
+                                const kit = {
+                                    id: sensorId,
+                                    code: sensorData.sensorCode || 'N/A',
+                                    linked: sensorData.linked || false,
+                                    linkedPlantId: sensorData.linkedPlantId || null,
+                                    plantName: sensorData.plantName || 'N/A',
+                                    userId: sensorData.userId || 'system',
+                                    lastLinkTimestamp: new Date().toISOString(),
+                                    status: sensorData.linked ? 'Active' : 'Archived',
+                                    user: sensorData.userId || 'system',
+                                    temperature: sensorData.temperature || 0,
+                                    humidity: sensorData.humidity || 0,
+                                    ph: sensorData.ph || 0
+                                };
+                                
+                                // Add to appropriate array based on linked status
+                                if (sensorData.linked === true) {
+                                    activeKits.push(kit);
+                                } else {
+                                    archivedKits.push(kit);
+                                }
+                            }
                         }
                     });
                     
-                    console.log('Realtime Database sensor data processed for dashboard:', { kits: kits.length });
                 } else {
-                    console.log('No data found in Realtime Database for dashboard');
                 }
             } catch (realtimeError) {
-                console.log('Realtime Database error or timeout for dashboard:', realtimeError);
                 // Continue with just Firestore data - this is normal if no realtime data exists
             }
             
             // Sort by lastLinkTimestamp (most recent first) and limit to 3 for dashboard
-            const sortedKits = kits
+            const sortedActiveKits = activeKits
                 .sort((a, b) => new Date(b.lastLinkTimestamp) - new Date(a.lastLinkTimestamp))
                 .slice(0, 3);
             
-            setRecentSensorKits(sortedKits);
-            console.log('Recent sensor data fetched for dashboard:', sortedKits);
+            const sortedArchivedKits = archivedKits
+                .sort((a, b) => new Date(b.lastLinkTimestamp) - new Date(a.lastLinkTimestamp));
+            
+            setRecentSensorKits(sortedActiveKits);
+            setArchivedSensorKits(sortedArchivedKits);
             
         } catch (error) {
             console.error('Error fetching recent sensor data for dashboard:', error);
             setRecentSensorKits([]);
+            setArchivedSensorKits([]);
         } finally {
             setSensorLoading(false);
         }
@@ -758,6 +791,14 @@ const Dashboard = () => {
             sensorChartData
         });
         setShowPrintConfirmModal(false);
+        
+        // Show download success modal
+        setShowDownloadSuccessModal(true);
+        
+        // Auto-hide success modal after 3 seconds
+        setTimeout(() => {
+            setShowDownloadSuccessModal(false);
+        }, 3000);
     };
 
     const handlePrintCancel = () => {
@@ -838,13 +879,110 @@ const Dashboard = () => {
         }
     }, [uid, role, adminName, fetchAnalyticsData]);
 
-    // Separate useEffect to fetch report tickets when user is authenticated
-    useEffect(() => {
-        if (uid && role && (role === 'admin' || role === 'superadmin')) {
-            console.log('User authenticated, fetching report tickets...');
-            fetchReportTickets();
-        }
-    }, [uid, role, fetchReportTickets]);
+  // Separate useEffect to fetch report tickets when user is authenticated
+  useEffect(() => {
+    if (uid && role && (role === 'admin' || role === 'superadmin')) {
+      console.log('User authenticated, fetching report tickets...');
+      fetchReportTickets();
+    }
+  }, [uid, role, fetchReportTickets]);
+
+  // Real-time listener for sensor status changes (linked/unlinked)
+  useEffect(() => {
+    if (!uid || !role || (role !== 'admin' && role !== 'superadmin')) return;
+    
+    console.log('Setting up real-time sensor status listener for Dashboard...');
+    const sensorsRef = ref(realtimeDb, 'Sensors');
+    
+    const unsubscribeRealtime = onValue(sensorsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        console.log('Dashboard: Real-time sensor status update received');
+        const sensorsData = snapshot.val();
+        
+        // Update recent sensor kits based on linked status
+        setRecentSensorKits(prevKits => {
+          const updatedKits = [...prevKits];
+          
+          Object.keys(sensorsData).forEach(sensorId => {
+            const sensorData = sensorsData[sensorId];
+            const existingKitIndex = updatedKits.findIndex(kit => kit.id === sensorId);
+            
+            if (existingKitIndex !== -1) {
+              // Check if sensor is now unlinked - if so, remove it from recent kits
+              if (sensorData.linked === false) {
+                console.log(`Dashboard: Archiving unlinked sensor ${sensorId} from Recent Sensor Kits`);
+                updatedKits.splice(existingKitIndex, 1);
+              } else {
+                // Update existing kit with latest data
+                updatedKits[existingKitIndex] = {
+                  ...updatedKits[existingKitIndex],
+                  code: sensorData.code || sensorData.sensorCode || updatedKits[existingKitIndex].code,
+                  linked: sensorData.linked !== undefined ? sensorData.linked : updatedKits[existingKitIndex].linked,
+                  linkedPlantId: sensorData.linkedPlantId || updatedKits[existingKitIndex].linkedPlantId,
+                  plantName: sensorData.plantName || updatedKits[existingKitIndex].plantName,
+                  userId: sensorData.userId || updatedKits[existingKitIndex].userId,
+                  lastLinkTimestamp: new Date().toISOString(),
+                  status: sensorData.linked ? 'Active' : 'Archived',
+                  temperature: sensorData.temperature || 0,
+                  humidity: sensorData.humidity || 0,
+                  ph: sensorData.ph || 0
+                };
+              }
+            } else {
+              // Check if this is a newly linked sensor that should be added
+              if (sensorData.linked === true && sensorData.userId && sensorData.userId !== 'system') {
+                // Filter out hardcoded/system entries
+                const isHardcodedEntry = (
+                  sensorData.plantName === 'plantName' || 
+                  sensorData.userId === 'userId' ||
+                  sensorData.plantName === 'userId' ||
+                  sensorData.userId === 'plantName' ||
+                  sensorData.userId === 'system' ||
+                  !sensorData.userId ||
+                  !sensorData.plantName ||
+                  sensorData.plantName === 'N/A' ||
+                  sensorData.userId === 'N/A'
+                );
+                
+                if (!isHardcodedEntry) {
+                  console.log(`Dashboard: Adding newly linked sensor ${sensorId} to Recent Sensor Kits`);
+                  const newKit = {
+                    id: sensorId,
+                    code: sensorData.code || sensorData.sensorCode || 'N/A',
+                    linked: sensorData.linked || false,
+                    linkedPlantId: sensorData.linkedPlantId || null,
+                    plantName: sensorData.plantName || 'N/A',
+                    userId: sensorData.userId || 'system',
+                    lastLinkTimestamp: new Date().toISOString(),
+                    status: 'Active',
+                    user: sensorData.userId || 'system',
+                    temperature: sensorData.temperature || 0,
+                    humidity: sensorData.humidity || 0,
+                    ph: sensorData.ph || 0
+                  };
+                  
+                  // Add to the beginning and keep only the 3 most recent
+                  updatedKits.unshift(newKit);
+                  if (updatedKits.length > 3) {
+                    updatedKits.splice(3);
+                  }
+                }
+              }
+            }
+          });
+          
+          return updatedKits;
+        });
+      }
+    }, (error) => {
+      console.error('Dashboard: Real-time sensor status listener error:', error);
+    });
+    
+    return () => {
+      console.log('Dashboard: Cleaning up real-time sensor status listener');
+      off(sensorsRef, 'value', unsubscribeRealtime);
+    };
+  }, [uid, role]);
 
 
     const prescriptiveInsights = getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, "...");
@@ -1246,6 +1384,19 @@ const Dashboard = () => {
                                 Print Summary
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Download Success Modal */}
+            {showDownloadSuccessModal && (
+                <div className="success-popup-overlay">
+                    <div className="success-popup">
+                        <div className="success-icon">
+                            <FaCheck />
+                        </div>
+                        <h3>Download Successful!</h3>
+                        <p>Dashboard summary has been downloaded successfully.</p>
                     </div>
                 </div>
             )}

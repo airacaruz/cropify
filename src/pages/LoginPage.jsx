@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import cropifyLogo from "../assets/images/cropifylogo.png";
 import { isAdmin2FAEnabled, verifyAdmin2FA } from "../Authentication";
 import { app } from "../firebase";
-import "../styles/LoginPage.css";
+import "../styles/Pages/LoginPage.css";
 import SecurityUtils from "../utils/security.jsx";
 
 function LoginPage() {

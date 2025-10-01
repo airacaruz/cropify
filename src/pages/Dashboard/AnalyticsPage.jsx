@@ -3,7 +3,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useEffect, useState } from 'react';
-import { FaTimes } from 'react-icons/fa';
+import { FaCheck, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import {
     CartesianGrid,
@@ -19,7 +19,7 @@ import {
 } from 'recharts';
 import Navbar from '../../components/Navbar';
 import { auth, db } from '../../firebase';
-import '../../styles/AnalyticsPage.css';
+import '../../styles/Dashboard/AnalyticsPage.css';
 
 function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
@@ -36,12 +36,13 @@ function AnalyticsPage() {
   
   // Print modal state
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+  const [showDownloadSuccessModal, setShowDownloadSuccessModal] = useState(false);
 
   // ✅ Hardcoded sensor data fallback
   const hardcodedSessions = [
     {
       id: 'demo1',
-      timestamp: '2025-06-01T08:00:00',
+      timestamp: new Date(Date.now() - 86400000).toISOString(),
       ph: 6.8,
       tds: 750,
       waterTemp: 22,
@@ -50,7 +51,7 @@ function AnalyticsPage() {
     },
     {
       id: 'demo2',
-      timestamp: '2025-06-02T08:00:00',
+      timestamp: new Date(Date.now() - 172800000).toISOString(),
       ph: 7.0,
       tds: 800,
       waterTemp: 23,
@@ -59,7 +60,7 @@ function AnalyticsPage() {
     },
     {
       id: 'demo3',
-      timestamp: '2025-06-03T08:00:00',
+      timestamp: new Date(Date.now() - 259200000).toISOString(),
       ph: 6.7,
       tds: 780,
       waterTemp: 21,
@@ -457,6 +458,14 @@ function AnalyticsPage() {
     
     exportAnalyticsPDF();
     setShowPrintConfirmModal(false);
+    
+    // Show download success modal
+    setShowDownloadSuccessModal(true);
+    
+    // Auto-hide success modal after 3 seconds
+    setTimeout(() => {
+      setShowDownloadSuccessModal(false);
+    }, 3000);
   };
 
   const handlePrintCancel = () => {
@@ -673,6 +682,19 @@ function AnalyticsPage() {
                 Print Summary
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Success Modal */}
+      {showDownloadSuccessModal && (
+        <div className="success-popup-overlay">
+          <div className="success-popup">
+            <div className="success-icon">
+              <FaCheck />
+            </div>
+            <h3>Download Successful!</h3>
+            <p>Analytics summary has been downloaded successfully.</p>
           </div>
         </div>
       )}
