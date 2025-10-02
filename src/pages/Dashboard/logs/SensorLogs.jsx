@@ -32,9 +32,14 @@ const SensorLogsPage = () => {
   // Fetch sensor data from both Firestore and Realtime Database
   const fetchSensorData = useCallback(async () => {
     try {
-      console.log('Starting sensor data fetch...');
-      console.log('Environment:', process.env.NODE_ENV);
-      console.log('User UID:', uid);
+      console.log('🔍 Starting sensor data fetch...');
+      console.log('🌍 Environment:', process.env.NODE_ENV);
+      console.log('👤 User UID:', uid);
+      console.log('🔥 Firebase Config:', {
+        projectId: realtimeDb.app.options.projectId,
+        databaseURL: realtimeDb.app.options.databaseURL,
+        authDomain: realtimeDb.app.options.authDomain
+      });
       setLoading(true);
       const kits = [];
       const sessions = [];
@@ -78,15 +83,26 @@ const SensorLogsPage = () => {
       
       // Fetch from Realtime Database Sensors path with timeout
       try {
-        console.log('Fetching from Realtime Database...');
+        console.log('📡 Fetching from Realtime Database...');
+        console.log('🔗 Database URL:', realtimeDb.app.options.databaseURL);
         const sensorsRef = ref(realtimeDb, 'Sensors');
+        console.log('📍 Sensors ref created:', sensorsRef.toString());
         
         // Add timeout to prevent hanging
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Realtime Database fetch timeout')), 5000); // 5 second timeout
+          setTimeout(() => reject(new Error('Realtime Database fetch timeout')), 30000); // 30 second timeout
         });
         
+        console.log('⏳ Starting database fetch with timeout...');
+        console.log('🌐 Network status:', navigator.onLine ? 'Online' : 'Offline');
+        console.log('🔄 Attempting Firebase Realtime Database connection...');
+        
+        const startTime = Date.now();
         const snapshot = await Promise.race([get(sensorsRef), timeoutPromise]);
+        const endTime = Date.now();
+        
+        console.log('✅ Database fetch completed in', endTime - startTime, 'ms');
+        console.log('✅ Snapshot exists:', snapshot.exists());
         
         if (snapshot.exists()) {
           const sensorsData = snapshot.val();
@@ -197,10 +213,16 @@ const SensorLogsPage = () => {
           
           console.log('Realtime Database sensor data processed:', { kits: kits.length, sessions: sessions.length });
         } else {
-          console.log('No data found in Realtime Database');
+          console.log('❌ No data found in Realtime Database');
         }
       } catch (realtimeError) {
-        console.log('Realtime Database error or timeout:', realtimeError);
+        console.error('💥 Realtime Database error or timeout:', realtimeError);
+        console.error('💥 Error details:', {
+          name: realtimeError.name,
+          message: realtimeError.message,
+          code: realtimeError.code,
+          stack: realtimeError.stack
+        });
         // Continue with just Firestore data - this is normal if no realtime data exists
       }
       
@@ -210,40 +232,59 @@ const SensorLogsPage = () => {
       console.log('Sensor data fetch completed:', { kits: kits.length, sessions: sessions.length });
       
     } catch (error) {
-      console.error('Error fetching sensor data:', error);
+      console.error('💥 CRITICAL ERROR fetching sensor data:', error);
+      console.error('💥 Error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
       // Set empty arrays but still show the page
       setSensorKits([]);
       setSensorSessions([]);
       setLastUpdated(new Date());
     } finally {
-      console.log('Setting loading to false');
+      console.log('🏁 Setting loading to false');
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    console.log('🔐 Setting up authentication listener...');
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('🔐 Auth state changed:', user ? 'User logged in' : 'User logged out');
       if (!user) {
+        console.log('🚫 No user, redirecting to login...');
         navigate("/", { replace: true });
       } else {
+        console.log('✅ User authenticated:', { uid: user.uid, email: user.email });
         setUid(user.uid);
-        // Fetch role from Firestore using uid reference
-        const q = query(collection(db, "admins"), where("adminId", "==", user.uid));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            setRole((data.role || "unknown").toLowerCase());
-            setAdminName(data.name || "Admin");
-          });
-        } else {
-          setRole("unknown");
-        }
         
-        // Fetch sensor data after authentication with a small delay
-        setTimeout(() => {
-          fetchSensorData();
-        }, 100);
+        try {
+          // Fetch role from Firestore using uid reference
+          console.log('👤 Fetching admin role from Firestore...');
+          const q = query(collection(db, "admins"), where("adminId", "==", user.uid));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            querySnapshot.forEach((doc) => {
+              const data = doc.data();
+              console.log('👤 Admin data found:', { role: data.role, name: data.name });
+              setRole((data.role || "unknown").toLowerCase());
+              setAdminName(data.name || "Admin");
+            });
+          } else {
+            console.log('⚠️ No admin data found for user');
+            setRole("unknown");
+          }
+          
+          // Fetch sensor data after authentication with a small delay
+          console.log('⏰ Scheduling sensor data fetch...');
+          setTimeout(() => {
+            fetchSensorData();
+          }, 100);
+        } catch (error) {
+          console.error('💥 Error in auth flow:', error);
+        }
       }
     });
     return () => unsubscribe();
@@ -261,6 +302,35 @@ const SensorLogsPage = () => {
     console.log('Environment:', process.env.NODE_ENV);
     console.log('Firebase Realtime DB URL:', realtimeDb.app.options.databaseURL);
     console.log('Firebase project ID:', realtimeDb.app.options.projectId);
+    
+    // Test Firebase connection first
+    console.log('🧪 Testing Firebase Realtime Database connection...');
+    const testRef = ref(realtimeDb, 'test');
+    get(testRef).then((snapshot) => {
+      console.log('✅ Firebase Realtime Database connection test successful');
+      console.log('🧪 Test snapshot exists:', snapshot.exists());
+    }).catch((error) => {
+      console.error('❌ Firebase Realtime Database connection test failed:', error);
+      console.error('❌ Connection test error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code
+      });
+    });
+    
+    // Also test the Sensors path directly
+    console.log('🧪 Testing direct Sensors path access...');
+    const sensorsTestRef = ref(realtimeDb, 'Sensors');
+    get(sensorsTestRef).then((snapshot) => {
+      console.log('✅ Direct Sensors path test successful');
+      console.log('🧪 Sensors snapshot exists:', snapshot.exists());
+      if (snapshot.exists()) {
+        console.log('🧪 Sensors data keys:', Object.keys(snapshot.val()));
+      }
+    }).catch((error) => {
+      console.error('❌ Direct Sensors path test failed:', error);
+    });
+    
     const sensorsRef = ref(realtimeDb, 'Sensors');
     
     const unsubscribeRealtime = onValue(sensorsRef, (snapshot) => {
