@@ -1,64 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  FaEnvelope,
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaMapMarkerAlt,
-  FaMicrochip,
-  FaMobile,
-  FaPhone,
-  FaQuoteLeft,
-  FaSun,
-  FaThermometerHalf,
-  FaTint,
-  FaTwitter,
-  FaUsers,
-  FaWordpress
+    FaEnvelope,
+    FaFacebook,
+    FaInstagram,
+    FaLinkedin,
+    FaMapMarkerAlt,
+    FaMicrochip,
+    FaMobile,
+    FaPhone,
+    FaTwitter,
+    FaUsers,
+    FaWordpress
 } from 'react-icons/fa';
+import appMockupImage from '../../assets/images/cropify_phoneview.png';
 import logoImage from '../../assets/images/logo.png';
 import './LandingPage.css';
 
 const LandingPage = () => {
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const [isSlideshowPaused, setIsSlideshowPaused] = useState(false);
   const [downloadCount] = useState(12547);
 
-
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      role: "Urban Farmer",
-      image: "/api/placeholder/80/80",
-      text: "Cropify has revolutionized my urban farming. The sensors provide real-time data that helps me optimize my plant growth like never before."
-    },
-    {
-      name: "Mike Chen",
-      role: "Greenhouse Owner",
-      image: "/api/placeholder/80/80",
-      text: "The analytics dashboard is incredible. I can track plant health trends and make data-driven decisions for my greenhouse operations."
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Home Gardener",
-      image: "/api/placeholder/80/80",
-      text: "As a beginner, Cropify made smart farming accessible. The mobile app is intuitive and the support team is amazing."
+  // Function to scroll to download section
+  const scrollToDownload = () => {
+    const downloadSection = document.getElementById('download');
+    if (downloadSection) {
+      downloadSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
     }
-  ];
+  };
 
 
-  // Automatic slideshow for testimonials
-  useEffect(() => {
-    if (isSlideshowPaused) return;
-
-    const interval = setInterval(() => {
-      setActiveTestimonial((prevIndex) => 
-        prevIndex === testimonials.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 2000); // Change testimonial every 2 seconds
-
-    return () => clearInterval(interval);
-  }, [isSlideshowPaused, testimonials.length]);
 
   return (
     <div className="landing-page">
@@ -77,13 +49,13 @@ const LandingPage = () => {
           <div className="nav-logo">
             <img src={logoImage} alt="Cropify Logo" className="logo-image" />
           </div>
-          <div className="nav-links">
-            <a href="#about">About Us</a>
-            <a href="#features">Features</a>
-            <a href="#contact">Contact Us</a>
-          </div>
+            <div className="nav-links">
+              <a href="https://plantboxinnovations.wordpress.com/" target="_blank" rel="noopener noreferrer">About Us</a>
+              <a href="#features">Features</a>
+              <a href="#contact">Contact Us</a>
+            </div>
           <div className="nav-actions">
-            <a href="#download" className="download-nav-btn">Download</a>
+            <a href="#download" onClick={(e) => { e.preventDefault(); scrollToDownload(); }} className="download-nav-btn">Download</a>
           </div>
         </div>
       </nav>
@@ -103,34 +75,17 @@ const LandingPage = () => {
           <div className="hero-image">
             <div className="hero-mockup">
               <div className="mockup-phone">
-                <div className="phone-screen">
-                  <div className="app-interface">
-                    <div className="app-header">
-                      <img src={logoImage} alt="Cropify" className="app-logo" />
-                    </div>
-                    <div className="app-content">
-                      <div className="sensor-card">
-                        <FaMicrochip />
-                        <span>Sensor Kit #001</span>
-                        <div className="status active">Active</div>
-                      </div>
-                      <div className="metrics">
-                        <div className="metric">
-                          <FaTint />
-                          <span>pH: 6.8</span>
-                        </div>
-                        <div className="metric">
-                          <FaThermometerHalf />
-                          <span>24°C</span>
-                        </div>
-                        <div className="metric">
-                          <FaSun />
-                          <span>65%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <img 
+                  src={appMockupImage} 
+                  alt="Cropify Mobile App Interface" 
+                  className="app-screenshot"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: '20px',
+                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)'
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -170,52 +125,16 @@ const LandingPage = () => {
       </section>
 
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="testimonials">
-        <div className="container">
-          <div className="section-header">
-            <h2 style={{ textAlign: 'center' }}>What Our Customers Say</h2>
-            <p style={{ textAlign: 'center' }}>Real stories from real farmers</p>
-          </div>
-          <div 
-            className="testimonials-container"
-            onMouseEnter={() => setIsSlideshowPaused(true)}
-            onMouseLeave={() => setIsSlideshowPaused(false)}
-          >
-            <div className="testimonial-card active">
-              <div className="testimonial-content">
-                <FaQuoteLeft className="quote-icon" />
-                <p>{testimonials[activeTestimonial].text}</p>
-                <div className="testimonial-author">
-                  <div className="author-info">
-                    <h4>{testimonials[activeTestimonial].name}</h4>
-                    <span>{testimonials[activeTestimonial].role}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="testimonial-nav">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  className={`nav-dot ${index === activeTestimonial ? 'active' : ''}`}
-                  onClick={() => setActiveTestimonial(index)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
-      <section className="cta-section">
+      <section id="download" className="cta-section">
         <div className="container">
             <div className="cta-content">
               <h2 style={{ textAlign: 'center' }}>Ready to Start Your IoT-Powered Hydroponics Journey?</h2>
               <p style={{ textAlign: 'center' }}>Join thousands of farmers who are already using Cropify to grow better crops.</p>
               <div style={{ textAlign: 'center', marginTop: '2rem' }}>
                 <a 
-                  href="https://drive.google.com/file/d/1U0A7S2MmX5ukTlLyvLbPutyj1XpXZUvX/view?usp=sharing"
+                  href="https://drive.google.com/uc?export=download&id=1fOjfl4jJvvwMbVeeSTN5ojNVsui9ipbj"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{

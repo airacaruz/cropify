@@ -648,7 +648,7 @@ function AnalyticsPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Confirm Print Analytics Summary</h3>
-              <button className="close-modal-btn" onClick={handlePrintCancel}>
+              <button className="close-modal-btn" onClick={handlePrintCancel} aria-label="Close print confirmation modal">
                 <FaTimes />
               </button>
             </div>

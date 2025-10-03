@@ -33,7 +33,7 @@ const SensorLogsPage = () => {
   const fetchSensorData = useCallback(async () => {
     try {
       console.log('🔍 Starting sensor data fetch...');
-      console.log('🌍 Environment:', process.env.NODE_ENV);
+      console.log('🌍 Environment:', import.meta.env.MODE);
       console.log('👤 User UID:', uid);
       console.log('🔥 Firebase Config:', {
         projectId: realtimeDb.app.options.projectId,
@@ -126,23 +126,32 @@ const SensorLogsPage = () => {
             const existingKit = kits.find(kit => kit.id === sensorId);
             
             if (existingKit) {
-              // Update existing kit with real-time data, but preserve plantName and userId from Firestore
-              existingKit.code = sensorData.code || sensorData.sensorCode || existingKit.code;
-              existingKit.linked = sensorData.linked !== undefined ? sensorData.linked : existingKit.linked;
-              existingKit.linkedPlantId = sensorData.linkedPlantId || existingKit.linkedPlantId;
-              // Keep plantName and userId from Firestore (don't overwrite with undefined values)
-              existingKit.plantName = sensorData.plantName || existingKit.plantName;
-              existingKit.userId = sensorData.userId || existingKit.userId;
-              existingKit.lastLinkTimestamp = new Date().toISOString();
-              
-              // Add real-time sensor readings to existing kit
-              existingKit.currentReadings = {
-                ph: sensorData.ph,
-                tds: sensorData.tds,
-                temperature: sensorData.temperature,
-                humidity: sensorData.humidity,
-                timestamp: new Date().toISOString()
-              };
+              // Check if sensor is now unlinked - if so, remove it from kits
+              if (sensorData.linked === false) {
+                const kitIndex = kits.findIndex(kit => kit.id === sensorId);
+                if (kitIndex !== -1) {
+                  kits.splice(kitIndex, 1);
+                  console.log(`Removed unlinked sensor ${sensorId} from kits during fetch`);
+                }
+              } else {
+                // Update existing kit with real-time data, but preserve plantName and userId from Firestore
+                existingKit.code = sensorData.code || sensorData.sensorCode || existingKit.code;
+                existingKit.linked = sensorData.linked !== undefined ? sensorData.linked : existingKit.linked;
+                existingKit.linkedPlantId = sensorData.linkedPlantId || existingKit.linkedPlantId;
+                // Keep plantName and userId from Firestore (don't overwrite with undefined values)
+                existingKit.plantName = sensorData.plantName || existingKit.plantName;
+                existingKit.userId = sensorData.userId || existingKit.userId;
+                existingKit.lastLinkTimestamp = new Date().toISOString();
+                
+                // Add real-time sensor readings to existing kit
+                existingKit.currentReadings = {
+                  ph: sensorData.ph,
+                  tds: sensorData.tds,
+                  temperature: sensorData.temperature,
+                  humidity: sensorData.humidity,
+                  timestamp: new Date().toISOString()
+                };
+              }
             } else {
             // Only filter out hardcoded entries, show all sensors with readings
             const isHardcodedEntry = (
@@ -176,11 +185,12 @@ const SensorLogsPage = () => {
             // Create sensor session entry if userId exists (indicating sensor is in use) AND has valid readings
             const hasUserId = sensorData.userId && sensorData.userId !== 'system';
             const hasReadings = sensorData.ph !== undefined || sensorData.temperature !== undefined || sensorData.humidity !== undefined || sensorData.tds !== undefined;
+            const isLinked = sensorData.linked !== false; // Only create sessions for linked sensors
             
-            console.log(`Sensor ${sensorId} - hasUserId: ${hasUserId}, hasReadings: ${hasReadings}`);
+            console.log(`Sensor ${sensorId} - hasUserId: ${hasUserId}, hasReadings: ${hasReadings}, isLinked: ${isLinked}`);
             
             // Show all sensors with readings - simplified for production debugging
-            if (hasReadings) {
+            if (hasReadings && isLinked) {
               // Use preserved data from existing kit if available, otherwise use sensorData
               const existingKit = kits.find(kit => kit.id === sensorId);
               const session = {
@@ -247,7 +257,7 @@ const SensorLogsPage = () => {
       console.log('🏁 Setting loading to false');
       setLoading(false);
     }
-  }, []);
+  }, [uid]);
 
   useEffect(() => {
     console.log('🔐 Setting up authentication listener...');
@@ -299,7 +309,7 @@ const SensorLogsPage = () => {
     
     console.log('Setting up real-time listener for sensor data...');
     console.log('User UID:', uid);
-    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Environment:', import.meta.env.MODE);
     console.log('Firebase Realtime DB URL:', realtimeDb.app.options.databaseURL);
     console.log('Firebase project ID:', realtimeDb.app.options.projectId);
     
@@ -390,8 +400,14 @@ const SensorLogsPage = () => {
           Object.keys(sensorsData).forEach(sensorId => {
             const sensorData = sensorsData[sensorId];
             
-            // TEMPORARY: Show all sensors with readings for testing (remove userId requirement)
-            if (sensorData.ph !== undefined || sensorData.temperature !== undefined || sensorData.humidity !== undefined || sensorData.tds !== undefined) {
+            // Check if sensor is unlinked - if so, remove it from sessions
+            if (sensorData.linked === false) {
+              const existingIndex = updatedSessions.findIndex(s => s.skid === sensorId);
+              if (existingIndex !== -1) {
+                updatedSessions.splice(existingIndex, 1);
+                console.log(`Removed unlinked sensor ${sensorId} from sessions`);
+              }
+            } else if (sensorData.ph !== undefined || sensorData.temperature !== undefined || sensorData.humidity !== undefined || sensorData.tds !== undefined) {
               // Use preserved data from existing kit if available
               const existingKit = updatedKits.find(kit => kit.id === sensorId);
               const userId = existingKit?.userId || sensorData.userId;
@@ -425,13 +441,6 @@ const SensorLogsPage = () => {
                   updatedSessions[existingIndex] = session;
                 } else {
                   updatedSessions.push(session);
-                }
-              } else if (sensorData.linked === false) {
-                // Remove session if sensor is unlinked
-                const existingIndex = updatedSessions.findIndex(s => s.skid === sensorId);
-                if (existingIndex !== -1) {
-                  updatedSessions.splice(existingIndex, 1);
-                  console.log(`Removed unlinked sensor ${sensorId} from sessions`);
                 }
               }
             }
