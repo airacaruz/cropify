@@ -8,6 +8,7 @@ body.login-page {
   background-color: #5c8f46;
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .login-main-container {

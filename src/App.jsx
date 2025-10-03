@@ -1,24 +1,42 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './App.css';
-import Test from './Test';
 import Layout from './components/Layout';
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminAuditLogs from './pages/Dashboard/AdminAuditLogs';
-import AdminRecords from './pages/Dashboard/AdminRecords';
-import AnalyticsPage from './pages/Dashboard/AnalyticsPage';
-import DashboardPage from './pages/Dashboard/DashboardPage';
-import ManageAdmin from './pages/Dashboard/ManageAdmin';
-import ManageAppPage from './pages/Dashboard/ManageAppPage';
-import UserRecordsPage from './pages/Dashboard/UserRecords';
-import SensorLogs from './pages/Dashboard/logs/SensorLogs';
-import UserLogs from './pages/Dashboard/logs/UserLogs';
-import UserReportLogs from './pages/Dashboard/logs/UserReportLogs';
-import UserSessions from './pages/Dashboard/logs/UserSessions';
+
+// Eager load critical components (landing, login, register)
 import LandingPage from './pages/Landing/LandingPage';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import RegisterPage from './pages/RegisterPage';
-import LoginLinkPage from './pages/js/LoginLinkPage';
+
+// Lazy load dashboard and heavy components
+const Test = lazy(() => import('./Test'));
+const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
+const AnalyticsPage = lazy(() => import('./pages/Dashboard/AnalyticsPage'));
+const UserRecordsPage = lazy(() => import('./pages/Dashboard/UserRecords'));
+const AdminRecords = lazy(() => import('./pages/Dashboard/AdminRecords'));
+const ManageAppPage = lazy(() => import('./pages/Dashboard/ManageAppPage'));
+const ManageAdmin = lazy(() => import('./pages/Dashboard/ManageAdmin'));
+const AdminAuditLogs = lazy(() => import('./pages/Dashboard/AdminAuditLogs'));
+const SensorLogs = lazy(() => import('./pages/Dashboard/logs/SensorLogs'));
+const UserLogs = lazy(() => import('./pages/Dashboard/logs/UserLogs'));
+const UserReportLogs = lazy(() => import('./pages/Dashboard/logs/UserReportLogs'));
+const UserSessions = lazy(() => import('./pages/Dashboard/logs/UserSessions'));
+const LoginLinkPage = lazy(() => import('./pages/js/LoginLinkPage'));
+
+// Loading component
+const LoadingSpinner = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '50vh',
+    fontSize: '18px' 
+  }}>
+    Loading...
+  </div>
+);
 
 const routes = [
   {
@@ -35,18 +53,28 @@ const routes = [
   },
   {
     path: '/test',
-    element: <Test />,
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Test />
+      </Suspense>
+    ),
   },
   {
     path: '/verify-link',
-    element: <LoginLinkPage />,
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <LoginLinkPage />
+      </Suspense>
+    ),
   },
   {
     path: '/dashboard',
     element: (
       <ProtectedRoute>
         <Layout>
-          <DashboardPage />
+          <Suspense fallback={<LoadingSpinner />}>
+            <DashboardPage />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -56,7 +84,9 @@ const routes = [
     element: (
       <ProtectedRoute>
         <Layout>
-          <AnalyticsPage />
+          <Suspense fallback={<LoadingSpinner />}>
+            <AnalyticsPage />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -66,7 +96,9 @@ const routes = [
     element: (
       <ProtectedRoute requiredRole="admin">
         <Layout>
-          <UserRecordsPage />
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserRecordsPage />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -76,7 +108,9 @@ const routes = [
     element: (
       <ProtectedRoute requiredRole="admin">
         <Layout>
-          <AdminRecords />
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminRecords />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -86,7 +120,9 @@ const routes = [
     element: (
       <ProtectedRoute>
         <Layout>
-          <UserLogs />
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserLogs />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -96,7 +132,9 @@ const routes = [
     element: (
       <ProtectedRoute>
         <Layout>
-          <UserSessions />
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserSessions />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -106,7 +144,9 @@ const routes = [
     element: (
       <ProtectedRoute>
         <Layout>
-          <UserReportLogs />
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserReportLogs />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -116,7 +156,9 @@ const routes = [
     element: (
       <ProtectedRoute>
         <Layout>
-          <SensorLogs />
+          <Suspense fallback={<LoadingSpinner />}>
+            <SensorLogs />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -126,7 +168,9 @@ const routes = [
     element: (
       <ProtectedRoute requiredRole="superadmin">
         <Layout>
-          <ManageAppPage />
+          <Suspense fallback={<LoadingSpinner />}>
+            <ManageAppPage />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -136,7 +180,9 @@ const routes = [
     element: (
       <ProtectedRoute requiredRole="superadmin">
         <Layout>
-          <ManageAdmin />
+          <Suspense fallback={<LoadingSpinner />}>
+            <ManageAdmin />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),
@@ -146,7 +192,9 @@ const routes = [
     element: (
       <ProtectedRoute requiredRole="superadmin">
         <Layout>
-          <AdminAuditLogs />
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminAuditLogs />
+          </Suspense>
         </Layout>
       </ProtectedRoute>
     ),

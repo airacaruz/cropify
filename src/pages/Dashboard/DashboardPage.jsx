@@ -28,6 +28,7 @@ import {
 import Navbar from '../../components/Navbar';
 import { auth, db, realtimeDb } from '../../firebase';
 import '../../styles/Dashboard/DashboardPage.css';
+import '../../styles/Dashboard/ReportsModal.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
 import { hashUID } from '../../utils/hashUtils';
 import userSessionManager from '../../utils/userSessionManager';
@@ -402,7 +403,7 @@ const Dashboard = () => {
     const [reportTickets, setReportTickets] = useState([]);
     const [allReportTickets, setAllReportTickets] = useState([]);
     const [recentSensorKits, setRecentSensorKits] = useState([]);
-    const [archivedSensorKits, setArchivedSensorKits] = useState([]); // Archived sensor kits
+    const [_archivedSensorKits, setArchivedSensorKits] = useState([]); // Archived sensor kits (for future use)
     const [sensorLoading, setSensorLoading] = useState(true);
     const [reportsLoading, setReportsLoading] = useState(false);
 
@@ -509,7 +510,8 @@ const Dashboard = () => {
                     }
                 });
                 
-            } catch (firestoreError) {
+            } catch {
+                console.log('Firestore sensor kits fetch completed');
             }
             
             // Fetch from Realtime Database Sensors path with timeout
@@ -531,7 +533,7 @@ const Dashboard = () => {
                         const sensorData = sensorsData[sensorId];
                         
                         // Check if this sensor kit already exists in Firestore data
-                        const existingKit = kits.find(kit => kit.id === sensorId);
+                        const existingKit = activeKits.find(kit => kit.id === sensorId);
                         
                         if (existingKit) {
                             // Update existing kit with real-time data
@@ -583,9 +585,10 @@ const Dashboard = () => {
                     });
                     
                 } else {
+                    console.log('No realtime sensor data found');
                 }
-            } catch (realtimeError) {
-                // Continue with just Firestore data - this is normal if no realtime data exists
+            } catch {
+                console.log('Realtime database fetch completed with fallback to Firestore');
             }
             
             // Sort by lastLinkTimestamp (most recent first) and limit to 3 for dashboard
@@ -1027,13 +1030,14 @@ const Dashboard = () => {
 
             {(role === "superadmin" || role === "admin") && (
                 <div className="dashboard-analytics-section">
+                    <h1 className="sr-only">Dashboard Overview</h1>
                     <div className="kpi-cards-container">
                         <div className="kpi-card">
                                 <h4 className="kpi-card-title">
                                 <FaUserPlus color="#4CAF50" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                 New Users (Current Month)
                                 </h4>
-                            <h1 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h1>
+                            <h2 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h2>
                             <p className="kpi-trend">
                                 <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
                                     {parseFloat(kpiData.newUsersTrend) > 0 ? '▲' : '▼'} {kpiData.newUsersTrend}
@@ -1147,7 +1151,7 @@ const Dashboard = () => {
                                             animation: 'spin 1s linear infinite',
                                             margin: '0 auto 10px'
                                         }}></div>
-                                        <p style={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>Loading sensor data...</p>
+                                        <p style={{ fontSize: '14px', color: '#555', textAlign: 'center' }}>Loading sensor data...</p>
                                     </div>
                                 ) : recentSensorKits.length > 0 ? (
                                     recentSensorKits.map((kit) => (
@@ -1181,14 +1185,14 @@ const Dashboard = () => {
                                     View All Sensor Kits
                                 </button>
                             </div>
-                    </div>
+                        </div>
 
                         <div className="kpi-card">
                             <h4 className="kpi-card-title">
                                 <FaUsers color="#2196F3" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                 Active Users
                             </h4>
-                            <h1 className="kpi-value">{activeUsersCount.toLocaleString()}</h1>
+                            <h2 className="kpi-value">{activeUsersCount.toLocaleString()}</h2>
                             <p className="kpi-trend">
                                 <span className="text-green">
                                     Currently active users
@@ -1199,146 +1203,260 @@ const Dashboard = () => {
 
                     <div id="charts-container" className="charts-container">
                         <div className="chart-card" id="chart-active-users">
-                            <h2 className="chart-title">Monthly Active Users</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={dailyActiveUsersData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Bar dataKey="users" fill="#4CAF50" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <h3 className="chart-title">Monthly Active Users</h3>
+                            {dailyActiveUsersData && dailyActiveUsersData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={dailyActiveUsersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(46, 125, 50, 0.1)" />
+                                        <XAxis 
+                                            dataKey="month" 
+                                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                                            axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
+                                        />
+                                        <YAxis 
+                                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                                            axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                border: '1px solid rgba(46, 125, 50, 0.2)',
+                                                borderRadius: '8px',
+                                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                                backdropFilter: 'blur(10px)'
+                                            }}
+                                            labelStyle={{ color: '#374151', fontWeight: 600 }}
+                                            itemStyle={{ color: '#4CAF50', fontWeight: 500 }}
+                                        />
+                                        <Bar 
+                                            dataKey="users" 
+                                            fill="url(#activeUsersGradient)" 
+                                            radius={[4, 4, 0, 0]}
+                                            stroke="#4CAF50"
+                                            strokeWidth={1}
+                                        />
+                                        <defs>
+                                            <linearGradient id="activeUsersGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#66BB6A" />
+                                                <stop offset="100%" stopColor="#4CAF50" />
+                                            </linearGradient>
+                                        </defs>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="chart-empty">
+                                    <div className="chart-empty-icon">📊</div>
+                                    <div className="chart-empty-text">No Active User Data</div>
+                                    <div className="chart-empty-subtext">User activity data will appear here</div>
+                                </div>
+                            )}
                         </div>
-
 
                         <div className="chart-card" id="chart-new-users">
-                            <h2 className="chart-title">Monthly New User Trend</h2>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={newUsersData}>
-                                    <CartesianGrid stroke="#e0e0e0" strokeDasharray="5 5" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="newUsers"
-                                        stroke="#4CAF50"
-                                        strokeWidth={3}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
+                            <h3 className="chart-title">Monthly New User Trend</h3>
+                            {newUsersData && newUsersData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <LineChart data={newUsersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="5 5" stroke="rgba(46, 125, 50, 0.1)" />
+                                        <XAxis 
+                                            dataKey="month" 
+                                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                                            axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
+                                        />
+                                        <YAxis 
+                                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                                            axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                border: '1px solid rgba(46, 125, 50, 0.2)',
+                                                borderRadius: '8px',
+                                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                                backdropFilter: 'blur(10px)'
+                                            }}
+                                            labelStyle={{ color: '#374151', fontWeight: 600 }}
+                                            itemStyle={{ color: '#4CAF50', fontWeight: 500 }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="newUsers"
+                                            stroke="url(#newUsersGradient)"
+                                            strokeWidth={3}
+                                            dot={{ fill: '#4CAF50', strokeWidth: 2, r: 4 }}
+                                            activeDot={{ r: 6, stroke: '#4CAF50', strokeWidth: 2, fill: '#fff' }}
+                                        />
+                                        <defs>
+                                            <linearGradient id="newUsersGradient" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="0%" stopColor="#4CAF50" />
+                                                <stop offset="100%" stopColor="#66BB6A" />
+                                            </linearGradient>
+                                        </defs>
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="chart-empty">
+                                    <div className="chart-empty-icon">📈</div>
+                                    <div className="chart-empty-text">No New User Data</div>
+                                    <div className="chart-empty-subtext">New user registration data will appear here</div>
+                                </div>
+                            )}
                         </div>
-                        </div>
+                    </div>
                         
                         </div>
             )}
 
 
-            {/* Report Tickets Modal */}
+            {/* All Report Tickets Modal - Remade */}
             {showReportsModal && (
-                <div className="modal-overlay" onClick={() => setShowReportsModal(false)}>
-                    <div className="modal-content reports-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>
-                                <FaMicrochip style={{ marginRight: 8, color: "#FF9800" }} />
-                                All Report Tickets ({allReportTickets.length})
-                            </h3>
-                            <button 
-                                className="close-modal-btn" 
-                                onClick={() => setShowReportsModal(false)}
-                            >
-                                <FaTimes />
-                            </button>
-                    </div>
-                        <div className="modal-body">
-                            <div className="reports-table">
-                                <table className="modal-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Ticket ID</th>
-                                            <th>Message</th>
-                                            <th>Type</th>
-                                            <th>User ID</th>
-                                            <th>Date & Time</th>
-                                            <th>Image</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {allReportTickets.length > 0 ? (
-                                            allReportTickets.map((ticket) => (
-                                                <tr key={ticket.id}>
-                                                    <td>
-                                                        <span className="ticket-id-badge">
-                                                            <FaMicrochip size={12} style={{ marginRight: 4 }} />
-                                                            {ticket.id}
-                                                        </span>
+                <div className="reports-modal-overlay" onClick={() => setShowReportsModal(false)}>
+                    <div className="reports-modal-container" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="reports-modal-header">
+                            <div className="reports-modal-title">
+                                <FaMicrochip className="reports-modal-icon" />
+                                <h2>All Report Tickets</h2>
+                                <span className="reports-modal-count">({allReportTickets.length})</span>
+                            </div>
+                            <div className="reports-modal-actions">
+                                <button 
+                                    className="reports-refresh-btn"
+                                    onClick={fetchReportTickets}
+                                    disabled={reportsLoading}
+                                >
+                                    <FaRedo className={reportsLoading ? 'spinning' : ''} />
+                                    {reportsLoading ? 'Loading...' : 'Refresh'}
+                                </button>
+                                <button 
+                                    className="reports-close-btn" 
+                                    onClick={() => setShowReportsModal(false)}
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="reports-modal-body">
+                            {reportsLoading ? (
+                                <div className="reports-loading">
+                                    <div className="reports-loading-spinner"></div>
+                                    <p>Loading report tickets...</p>
+                                </div>
+                            ) : allReportTickets.length > 0 ? (
+                                <div className="reports-table-container">
+                                    <table className="reports-table">
+                                        <thead className="reports-table-header">
+                                            <tr>
+                                                <th className="col-ticket-id">Ticket ID</th>
+                                                <th className="col-message">Message</th>
+                                                <th className="col-type">Type</th>
+                                                <th className="col-user">User ID</th>
+                                                <th className="col-datetime">Date & Time</th>
+                                                <th className="col-image">Image</th>
+                                                <th className="col-actions">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="reports-table-body">
+                                            {allReportTickets.map((ticket) => (
+                                                <tr key={ticket.id} className="reports-table-row">
+                                                    <td className="col-ticket-id">
+                                                        <div className="ticket-id-wrapper">
+                                                            <FaMicrochip className="ticket-icon" />
+                                                            <span className="ticket-id">{ticket.id}</span>
+                                                        </div>
                                                     </td>
-                                                    <td className="ticket-message-cell">
-                                                        <span className="ticket-message-text" title={ticket.fullMessage || ticket.title}>
-                                                            {ticket.title.length > 60 ? ticket.title.substring(0, 60) + '...' : ticket.title}
-                                                        </span>
+                                                    <td className="col-message">
+                                                        <div className="message-wrapper" title={ticket.fullMessage || ticket.title}>
+                                                            <span className="message-text">
+                                                                {ticket.title.length > 80 ? ticket.title.substring(0, 80) + '...' : ticket.title}
+                                                            </span>
+                                                        </div>
                                                     </td>
-                                                    <td>
-                                                        <span className={`status-badge ${ticket.type.toLowerCase().replace(' ', '-')}`}>
+                                                    <td className="col-type">
+                                                        <span className={`type-badge type-${ticket.type.toLowerCase().replace(/\s+/g, '-')}`}>
                                                             {ticket.type}
                                                         </span>
                                                     </td>
-                                                    <td className="user-id-cell">
-                                                        <span title={ticket.fullUserId || ticket.userId}>
-                                                            {ticket.userId.substring(0, 15)}...
-                                                        </span>
-                                                    </td>
-                                                    <td className="datetime-cell">
-                                                        <div className="datetime-info">
-                                                            <div>{ticket.timestamp.toLocaleDateString()}</div>
-                                                            <div className="time-info">{ticket.timestamp.toLocaleTimeString()}</div>
+                                                    <td className="col-user">
+                                                        <div className="user-id-wrapper" title={ticket.fullUserId || ticket.userId}>
+                                                            <span className="user-id">{ticket.userId.substring(0, 12)}...</span>
                                                         </div>
                                                     </td>
-                                                    <td className="image-cell">
-                                                        {ticket.imageUrl ? (
-                                                            <span className="has-image">📷</span>
-                                                        ) : (
-                                                            <span className="no-image">—</span>
-                                                        )}
+                                                    <td className="col-datetime">
+                                                        <div className="datetime-wrapper">
+                                                            <div className="date">{ticket.timestamp.toLocaleDateString()}</div>
+                                                            <div className="time">{ticket.timestamp.toLocaleTimeString()}</div>
+                                                        </div>
                                                     </td>
-                                                    <td>
-                                                        <button 
-                                                            className={`status-btn ${ticket.type.toLowerCase().includes('resolved') ? 'resolved' : 'pending'}`}
-                                                            onClick={() => {
-                                                                if (ticket.type.toLowerCase().includes('resolved')) {
-                                                                    alert('This ticket has already been resolved!');
-                                                                } else {
-                                                                    alert('Mark as resolved - Feature coming soon!');
-                                                                }
-                                                            }}
-                                                        >
-                                                            {ticket.type.toLowerCase().includes('resolved') ? 'Resolved' : 'Mark as Resolved'}
-                                                        </button>
+                                                    <td className="col-image">
+                                                        <div className="image-indicator">
+                                                            {ticket.imageUrl ? (
+                                                                <span className="has-image" title="Has attachment">📷</span>
+                                                            ) : (
+                                                                <span className="no-image" title="No attachment">—</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="col-actions">
+                                                        <div className="action-buttons">
+                                                            <button 
+                                                                className={`action-btn ${ticket.type.toLowerCase().includes('resolved') ? 'resolved-btn' : 'resolve-btn'}`}
+                                                                onClick={() => {
+                                                                    if (ticket.type.toLowerCase().includes('resolved')) {
+                                                                        alert('This ticket has already been resolved!');
+                                                                    } else {
+                                                                        alert('Mark as resolved - Feature coming soon!');
+                                                                    }
+                                                                }}
+                                                                aria-label={ticket.type.toLowerCase().includes('resolved') ? 'Ticket already resolved' : 'Mark ticket as resolved'}
+                                                            >
+                                                                {ticket.type.toLowerCase().includes('resolved') ? (
+                                                                    <>
+                                                                        <FaCheck /> Resolved
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <FaCheck /> Resolve
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="7" className="no-data-cell">
-                                                    <div className="no-tickets">
-                                                        <p>No report tickets found</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="reports-empty-state">
+                                    <FaMicrochip className="empty-icon" />
+                                    <h3>No Report Tickets Found</h3>
+                                    <p>There are currently no report tickets to display.</p>
+                                    <button 
+                                        className="refresh-empty-btn"
+                                        onClick={fetchReportTickets}
+                                    >
+                                        <FaRedo /> Refresh
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                        <div className="modal-footer">
-                            <button 
-                                className="close-modal-btn-secondary"
-                                onClick={() => setShowReportsModal(false)}
-                            >
-                                Close
-                            </button>
+
+                        {/* Modal Footer */}
+                        <div className="reports-modal-footer">
+                            <div className="footer-info">
+                                <span>Total: {allReportTickets.length} ticket{allReportTickets.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="footer-actions">
+                                <button 
+                                    className="footer-close-btn"
+                                    onClick={() => setShowReportsModal(false)}
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1350,13 +1468,13 @@ const Dashboard = () => {
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Confirm Print Dashboard Summary</h3>
-                            <button className="close-modal-btn" onClick={handlePrintCancel}>
+                            <button className="close-modal-btn" onClick={handlePrintCancel} aria-label="Close print confirmation modal">
                                 <FaTimes />
                             </button>
                         </div>
                         <div className="modal-body">
                             <p>Are you sure you want to print the dashboard summary?</p>
-                            <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+                            <p style={{ fontSize: '14px', color: '#555', marginTop: '10px' }}>
                                 This will generate a PDF file with all dashboard data and charts.
                             </p>
                         </div>

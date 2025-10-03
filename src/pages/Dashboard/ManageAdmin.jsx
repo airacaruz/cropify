@@ -445,13 +445,14 @@ const ManageAdmin = () => {
                 </td>
                 <td>
                   {role === "superadmin" && (
-                    <button
-                      className="edit-btn"
-                      title="Edit"
-                      onClick={() => openEditModal(admin)}
-                    >
-                      <FaUserEdit />
-                    </button>
+                      <button
+                        className="edit-btn"
+                        title="Edit"
+                        onClick={() => openEditModal(admin)}
+                        aria-label={`Edit admin ${admin.adminName || admin.email}`}
+                      >
+                        <FaUserEdit />
+                      </button>
                   )}
                   {role !== "superadmin" && (
                     <span style={{ color: '#999', fontSize: '12px' }}>
