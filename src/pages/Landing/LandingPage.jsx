@@ -7,7 +7,6 @@ import {
     FaMapMarkerAlt,
     FaMicrochip,
     FaMobile,
-    FaPhone,
     FaTwitter,
     FaUsers,
     FaWordpress
@@ -202,12 +201,8 @@ const LandingPage = () => {
                   <span>cropifyphilippines@gmail.com</span>
                 </div>
                 <div className="contact-item">
-                  <FaPhone />
-                  <span>+63 9763446894</span>
-                </div>
-                <div className="contact-item">
                   <FaMapMarkerAlt />
-                  <span>Manila, Philippines</span>
+                  <span>Manila & Davao, Philippines</span>
                 </div>
               </div>
             </div>
