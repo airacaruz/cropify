@@ -33,14 +33,7 @@ const LandingPage = () => {
 
   return (
     <div className="landing-page">
-      {/* Admin Login Header */}
-      <div className="admin-header">
-        <div className="admin-header-content">
-          <a href="/login" className="admin-login-link">
-            Click here to admin login
-          </a>
-        </div>
-      </div>
+      
 
       {/* Navigation */}
       <nav className="navbar">
