@@ -3,6 +3,7 @@
     max-width: 1400px;
     width: 100%;
     min-height: 100vh;
+    margin: 0 auto; /* center page content like other dashboards */
   }
   
   h2 {
@@ -47,6 +48,18 @@
 
   .add-btn:hover {
     background-color: #c2e0a1;
+  }
+
+  /* Ensure table wrapper styling exists on this page to avoid depending on other CSS files */
+  .table-wrapper {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    overflow-x: auto;
+    margin-top: 20px;
+    border: 1px solid rgba(46, 125, 50, 0.1);
+    max-width: 100%;
   }
 
   /* Modal Styles */
@@ -363,6 +376,36 @@
   
   .records-table tr:nth-child(even) {
     background-color: #f1f8e9;
+  }
+
+  /* Scoped overrides to avoid collisions with similarly named classes */
+  .user-records-container .add-btn {
+    background-color: #2e7d32;
+    color: #fff;
+  }
+
+  .user-records-container .add-btn:hover {
+    background-color: #c2e0a1;
+  }
+
+  .user-records-container .edit-btn {
+    background-color: #4CAF50;
+    color: #fff;
+  }
+
+  .user-records-container .save-btn {
+    background-color: #4CAF50;
+    color: #fff;
+  }
+
+  .user-records-container .cancel-btn {
+    background-color: #6c757d;
+    color: #fff;
+  }
+
+  .user-records-container .delete-btn {
+    background-color: #f44336;
+    color: #fff;
   }
   .tab-buttons {
     display: flex;

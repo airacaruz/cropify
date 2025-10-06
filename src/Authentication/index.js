@@ -58,8 +58,14 @@ export const setupComplete2FA = async (adminId, accountName, serviceName = 'Crop
     // Initialize 2FA setup
     const setupData = mfaManager.initialize2FA(accountName, serviceName);
     
-    // Save to Firebase
-    await enable2FA(adminId, setupData.secret, setupData.backupCodes, accountName, serviceName);
+    // Save to Firebase (backupCodes now string)
+    await enable2FA(
+      adminId,
+      setupData.secret,
+      Array.isArray(setupData.backupCodes) ? setupData.backupCodes.join(',') : (setupData.backupCodes || ''),
+      accountName,
+      serviceName
+    );
     
     return {
       success: true,

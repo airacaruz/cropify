@@ -1,4 +1,5 @@
-import { getAuth, signOut } from "firebase/auth";
+import { EmailAuthProvider, updatePassword as fbUpdatePassword, getAuth, reauthenticateWithCredential, signOut } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/images/cropifytextlogo.png';
@@ -11,10 +12,11 @@ import {
     isAdmin2FAEnabled,
     mfaManager
 } from '../Authentication';
-import { app } from "../firebase";
+import { app, auth, db } from "../firebase";
 import '../styles/Components/Navbar.css';
 import { adminAuditActions } from '../utils/adminAuditLogger';
 import adminStatusTracker from '../utils/adminStatusTracker';
+import { hashPassword } from "../utils/hashUtils";
 import SecurityUtils from '../utils/security.jsx';
 
 // Accept role, adminName, adminId, and onPrintSummary as props
@@ -25,6 +27,13 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [pwStrength, setPwStrength] = useState({ score: 0, label: 'Too weak' });
+  const [pwError, setPwError] = useState("");
+  const [changePwLoading, setChangePwLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [secret, setSecret] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -438,6 +447,12 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
                   Settings
                 </button>
                 <button 
+                  className="dropdown-item"
+                  onClick={() => setShowChangePassword(true)}
+                >
+                  Change Password
+                </button>
+                <button 
                   className="dropdown-item logout-item"
                   onClick={handleLogoutClick}
                 >
@@ -767,6 +782,98 @@ function Navbar({ role, adminName, adminId, onPrintSummary }) {
                   Disable 2FA
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div className="settings-modal-overlay" onClick={() => setShowChangePassword(false)}>
+          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-modal-header">
+              <h3>Change Password</h3>
+              <button className="close-settings-btn" onClick={() => setShowChangePassword(false)}>×</button>
+            </div>
+            <div className="settings-modal-content">
+              <div className="form-group">
+                <label>Current Password</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} autoComplete="current-password" />
+              </div>
+              <div className="form-group">
+                <label>New Password</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setNewPassword(v);
+                    // simple strength estimator
+                    let score = 0;
+                    if (v.length >= 8) score++;
+                    if (/[A-Z]/.test(v)) score++;
+                    if (/[a-z]/.test(v)) score++;
+                    if (/[0-9]/.test(v)) score++;
+                    if (/[^A-Za-z0-9]/.test(v)) score++;
+                    const labels = ['Too weak','Weak','Fair','Good','Strong','Very strong'];
+                    setPwStrength({ score, label: labels[Math.min(score,5)] });
+                  }} 
+                  autoComplete="new-password"
+                />
+                <div className="pw-strength">
+                  Strength: <strong>{pwStrength.label}</strong>
+                  <div className="pw-meter">
+                    <div style={{ width: `${(pwStrength.score/5)*100}%`, background: pwStrength.score >= 4 ? '#2e7d32' : pwStrength.score >= 3 ? '#ffa000' : '#e53935', transition: 'width 0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} autoComplete="new-password" />
+                {pwError && <div className="pw-error">{pwError}</div>}
+              </div>
+            </div>
+            <div className="settings-modal-footer">
+              <button className="settings-btn" disabled={changePwLoading} onClick={async () => {
+                setPwError("");
+                if (!currentPassword || !newPassword || !confirmNewPassword) {
+                  setPwError('Please fill all fields.');
+                  return;
+                }
+                if (newPassword.length < 8) {
+                  setPwError('Password must be at least 8 characters.');
+                  return;
+                }
+                if (newPassword !== confirmNewPassword) {
+                  setPwError('New password and confirmation do not match.');
+                  return;
+                }
+                try {
+                  setChangePwLoading(true);
+                  const user = auth.currentUser;
+                  if (!user) throw new Error('Not authenticated');
+                  const cred = EmailAuthProvider.credential(user.email, currentPassword);
+                  await reauthenticateWithCredential(user, cred);
+                  await fbUpdatePassword(user, newPassword);
+                  try {
+                    const { passwordHash, passwordSalt, iterations } = await hashPassword(newPassword);
+                    await updateDoc(doc(db, 'admins', user.uid), { passwordHash, passwordSalt, iterations, password: null });
+                  } catch (err) {
+                    console.warn('Failed to update password hash in Firestore:', err);
+                  }
+                  alert('Password updated successfully.');
+                  setShowChangePassword(false);
+                  setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
+                  setPwStrength({ score: 0, label: 'Too weak' });
+                } catch (err) {
+                  console.error(err);
+                  const msg = err?.code === 'auth/wrong-password' ? 'Current password is incorrect.' : err?.message || 'Failed to change password';
+                  setPwError(msg);
+                } finally {
+                  setChangePwLoading(false);
+                }
+              }}>Save Password</button>
+              <button className="settings-btn" onClick={() => setShowChangePassword(false)}>Cancel</button>
             </div>
           </div>
         </div>

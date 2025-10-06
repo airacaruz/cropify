@@ -1,13 +1,14 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { FaCheck, FaSave, FaTimes, FaTrash, FaUserEdit, FaUserPlus } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
-import { auth, db } from '../../firebase';
+import { auth, db, secondaryAuth } from '../../firebase';
 import useAdminOnlineStatus from '../../hooks/useAdminOnlineStatus';
 import '../../styles/Dashboard/AdminRecords.css';
 import { adminAuditActions } from '../../utils/adminAuditLogger';
+import { hashPassword } from '../../utils/hashUtils';
 
 const ManageAdmin = () => {
   const [admins, setAdmins] = useState([]);
@@ -123,7 +124,7 @@ const ManageAdmin = () => {
   const handleSave = async () => {
     if (!selectedAdmin) return;
     try {
-      // Prepare update data - only include password if it's not empty
+      // Prepare update data - only include password hash if it's not empty
       const updateData = {
         name: editedData.name,
         email: editedData.email,
@@ -131,9 +132,17 @@ const ManageAdmin = () => {
         username: editedData.username
       };
       
-      // Only update password if a new one is provided
+      // Only update password if a new one is provided (hash before saving)
       if (editedData.password && editedData.password.trim() !== '') {
-        updateData.password = editedData.password;
+        try {
+          const { passwordHash, passwordSalt, iterations } = await hashPassword(editedData.password);
+          updateData.passwordHash = passwordHash;
+          updateData.passwordSalt = passwordSalt;
+          updateData.iterations = iterations;
+          updateData.password = null; // remove legacy field
+        } catch (hashErr) {
+          console.warn('Password hashing failed during edit:', hashErr);
+        }
       }
       
       await updateDoc(doc(db, 'admins', selectedAdmin.id), updateData);
@@ -289,7 +298,8 @@ const ManageAdmin = () => {
       }
 
       // Create Firebase Auth user
-      const userCredential = await createUserWithEmailAndPassword(auth, registerData.email, registerData.password);
+      // Use secondary auth to avoid switching the current logged-in session
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, registerData.email, registerData.password);
       const newUser = userCredential.user;
 
       // Add admin data to Firestore
@@ -298,14 +308,46 @@ const ManageAdmin = () => {
         name: registerData.name,
         email: registerData.email,
         username: registerData.username,
-        password: registerData.password, // Note: In production, this should be hashed
+        // password removed; hashed credentials will be stored after doc creation
         role: registerData.role,
+        is2FAEnabled: false,
         createdAt: new Date(),
         createdBy: uid,
         createdByName: adminName
       };
 
-      await addDoc(collection(db, 'admins'), adminData);
+      // Create admin document using the Firebase Auth UID as the document ID
+      const adminDocId = newUser.uid;
+      await setDoc(doc(db, 'admins', adminDocId), adminData);
+
+      // Store password hash+salt (no plaintext)
+      try {
+        const { passwordHash, passwordSalt, iterations } = await hashPassword(registerData.password);
+        await updateDoc(doc(db, 'admins', adminDocId), {
+          passwordHash,
+          passwordSalt,
+          iterations
+        });
+      } catch (hashErr) {
+        console.warn('Failed to hash password for new admin:', hashErr);
+      }
+
+      // Initialize MFA sub-collection with a deterministic 'totp' document
+      try {
+        await setDoc(doc(db, 'admins', adminDocId, 'mfa', 'totp'), {
+          enabled: false,
+          secret: '',
+          backupCodes: '',
+          accountName: registerData.email || registerData.username || '',
+          serviceName: 'Cropify Admin',
+          createdAt: new Date(),
+          lastUpdated: new Date(),
+          setupCompleted: false,
+        });
+      } catch (mfaError) {
+        console.warn('Failed to initialize MFA sub-collection:', mfaError);
+        // Do not interrupt admin creation if MFA setup fails; it can be re-tried later
+      }
 
       // Log the admin creation action
       if (uid && adminName) {
@@ -330,6 +372,8 @@ const ManageAdmin = () => {
         setRegisterMessage('Failed to create admin. Please try again.');
       }
     } finally {
+      // Ensure secondary auth doesn't stay logged in (defensive cleanup)
+      try { await secondaryAuth.signOut(); } catch (_) {}
       setRegisterLoading(false);
     }
   };
