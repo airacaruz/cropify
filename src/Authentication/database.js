@@ -397,9 +397,7 @@ export const mfaOperations = {
      */
     getAllMFAEnabledAdmins: async () => {
         return collectionOperations.getAll('admins', {
-            where: [
-                { field: 'mfa.totp.enabled', operator: '==', value: true }
-            ]
+            where: [ { field: 'mfa.totp.enabled', operator: '==', value: true } ]
         });
     }
 };

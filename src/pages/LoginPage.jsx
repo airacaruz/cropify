@@ -3,7 +3,7 @@ import { collection, getDocs, getFirestore, query, where } from "firebase/firest
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import cropifyLogo from "../assets/images/cropifylogo.png";
-import { isAdmin2FAEnabled, verifyAdmin2FA } from "../Authentication";
+import { completeAdmin2FASetup, isAdmin2FAEnabled, verifyAdmin2FA } from "../Authentication";
 import { app } from "../firebase";
 import "../styles/Pages/LoginPage.css";
 import SecurityUtils from "../utils/security.jsx";
@@ -71,7 +71,9 @@ function LoginPage() {
 
       // ✅ Step 3: Get admin data from Firestore
       const adminData = querySnapshot.docs[0].data();
-      const currentAdminId = querySnapshot.docs[0].id;
+      // Use the Firebase Auth UID stored in the admin document (adminId);
+      // fall back to the doc id only if the field is missing
+      const currentAdminId = adminData.adminId || querySnapshot.docs[0].id;
       
       // Store admin data for potential 2FA verification
       setAdminId(currentAdminId);
@@ -146,6 +148,12 @@ function LoginPage() {
       const isValid = await verifyAdmin2FA(adminId, twoFACode);
       
       if (isValid) {
+        // Mark setup as completed in Firestore so future logins require 2FA
+        try {
+          await completeAdmin2FASetup(adminId, twoFACode);
+        } catch (e) {
+          console.warn("Failed to complete 2FA setup flag:", e);
+        }
         // 2FA verification successful, proceed to dashboard
         localStorage.setItem("adminName", adminName);
         

@@ -57,18 +57,18 @@ export const saveMFAData = async (adminId, mfaData) => {
  * @param {string} serviceName - The service name
  * @returns {Promise<boolean>} - True if successful
  */
-export const enable2FA = async (adminId, secret, backupCodes = [], accountName = '', serviceName = 'Cropify Admin') => {
+export const enable2FA = async (adminId, secret, backupCodes = '', accountName = '', serviceName = 'Cropify Admin') => {
   return withErrorHandling(async () => {
     if (!adminId || !secret) return false;
     
     const mfaData = {
       enabled: true,
       secret: secret,
-      backupCodes: backupCodes,
+      backupCodes: backupCodes, // string
       accountName: accountName,
       serviceName: serviceName,
       createdAt: getServerTimestamp(),
-      lastVerifiedAt: null,
+      lastVerifiedAt: getServerTimestamp(),
       setupCompleted: false
     };
     

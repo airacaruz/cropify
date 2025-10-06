@@ -1,3 +1,59 @@
+// Password hashing utilities using Web Crypto API (PBKDF2 + SHA-256)
+// Stores { passwordHash, passwordSalt, iterations }
+
+const textEncoder = new TextEncoder();
+
+async function deriveKey(password, saltBytes, iterations) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    textEncoder.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: saltBytes,
+      iterations,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  );
+  return new Uint8Array(derivedBits);
+}
+
+function toBase64(bytes) {
+  let binary = '';
+  bytes.forEach((b) => (binary += String.fromCharCode(b)));
+  return btoa(binary);
+}
+
+function fromBase64(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+export async function hashPassword(password) {
+  const iterations = 150000; // reasonable default for clients
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const hashBytes = await deriveKey(password, saltBytes, iterations);
+  return {
+    passwordHash: toBase64(hashBytes),
+    passwordSalt: toBase64(saltBytes),
+    iterations
+  };
+}
+
+export async function verifyPassword(password, passwordHash, passwordSalt, iterations) {
+  const saltBytes = fromBase64(passwordSalt);
+  const hashBytes = await deriveKey(password, saltBytes, iterations);
+  return toBase64(hashBytes) === passwordHash;
+}
+
 /**
  * Hashing utility for sensitive data display
  * Creates consistent hashes for UIDs and phone numbers to protect privacy

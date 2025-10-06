@@ -15,13 +15,25 @@ const firebaseConfig = {
   databaseURL: "https://cropify-8e68d-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-// Initialize Firebase
+// Initialize Firebase (primary app)
 const app = initializeApp(firebaseConfig);
 
+// Initialize a secondary app for privileged actions (e.g., creating users)
+// Using a named app prevents interfering with the primary auth session
+let secondaryApp;
+try {
+  secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+} catch (e) {
+  // If already initialized, reuse it
+  // eslint-disable-next-line no-undef
+  secondaryApp = window.firebase?.apps?.find?.(a => a.name === 'Secondary') || app;
+}
+
 const auth = getAuth(app);
+const secondaryAuth = getAuth(secondaryApp);
 const db = getFirestore(app);
 const realtimeDb = getDatabase(app);
 const storage = getStorage(app);
 
-export { app, auth, db, realtimeDb, storage };
+export { app, auth, db, realtimeDb, secondaryAuth, storage };
 

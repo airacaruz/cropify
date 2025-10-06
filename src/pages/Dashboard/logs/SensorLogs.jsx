@@ -66,6 +66,7 @@ const SensorLogsPage = () => {
             const kit = {
               id: doc.id,
               code: data.sensorCode || 'N/A',
+              sensorCode: data.sensorCode || 'N/A', // Store both for matching
               linked: data.linked || false,
               linkedPlantId: data.linkedPlantId || null,
               plantName: data.plantName || 'N/A',
@@ -122,8 +123,13 @@ const SensorLogsPage = () => {
               humidity: sensorData.humidity
             });
             
-            // Check if this sensor kit already exists in Firestore data
-            const existingKit = kits.find(kit => kit.id === sensorId);
+            // Check if this sensor kit already exists in Firestore data by ID or by sensorCode/code match
+            const existingKit = kits.find(kit => 
+              kit.id === sensorId || 
+              kit.sensorCode === sensorData.code || 
+              kit.code === sensorData.code ||
+              kit.sensorCode === sensorData.sensorCode
+            );
             
             if (existingKit) {
               // Check if sensor is now unlinked - if so, remove it from kits
@@ -136,6 +142,7 @@ const SensorLogsPage = () => {
               } else {
                 // Update existing kit with real-time data, but preserve plantName and userId from Firestore
                 existingKit.code = sensorData.code || sensorData.sensorCode || existingKit.code;
+                existingKit.sensorCode = sensorData.sensorCode || sensorData.code || existingKit.sensorCode;
                 existingKit.linked = sensorData.linked !== undefined ? sensorData.linked : existingKit.linked;
                 existingKit.linkedPlantId = sensorData.linkedPlantId || existingKit.linkedPlantId;
                 // Keep plantName and userId from Firestore (don't overwrite with undefined values)
@@ -165,6 +172,7 @@ const SensorLogsPage = () => {
                 const kit = {
                   id: sensorId,
                   code: sensorData.code || sensorData.sensorCode || 'N/A',
+                  sensorCode: sensorData.sensorCode || sensorData.code || 'N/A', // Store both for matching
                   linked: sensorData.linked || false,
                   linkedPlantId: sensorData.linkedPlantId || null,
                   plantName: sensorData.plantName || 'N/A',
@@ -192,7 +200,12 @@ const SensorLogsPage = () => {
             // Show all sensors with readings - simplified for production debugging
             if (hasReadings && isLinked) {
               // Use preserved data from existing kit if available, otherwise use sensorData
-              const existingKit = kits.find(kit => kit.id === sensorId);
+              const existingKit = kits.find(kit => 
+                kit.id === sensorId || 
+                kit.sensorCode === sensorData.code || 
+                kit.code === sensorData.code ||
+                kit.sensorCode === sensorData.sensorCode
+              );
               const session = {
                 skid: sensorId,
                 code: sensorData.code || sensorData.sensorCode || 'N/A',
@@ -357,7 +370,12 @@ const SensorLogsPage = () => {
           
           Object.keys(sensorsData).forEach(sensorId => {
             const sensorData = sensorsData[sensorId];
-            const existingKitIndex = updatedKits.findIndex(kit => kit.id === sensorId);
+            const existingKitIndex = updatedKits.findIndex(kit => 
+              kit.id === sensorId || 
+              kit.sensorCode === sensorData.code || 
+              kit.code === sensorData.code ||
+              kit.sensorCode === sensorData.sensorCode
+            );
             
             if (existingKitIndex !== -1) {
               // Only update if it's not a system sensor kit
@@ -371,6 +389,7 @@ const SensorLogsPage = () => {
                   updatedKits[existingKitIndex] = {
                     ...updatedKits[existingKitIndex],
                     code: sensorData.code || sensorData.sensorCode || updatedKits[existingKitIndex].code,
+                    sensorCode: sensorData.sensorCode || sensorData.code || updatedKits[existingKitIndex].sensorCode,
                     linked: sensorData.linked !== undefined ? sensorData.linked : updatedKits[existingKitIndex].linked,
                     linkedPlantId: sensorData.linkedPlantId || updatedKits[existingKitIndex].linkedPlantId,
                     // Preserve plantName and userId (don't overwrite with undefined)
@@ -409,7 +428,12 @@ const SensorLogsPage = () => {
               }
             } else if (sensorData.ph !== undefined || sensorData.temperature !== undefined || sensorData.humidity !== undefined || sensorData.tds !== undefined) {
               // Use preserved data from existing kit if available
-              const existingKit = updatedKits.find(kit => kit.id === sensorId);
+              const existingKit = updatedKits.find(kit => 
+                kit.id === sensorId || 
+                kit.sensorCode === sensorData.code || 
+                kit.code === sensorData.code ||
+                kit.sensorCode === sensorData.sensorCode
+              );
               const userId = existingKit?.userId || sensorData.userId;
               
               // Only filter out hardcoded entries, show all sensors with readings

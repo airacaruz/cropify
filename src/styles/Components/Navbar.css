@@ -486,6 +486,59 @@ body {
   overflow-y: auto;
 }
 
+/* Change Password modal specific tuning (reuses settings modal) */
+.settings-modal-content .form-group {
+  margin-bottom: 16px;
+}
+
+.settings-modal-content .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.settings-modal-content .form-group input[type="password"] {
+  width: 100%;
+  max-width: 380px;
+  padding: 12px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.settings-modal-content .form-group input[type="password"]:focus {
+  outline: none;
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+.settings-modal-content .pw-error {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.settings-modal-content .pw-strength {
+  font-size: 12px;
+  margin-top: 6px;
+  color: #666;
+}
+
+.settings-modal-content .pw-meter {
+  height: 6px;
+  background: #eee;
+  border-radius: 4px;
+  margin-top: 4px;
+  max-width: 380px;
+}
+
+.settings-modal-content .pw-meter > div {
+  height: 6px;
+  border-radius: 4px;
+}
+
 .settings-section {
   margin-bottom: 24px;
 }
