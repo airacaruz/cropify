@@ -2,6 +2,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   onSnapshot,
   orderBy,
@@ -10,7 +12,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { FaCalendarAlt, FaEye, FaNewspaper, FaPlus, FaTimes, FaVideo } from "react-icons/fa";
+import { FaCalendarAlt, FaEye, FaNewspaper, FaPlus, FaTimes, FaTrash, FaVideo } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase";
@@ -144,7 +146,7 @@ const ManageAppPage = () => {
       await addDoc(collection(db, "news"), {
         title,
         description,
-        mediaUrl: media,
+        imageUrl: media,
         createdAt: serverTimestamp(),
       });
 
@@ -159,6 +161,30 @@ const ManageAppPage = () => {
       setShowForm(false);
     } catch (error) {
       console.error("Error adding news:", error);
+    }
+  };
+
+  const handleDeleteNews = async (newsId) => {
+    if (!newsId) return;
+    const confirmed = window.confirm("Delete this news item? This cannot be undone.");
+    if (!confirmed) return;
+    try {
+      await deleteDoc(doc(db, "news", newsId));
+    } catch (error) {
+      console.error("Error deleting news:", error);
+      alert("Failed to delete news item.");
+    }
+  };
+
+  const handleDeleteTutorial = async (tutorialId) => {
+    if (!tutorialId) return;
+    const confirmed = window.confirm("Delete this tutorial? This cannot be undone.");
+    if (!confirmed) return;
+    try {
+      await deleteDoc(doc(db, "tutorials", tutorialId));
+    } catch (error) {
+      console.error("Error deleting tutorial:", error);
+      alert("Failed to delete tutorial.");
     }
   };
 
@@ -429,7 +455,7 @@ const ManageAppPage = () => {
                   </div>
 
               <div className="form-group">
-                  <label>Media Link (Image or Video URL):</label>
+                  <label>Image URL:</label>
                   <input
                     type="url"
                     value={media}
@@ -734,11 +760,35 @@ const ManageAppPage = () => {
             {/* Modal Footer */}
             <div style={{
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "space-between",
               gap: "12px",
               paddingTop: "15px",
               borderTop: "1px solid #e9ecef"
             }}>
+              <button
+                onClick={async () => {
+                  if (!selectedTutorial) return;
+                  const confirmed = window.confirm("Delete this tutorial? This cannot be undone.");
+                  if (!confirmed) return;
+                  await handleDeleteTutorial(selectedTutorial.id);
+                  closeTutorialModal();
+                }}
+                style={{
+                  background: "#d32f2f",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e) => e.target.style.background = "#c62828"}
+                onMouseOut={(e) => e.target.style.background = "#d32f2f"}
+              >
+                <FaTrash style={{ marginRight: 8 }} /> Delete
+              </button>
               <button
                 onClick={closeTutorialModal}
                 style={{
@@ -916,8 +966,8 @@ const ManageAppPage = () => {
                 </div>
               </div>
 
-              {/* Media Content Section */}
-              {selectedNews.mediaUrl && (
+              {/* Image Content Section */}
+              {selectedNews.imageUrl && (
                 <div style={{ marginBottom: "20px" }}>
                   <h4 style={{ 
                     margin: "0 0 15px 0", 
@@ -925,10 +975,10 @@ const ManageAppPage = () => {
                     fontWeight: "600", 
                     color: "#333" 
                   }}>
-                    Media Content
+                    Image Content
                   </h4>
                   
-                  {/* Media URL Display */}
+                  {/* Image URL Display */}
                   <div style={{
                     padding: "15px",
                     background: "#f8f9fa",
@@ -942,7 +992,7 @@ const ManageAppPage = () => {
                       fontWeight: "500", 
                       color: "#495057" 
                     }}>
-                      Media URL:
+                      Image URL:
                     </p>
                     <p style={{ 
                       margin: 0, 
@@ -951,11 +1001,11 @@ const ManageAppPage = () => {
                       wordBreak: "break-all",
                       fontFamily: "monospace"
                     }}>
-                      {selectedNews.mediaUrl}
+                      {selectedNews.imageUrl}
                     </p>
                   </div>
 
-                  {/* Media Display */}
+                  {/* Image Display */}
                   <div style={{
                     padding: "15px",
                     background: "#f8f9fa",
@@ -963,9 +1013,9 @@ const ManageAppPage = () => {
                     border: "1px solid #e9ecef",
                     textAlign: "center"
                   }}>
-                    {selectedNews.mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                    {selectedNews.imageUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                       <img
-                        src={selectedNews.mediaUrl}
+                        src={selectedNews.imageUrl}
                         alt={selectedNews.title}
                         style={{
                           maxWidth: "100%",
@@ -976,7 +1026,7 @@ const ManageAppPage = () => {
                       />
                     ) : (
                       <a
-                        href={selectedNews.mediaUrl}
+                        href={selectedNews.imageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -996,7 +1046,7 @@ const ManageAppPage = () => {
                         onMouseOut={(e) => e.target.style.background = "#4CAF50"}
                       >
                         <FaNewspaper style={{ fontSize: "16px" }} />
-                        View Media Content
+                        View Image Content
                       </a>
                     )}
                   </div>
@@ -1007,11 +1057,35 @@ const ManageAppPage = () => {
             {/* Modal Footer */}
             <div style={{
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "space-between",
               gap: "12px",
               paddingTop: "15px",
               borderTop: "1px solid #e9ecef"
             }}>
+              <button
+                onClick={async () => {
+                  if (!selectedNews) return;
+                  const confirmed = window.confirm("Delete this news item? This cannot be undone.");
+                  if (!confirmed) return;
+                  await handleDeleteNews(selectedNews.id);
+                  closeNewsModal();
+                }}
+                style={{
+                  background: "#d32f2f",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseOver={(e) => e.target.style.background = "#c62828"}
+                onMouseOut={(e) => e.target.style.background = "#d32f2f"}
+              >
+                <FaTrash style={{ marginRight: 8 }} /> Delete
+              </button>
               <button
                 onClick={closeNewsModal}
                 style={{
