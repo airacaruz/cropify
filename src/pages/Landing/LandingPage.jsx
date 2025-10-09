@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    FaChevronLeft,
+    FaChevronRight,
     FaEnvelope,
     FaFacebook,
     FaInstagram,
@@ -12,11 +14,69 @@ import {
     FaWordpress
 } from 'react-icons/fa';
 import appMockupImage from '../../assets/images/cropify_phoneview.png';
+import cropifyTextLogo from '../../assets/images/cropifytextlogo.png';
+import slider1 from '../../assets/images/imageSlider/481671011_633272719541517_8855981084144259507_n.jpg';
+import slider2 from '../../assets/images/imageSlider/493825041_677072771828178_6303893193829315865_n.jpg';
+import slider6 from '../../assets/images/imageSlider/518390974_740183395517115_5596105515263630200_n.jpg';
+import slider5 from '../../assets/images/imageSlider/522649900_740181562183965_8879259136510827171_n.jpg';
+import slider4 from '../../assets/images/imageSlider/522971609_740181642183957_1526375359484507212_n.jpg';
 import logoImage from '../../assets/images/logo.png';
 import './LandingPage.css';
 
 const LandingPage = () => {
   const [downloadCount] = useState(12547);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Slider images data
+  const sliderImages = [
+    {
+      url: slider1,
+      title: "Hydroponic Farming Excellence",
+      description: "Modern vertical farming systems for maximum yield"
+    },
+    {
+      url: slider2,
+      title: "Expert Training & Support",
+      description: "Professional guidance for sustainable agriculture"
+    },
+    {
+      url: slider4,
+      title: "IoT-Powered Systems",
+      description: "Smart sensors for optimal plant growth"
+    },
+    {
+      url: slider5,
+      title: "Healthy Fresh Produce",
+      description: "Nutrient-rich vegetables grown sustainably"
+    },
+    {
+      url: slider6,
+      title: "Hands-On Learning",
+      description: "Practical workshops and demonstrations"
+    }
+  ];
+
+  // Auto-play slider
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(timer);
+  }, [sliderImages.length]);
+
+  // Navigation functions
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
+  };
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
+  };
 
   // Function to scroll to download section
   const scrollToDownload = () => {
@@ -80,6 +140,50 @@ const LandingPage = () => {
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Image Slider Section */}
+      <section className="image-slider-section">
+        <div className="slider-header">
+          <h2 className="slider-section-title">
+            THE TEAM BEHIND <img src={cropifyTextLogo} alt="Cropify" className="cropify-text-logo" />
+          </h2>
+        </div>
+        <div className="slider-container">
+          <div className="slider-wrapper">
+            {sliderImages.map((slide, index) => (
+              <div
+                key={index}
+                className={`slide ${index === currentSlide ? 'active' : ''}`}
+                style={{
+                  backgroundImage: `url(${slide.url})`,
+                  transform: `translateX(${(index - currentSlide) * 100}%)`,
+                  transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Navigation Arrows */}
+          <button className="slider-btn prev-btn" onClick={prevSlide} aria-label="Previous slide">
+            <FaChevronLeft />
+          </button>
+          <button className="slider-btn next-btn" onClick={nextSlide} aria-label="Next slide">
+            <FaChevronRight />
+          </button>
+
+          {/* Dot Indicators */}
+          <div className="slider-dots">
+            {sliderImages.map((_, index) => (
+              <button
+                key={index}
+                className={`dot ${index === currentSlide ? 'active' : ''}`}
+                onClick={() => goToSlide(index)}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
       </section>
