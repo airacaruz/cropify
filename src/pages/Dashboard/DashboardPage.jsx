@@ -1085,15 +1085,15 @@ const Dashboard = () => {
                                         <div key={ticket.id} className="app-report-item">
                                             <div className="ticket-info">
                                                 <span className="ticket-id">{ticket.id}</span>
-                                                <span className="ticket-title">{ticket.title}</span>
-                                            </div>
-                                            <div className="ticket-details">
                                                 <span className={`ticket-status ${ticket.type.toLowerCase().replace(' ', '-')}`}>
                                                     {ticket.type}
                                                 </span>
+                                            </div>
+                                            <div className="ticket-details">
                                                 <span className="ticket-user">
                                                     {ticket.userId.substring(0, 8)}...
                                                 </span>
+                                                <span className="ticket-title">{ticket.title}</span>
                                             </div>
                                         </div>
                                     ))
@@ -1158,16 +1158,16 @@ const Dashboard = () => {
                                         <div key={kit.id} className="sensor-kit-item">
                                             <div className="kit-main-row">
                                                 <div className="kit-left-main">
-                                                <span className="kit-id">{kit.id}</span>
-                                                    <span className="kit-user" title={`Original UID: ${kit.user}`}>{hashUID(kit.user)}</span>
+                                                    <span className="kit-id">{kit.id}</span>
                                                     <div className="kit-status-row">
-                                                <span className={`kit-status ${kit.status.toLowerCase()}`}>
-                                                    {kit.status}
-                                                </span>
-                                                {kit.linked && <span className="kit-linked">🔗 Linked</span>}
+                                                        <span className={`kit-status ${kit.status.toLowerCase()}`}>
+                                                            {kit.status}
+                                                        </span>
+                                                        {kit.linked && <span className="kit-linked">🔗 Linked</span>}
                                                     </div>
                                                 </div>
                                                 <div className="kit-right">
+                                                    <span className="kit-user" title={`Original UID: ${kit.user}`}>{hashUID(kit.user)}</span>
                                                     {kit.plantName && <span className="kit-plant">🌱 {kit.plantName}</span>}
                                                 </div>
                                             </div>
