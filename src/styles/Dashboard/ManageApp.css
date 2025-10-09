@@ -266,6 +266,18 @@
   padding: 20px;
 }
 
+/* Add/Edit form modal (used by Add News/Tutorials) */
+.modal-form {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow: auto;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
 .modal-content {
   background: white;
   border-radius: 12px;
@@ -448,6 +460,47 @@
   gap: 10px;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+/* Buttons inside add-news/tutorials modal */
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.submit-btn {
+  background: #4CAF50;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.submit-btn:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: #e9ecef;
 }
 
 .btn {

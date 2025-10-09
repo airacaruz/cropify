@@ -85,7 +85,6 @@ function LoginPage() {
       if (is2FAEnabled) {
         // Show 2FA verification step
         setShow2FA(true);
-        setMessage("Please enter the 6-digit code from your authenticator app.");
         setLoading(false);
       } else {
         // No 2FA enabled, proceed to dashboard
