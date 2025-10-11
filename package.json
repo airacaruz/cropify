@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:apk": "firebase appdistribution:distribute public/downloads/cropify.apk --app YOUR_ANDROID_APP_ID --release-notes-file release-notes.txt --testers-file testers.txt"
   },
   "dependencies": {
     "firebase": "^11.10.0",

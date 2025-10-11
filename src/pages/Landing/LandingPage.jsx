@@ -228,16 +228,29 @@ const LandingPage = () => {
             <div className="cta-content">
               <h2 style={{ textAlign: 'center' }}>Ready to Start Your IoT-Powered Hydroponics Journey?</h2>
               <p style={{ textAlign: 'center' }}>Join thousands of farmers who are already using Cropify to grow better crops.</p>
-              <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              
+              {/* Download Section */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '1.5rem', 
+                marginTop: '2rem',
+                width: '100%',
+                maxWidth: '450px',
+                margin: '2rem auto 0'
+              }}>
+                {/* Primary Download Button */}
                 <a 
-                  href="https://drive.google.com/uc?export=download&id=1fOjfl4jJvvwMbVeeSTN5ojNVsui9ipbj"
+                  href="https://appdistribution.firebase.dev/i/66b4181b1dbe05a5"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '0.5rem',
-                    padding: '1rem 2rem',
+                    padding: '1.25rem 2.5rem',
                     backgroundColor: 'white',
                     color: '#4CAF50',
                     textDecoration: 'none',
@@ -245,21 +258,33 @@ const LandingPage = () => {
                     fontWeight: '600',
                     fontSize: '1.2rem',
                     transition: 'all 0.3s ease',
-                    border: '2px solid white'
+                    border: '2px solid white',
+                    boxShadow: '0 4px 15px rgba(255, 255, 255, 0.2)',
+                    width: '100%'
                   }}
                   onMouseOver={(e) => {
-                    e.target.style.backgroundColor = '#f5f5f5';
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 8px 25px rgba(255, 255, 255, 0.3)';
+                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 255, 255, 0.3)';
                   }}
                   onMouseOut={(e) => {
-                    e.target.style.backgroundColor = 'white';
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = 'none';
+                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 255, 255, 0.2)';
                   }}
                 >
-                  Download APK
+                  Download Mobile App
                 </a>
+
+                <p style={{ 
+                  fontSize: '0.9rem', 
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  textAlign: 'center',
+                  margin: 0
+                }}>
+                  Available for Android and iOS
+                </p>
+
                 <div style={{ 
                   marginTop: '1rem', 
                   fontSize: '0.9rem', 
@@ -296,6 +321,10 @@ const LandingPage = () => {
                 <div className="contact-item">
                   <FaEnvelope />
                   <span>cropifyphilippines@gmail.com</span>
+                </div>
+                <div className="contact-item">
+                  <FaEnvelope />
+                  <span>plantboxidea@gmail.com</span>
                 </div>
                 <div className="contact-item">
                   <FaMapMarkerAlt />

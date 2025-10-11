@@ -1,0 +1,19 @@
+Cropify Android App - Version 1.0.0
+
+🎉 New Features:
+- User authentication with Multi-Factor Authentication (MFA)
+- Plant disease detection and analysis
+- Real-time sensor data monitoring (pH, TDS, Temperature, Humidity)
+- Analytics dashboard with insights
+- Secure session management
+- Admin audit logging
+- IoT sensor integration
+
+🐛 Bug Fixes:
+- Initial release
+
+📝 Notes:
+- This is a test build for internal testing
+- Please report any issues to: cropifyphilippines@gmail.com
+- Minimum Android version: 5.0 (Lollipop)
+
