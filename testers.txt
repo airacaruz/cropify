@@ -1,0 +1,10 @@
+# Add tester email addresses (one per line)
+# Example:
+# john.doe@example.com
+# jane.smith@example.com
+# qa-tester@cropify.com
+
+# Add your testers below:
+cropifyphilippines@gmail.com
+kiercedric@gmail.com
+

@@ -291,3 +291,4 @@ searchPlantByName('LETTY LETTUCE'); // Still works!
 **Database**: Firebase Realtime Database (for mobile app data)  
 **Search Tool**: ✅ Available at `/search-plant`
 
+

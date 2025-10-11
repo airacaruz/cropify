@@ -544,3 +544,4 @@ Cropify successfully improved web security from **Grade D to Grade A** through:
 **Security Grade**: **A (Excellent)**  
 **Status**: Production Ready ✅
 
+
