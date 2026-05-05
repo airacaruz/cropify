@@ -18,8 +18,11 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Cell,
     Line,
     LineChart,
+    Pie,
+    PieChart,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -33,36 +36,108 @@ import { adminAuditActions } from '../../utils/adminAuditLogger';
 import { hashUID } from '../../utils/hashUtils';
 import userSessionManager from '../../utils/userSessionManager';
 
-function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsers) {
+function parseTrendPercent(trendRaw) {
+    if (trendRaw === null || trendRaw === undefined) return null;
+    const cleaned = String(trendRaw).replace(/%/g, '').trim();
+    if (!cleaned) return null;
+    const n = Number.parseFloat(cleaned);
+    return Number.isFinite(n) ? n : null;
+}
+
+function getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsersNum) {
     const insights = [];
-    if (parseFloat(kpiData.newUsersTrend) < 0) {
-        insights.push("New user growth is down this month. Consider launching a referral or marketing campaign.");
-    } else if (parseFloat(kpiData.newUsersTrend) > 10) {
-        insights.push("New user growth is strong! Analyze what worked this month and replicate it.");
-    } else {
-        insights.push("New user growth is steady. Continue monitoring.");
+    const trendPct = parseTrendPercent(kpiData?.newUsersTrend);
+
+    if (trendPct === null) {
+        insights.push(
+            'Month-over-month registration change could not be determined with the current KPI fields. Confirm that signup timestamps populate consistently before relying on comparative trends.'
+        );
+    } else if (trendPct < -5) {
+        insights.push(
+            `New registrations declined by approximately ${Math.abs(trendPct).toFixed(0)}% compared with the prior month. Review acquisition channels, pricing or positioning changes, and the onboarding funnel for friction.`
+        );
+    } else if (trendPct < 0) {
+        insights.push(
+            `New registrations dipped slightly (${trendPct.toFixed(0)}% versus the prior month). Treat this as an early indicator—validate with weekly cohort totals before reallocating acquisition budget.`
+        );
+    } else if (trendPct >= 15) {
+        insights.push(
+            `New registrations accelerated by about ${trendPct.toFixed(0)}% month over month. Document campaigns and releases that coincide with the lift so the playbook can be repeated or scaled responsibly.`
+        );
+    } else if (trendPct > 5) {
+        insights.push(
+            `Registration momentum is favourable (${trendPct.toFixed(0)}% versus the prior month). Reinforce what is already working while monitoring downstream activation and retention.`
+        );
+    } else if (trendPct > 0) {
+        insights.push(
+            'Registration volume increased modestly relative to last month. Consider targeted experiments to amplify reach while preserving conversion quality.'
+        );
+    } else if (trendPct === 0) {
+        insights.push(
+            'Registration volume was flat versus the prior month. Layer controlled experiments incrementally rather than disrupting a stable signup baseline.'
+        );
     }
-    if (totalUsers !== "..." && !isNaN(activeUsersCount) && parseInt(totalUsers.replace(/,/g, '')) > 0) {
-        const activeRatio = activeUsersCount / parseInt(totalUsers.replace(/,/g, ''));
-        if (activeRatio > 0.7) {
-            insights.push("A high percentage of users are active. Consider advanced features or loyalty rewards.");
-        } else if (activeRatio < 0.3) {
-            insights.push("Active user rate is low. Try re-engagement campaigns.");
+
+    const totalRounded =
+        typeof totalUsersNum === 'number' && totalUsersNum > 0 && Number.isFinite(totalUsersNum)
+            ? totalUsersNum
+            : null;
+
+    if (totalRounded !== null && Number.isFinite(activeUsersCount)) {
+        const ratio = activeUsersCount / totalRounded;
+        const pct = ratio * 100;
+        if (activeUsersCount === 0) {
+            insights.push(
+                'No accounts currently qualify as “active” under the dashboard thresholds. Align session-timeout and activity telemetry with operational expectations before treating this metric as authoritative.'
+            );
+        } else if (ratio > 0.7) {
+            insights.push(
+                `Roughly ${pct.toFixed(0)}% of registered accounts show qualifying recent activity—a strong posture. Evaluate whether loyalty, advanced features, or capacity planning merits attention alongside growth.`
+            );
+        } else if (ratio < 0.3) {
+            insights.push(
+                `About ${pct.toFixed(0)}% of accounts show qualifying recent engagement. Assess lifecycle outreach, dormant-user campaigns, and in-product cues that drive return visits without oversaturating active cohorts.`
+            );
+        } else {
+            insights.push(
+                `Engagement translates to roughly ${pct.toFixed(0)}% of accounts with qualifying activity—a typical mid-range band for many platforms. Watch for divergence after releases, incidents, or policy changes.`
+            );
         }
     }
-    if (newUsersData.length > 0) {
-        const highest = newUsersData.reduce((prev, curr) => (curr.newUsers > prev.newUsers ? curr : prev));
-        insights.push(`Highest new user growth was in ${highest.month}. Review your activities then for best practices.`);
+
+    const months = Array.isArray(newUsersData) ? newUsersData : [];
+    const totalAttributed = months.reduce((sum, row) => sum + (Number(row.newUsers) || 0), 0);
+
+    if (months.length > 0) {
+        const peakMonth = months.reduce((best, curr) =>
+            (Number(curr.newUsers) || 0) > (Number(best.newUsers) || 0) ? curr : best,
+            months[0],
+        );
+        const peakCount = Number(peakMonth?.newUsers) || 0;
+        if (totalAttributed === 0) {
+            insights.push(
+                'No sign-ups mapped to calendar months are visible in this view. Inspect stored created-at timestamps on user records—missing values will suppress actionable registration timing insights.'
+            );
+        } else if (peakCount > 0) {
+            const share = (peakCount / totalAttributed) * 100;
+            insights.push(
+                `Among months shown here, registrations peaked at ${peakCount.toLocaleString()} in ${peakMonth.month}, representing roughly ${share.toFixed(0)}% of registrations in this window—informative when planning staffing, support, or marketing rhythm.`
+            );
+        }
     }
+
     return insights;
 }
 
 const exportChartsAndPrescriptivePDF = async ({
     kpiData,
     newUsersData,
-    totalUsers,
+    totalUsersFormatted,
+    activeUsersCount,
     prescriptiveInsights,
-    sensorChartData
+    sensorChartData,
+    plantTypeDistribution,
+    appReportTickets
 }) => {
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.width;
@@ -118,10 +193,10 @@ const exportChartsAndPrescriptivePDF = async ({
     
     const kpiTableData = [
         ['Metric', 'Current Value', 'Trend', 'Status'],
-        ['New Users (Current Month)', kpiData.newUsersCount || '0', kpiData.newUsersTrend || 'N/A', 'Active'],
-        ['Total Users', totalUsers || 'N/A', 'Growing', 'Good'],
-        ['Active Users', 'N/A', 'Stable', 'Good'],
-        ['Sensor Logs', sensorChartData.length.toString(), 'Active', 'Good'],
+        ['New Users (Current Month)', kpiData.newUsersCount?.toLocaleString?.() ?? String(kpiData.newUsersCount ?? '0'), kpiData.newUsersTrend || 'N/A', 'Recorded'],
+        ['Total Users', totalUsersFormatted, '—', 'Recorded'],
+        ['Active Users', activeUsersCount?.toLocaleString?.() ?? String(activeUsersCount ?? 0), '—', 'Recorded'],
+        ['Sensor Logs', sensorChartData.length.toString(), '—', 'Recorded'],
     ];
     
     autoTable(doc, {
@@ -144,7 +219,7 @@ const exportChartsAndPrescriptivePDF = async ({
     if (newUsersData && newUsersData.length > 0) {
         // Calculate growth metrics
         const totalNewUsers = newUsersData.reduce((sum, month) => sum + month.newUsers, 0);
-        const avgMonthlyGrowth = (totalNewUsers / newUsersData.length).toFixed(1);
+        const avgMonthlyGrowth = totalNewUsers / newUsersData.length;
         const highestMonth = newUsersData.reduce((max, month) => month.newUsers > max.newUsers ? month : max, newUsersData[0]);
         
         doc.setFontSize(12);
@@ -153,7 +228,7 @@ const exportChartsAndPrescriptivePDF = async ({
         
         const growthMetrics = [
             `• Total new users tracked: ${totalNewUsers}`,
-            `• Average monthly growth: ${avgMonthlyGrowth} users`,
+            `• Average monthly growth: ${avgMonthlyGrowth.toFixed(1)} users`,
             `• Highest growth month: ${highestMonth.month} (${highestMonth.newUsers} users)`,
             `• Growth period: ${newUsersData.length} months`
         ];
@@ -170,8 +245,12 @@ const exportChartsAndPrescriptivePDF = async ({
         const monthlyData = newUsersData.map(month => [
             month.month,
             month.newUsers.toString(),
-            `${((month.newUsers / totalNewUsers) * 100).toFixed(1)}%`,
-            month.newUsers > avgMonthlyGrowth ? 'Above Avg' : 'Below Avg'
+            totalNewUsers > 0
+                ? `${((month.newUsers / totalNewUsers) * 100).toFixed(1)}%`
+                : '0.0%',
+            month.newUsers > avgMonthlyGrowth
+                ? 'Above Avg'
+                : month.newUsers < avgMonthlyGrowth ? 'Below Avg' : 'At Avg'
         ]);
         
         autoTable(doc, {
@@ -219,31 +298,30 @@ const exportChartsAndPrescriptivePDF = async ({
         
         yPosition += 10;
         
-        // Enhanced sensor data table (showing first 15 records)
-        const sensorTableData = sensorChartData.slice(0, 15).map(session => [
-            new Date(session.timestamp).toLocaleDateString(),
-            session.ph.toFixed(2),
-            session.tds.toString(),
-            `${session.waterTemp.toFixed(1)}°C`,
-            `${session.airTemp.toFixed(1)}°C`,
-            `${session.humidity.toFixed(1)}%`
+        const sensorTableData = sensorChartData.map(session => [
+            session.timestamp ? new Date(session.timestamp).toLocaleString() : '—',
+            Number(session.ph ?? 0).toFixed(2),
+            String(session.tds ?? '—'),
+            `${Number(session.waterTemp ?? 0).toFixed(1)}°C`,
+            `${Number(session.airTemp ?? 0).toFixed(1)}°C`,
+            `${Number(session.humidity ?? 0).toFixed(1)}%`
         ]);
-        
+
+        doc.setFontSize(10);
+        doc.text(`All sensor readings (${sensorChartData.length} rows)`, 20, yPosition);
+        yPosition += 8;
+
         autoTable(doc, {
-            head: [['Date', 'pH', 'TDS (ppm)', 'Water Temp', 'Air Temp', 'Humidity']],
+            head: [['Date/Time', 'pH', 'TDS (ppm)', 'Water Temp', 'Air Temp', 'Humidity']],
             body: sensorTableData,
             startY: yPosition,
-            styles: { fontSize: 9 },
+            styles: { fontSize: 7, cellPadding: 1 },
             headStyles: { fillColor: [76, 175, 80] },
-            alternateRowStyles: { fillColor: [245, 245, 245] }
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { left: margin, right: margin },
+            tableWidth: contentWidth,
         });
-        
-        if (sensorChartData.length > 15) {
-            yPosition = doc.lastAutoTable.finalY + 10;
-            doc.setFontSize(10);
-            doc.text(`* Showing first 15 of ${sensorChartData.length} total sensor readings`, 20, yPosition);
-        }
-        
+
         yPosition = doc.lastAutoTable.finalY + 20;
     }
 
@@ -251,34 +329,77 @@ const exportChartsAndPrescriptivePDF = async ({
     checkPageBreak(60);
     doc.setFontSize(16);
     doc.text('Hydroponic Plant Type Distribution', margin, yPosition);
-    yPosition += 15;
-    
+    yPosition += 10;
+
+    if (plantTypeDistribution?.length > 0) {
+        const totalPlants = plantTypeDistribution.reduce((s, row) => s + row.count, 0);
+        const rows = plantTypeDistribution.map(({ name, count }) => [
+            name,
+            String(count),
+            totalPlants > 0 ? `${((count / totalPlants) * 100).toFixed(1)}%` : '0%',
+        ]);
+        autoTable(doc, {
+            head: [['Plant type', 'Kits', 'Share']],
+            body: rows,
+            startY: yPosition,
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [76, 175, 80] },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { left: margin, right: margin },
+        });
+        yPosition = doc.lastAutoTable.finalY + 18;
+        doc.setFontSize(10);
+        doc.text('(Counts reflect linked sensor kits grouped by plant name.)', margin, yPosition);
+        yPosition += 12;
+    } else {
+        doc.setFontSize(11);
+        doc.text('No plant type distribution data from sensor kits.', margin, yPosition);
+        yPosition += 12;
+    }
 
     // Add Prescriptive Insights Section
     doc.setFontSize(16);
-    doc.text('Prescriptive Insights & Recommendations', 20, yPosition);
-    yPosition += 15;
-    
-    if (prescriptiveInsights && prescriptiveInsights.length > 0) {
-        doc.setFontSize(11);
-        prescriptiveInsights.forEach((insight) => {
-            if (yPosition > 250) {
-                doc.addPage();
-                yPosition = 30;
+    doc.setTextColor(33, 33, 33);
+    doc.text('Prescriptive Insights & Recommendations', margin, yPosition);
+    yPosition += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.text('The following synthesis updates with each PDF export according to KPIs loaded on the dashboard.', margin, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 14;
+
+    const wrapBullet = (paragraph) => {
+        const bulletX = margin;
+        const hangIndent = 4;
+        const lineWidth = contentWidth - hangIndent;
+        const lines = doc.splitTextToSize(paragraph, lineWidth);
+        lines.forEach((line, i) => {
+            checkPageBreak(7);
+            if (i === 0) {
+                doc.setFontSize(11);
+                doc.text(`\u2022  ${line}`, bulletX, yPosition);
+            } else {
+                doc.text(line, bulletX + hangIndent + 7, yPosition);
             }
-            doc.text(`• ${insight}`, 20, yPosition);
-            yPosition += 8;
+            yPosition += 6;
         });
+        yPosition += 6;
+    };
+
+    doc.setFontSize(11);
+
+    const fallbackBullets = [
+        'Operational insight text was unavailable. Refresh the dashboard, confirm Firebase connectivity, and export again.',
+        'Correlate any narrative shift with deployments, outages, marketing pushes, or data-quality initiatives on the precise export date shown in the footer.',
+    ];
+
+    if (prescriptiveInsights && prescriptiveInsights.length > 0) {
+        prescriptiveInsights.forEach(wrapBullet);
     } else {
-        doc.setFontSize(11);
-        doc.text('• Continue monitoring user growth trends for optimal resource allocation', 20, yPosition);
-        yPosition += 8;
-        doc.text('• Maintain current sensor monitoring practices for system health', 20, yPosition);
-        yPosition += 8;
-        doc.text('• Consider expanding plant type diversity based on user preferences', 20, yPosition);
+        fallbackBullets.forEach(wrapBullet);
     }
-    
-    yPosition += 20;
+
+    yPosition += 8;
 
     // Add Charts Section
     async function getChartImage(chartId) {
@@ -338,6 +459,49 @@ const exportChartsAndPrescriptivePDF = async ({
         chartIdx += 1;
     }
 
+    if (appReportTickets?.length > 0) {
+        doc.addPage();
+        yPosition = margin;
+        doc.setFontSize(16);
+        doc.text('App Report Tickets', margin, yPosition);
+        yPosition += 14;
+        doc.setFontSize(10);
+        doc.text(`Total tickets included: ${appReportTickets.length}`, margin, yPosition);
+        yPosition += 10;
+
+        const reportRows = appReportTickets.map((t) => {
+            let tsLabel = '—';
+            try {
+                const ts = t.timestamp instanceof Date ? t.timestamp : new Date(t.timestamp);
+                tsLabel = Number.isNaN(ts.getTime()) ? '—' : ts.toLocaleString();
+            } catch {
+                tsLabel = '—';
+            }
+            const rawMsg = (t.fullMessage || t.title || '').replace(/\s+/g, ' ').trim();
+            const summary = rawMsg.length > 90 ? `${rawMsg.slice(0, 90)}…` : rawMsg;
+            const uidRaw = (t.fullUserId || t.userId || '—').toString();
+            const uidShown = uidRaw.length > 28 ? `${uidRaw.slice(0, 28)}…` : uidRaw;
+            return [t.id, t.type || 'Unknown', tsLabel, summary, uidShown];
+        });
+
+        autoTable(doc, {
+            head: [['Ticket ID', 'Type', 'Reported', 'Summary', 'User ID']],
+            body: reportRows,
+            startY: yPosition,
+            styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+            headStyles: { fillColor: [76, 175, 80] },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { left: margin, right: margin },
+            columnStyles: {
+                0: { cellWidth: 22 },
+                1: { cellWidth: 22 },
+                2: { cellWidth: 28 },
+                3: { cellWidth: 'auto' },
+                4: { cellWidth: 30 },
+            },
+        });
+    }
+
     // Add footer to all pages
     const pageCount = doc.internal.getNumberOfPages();
     const generatedDateTime = `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
@@ -353,36 +517,7 @@ const exportChartsAndPrescriptivePDF = async ({
     doc.save('Cropify_Dashboard_Analytics_Report.pdf');
 };
 
-
-    const hardcodedSessions = [
-        {
-            id: 'demo1',
-            timestamp: new Date(Date.now() - 86400000).toISOString(),
-            ph: 6.8,
-            tds: 750,
-            waterTemp: 22,
-            airTemp: 27,
-            humidity: 60,
-        },
-        {
-            id: 'demo2',
-            timestamp: new Date(Date.now() - 172800000).toISOString(),
-            ph: 7.0,
-            tds: 800,
-            waterTemp: 23,
-            airTemp: 28,
-            humidity: 65,
-        },
-        {
-            id: 'demo3',
-            timestamp: new Date(Date.now() - 259200000).toISOString(),
-            ph: 6.7,
-            tds: 780,
-            waterTemp: 21,
-            airTemp: 26,
-            humidity: 63,
-        },
-    ];
+const PLANT_CHART_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#009688', '#F44336', '#795548'];
 
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -395,6 +530,8 @@ const Dashboard = () => {
     const [dailyActiveUsersData, setDailyActiveUsersData] = useState([]);
     const [kpiData, setKpiData] = useState({ newUsersCount: 0, newUsersTrend: '0%' });
     const [activeUsersCount, setActiveUsersCount] = useState(0);
+    const [totalUsersCount, setTotalUsersCount] = useState(0);
+    const [plantTypeDistribution, setPlantTypeDistribution] = useState([]);
 
     const [sensorSessions, setSensorSessions] = useState([]);
     const [showReportsModal, setShowReportsModal] = useState(false);
@@ -590,6 +727,19 @@ const Dashboard = () => {
             } catch {
                 console.log('Realtime database fetch completed with fallback to Firestore');
             }
+
+            const allKitsForPlants = [...activeKits, ...archivedKits];
+            const plantCounts = {};
+            allKitsForPlants.forEach((kit) => {
+                const name = (kit.plantName || '').trim();
+                if (name && name !== 'N/A') {
+                    plantCounts[name] = (plantCounts[name] || 0) + 1;
+                }
+            });
+            const plantDistribution = Object.entries(plantCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, count]) => ({ name, count }));
+            setPlantTypeDistribution(plantDistribution);
             
             // Sort by lastLinkTimestamp (most recent first) and limit to 3 for dashboard
             const sortedActiveKits = activeKits
@@ -606,6 +756,7 @@ const Dashboard = () => {
             console.error('Error fetching recent sensor data for dashboard:', error);
             setRecentSensorKits([]);
             setArchivedSensorKits([]);
+            setPlantTypeDistribution([]);
         } finally {
             setSensorLoading(false);
         }
@@ -644,6 +795,7 @@ const Dashboard = () => {
 
             setNewUsersData(chartData);
             setKpiData({ newUsersCount: lastMonthCount, newUsersTrend: trend });
+            setTotalUsersCount(snapshot.size);
 
             const sessionLogs = collection(db, 'user_logs_UserSessions');
             const logSnapshot = await getDocs(sessionLogs);
@@ -764,7 +916,7 @@ const Dashboard = () => {
                     humidity: data.humidity,
                 };
             });
-            const allSessions = [...sessions, ...hardcodedSessions];
+            const allSessions = [...sessions];
             allSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             setSensorSessions(allSessions);
 
@@ -774,7 +926,8 @@ const Dashboard = () => {
 
         } catch (error) {
             console.error('Error fetching analytics data:', error);
-            setSensorSessions(hardcodedSessions);
+            setSensorSessions([]);
+            setTotalUsersCount(0);
             setReportTickets([]);
             setReportsLoading(false);
         }
@@ -786,12 +939,15 @@ const Dashboard = () => {
             await adminAuditActions.printDashboard(uid, adminName);
         }
         
-        exportChartsAndPrescriptivePDF({
+        await exportChartsAndPrescriptivePDF({
             kpiData,
             newUsersData,
-            totalUsers: "...",
+            totalUsersFormatted: totalUsersCount.toLocaleString(),
+            activeUsersCount,
             prescriptiveInsights,
-            sensorChartData
+            sensorChartData,
+            plantTypeDistribution,
+            appReportTickets: allReportTickets
         });
         setShowPrintConfirmModal(false);
         
@@ -988,7 +1144,7 @@ const Dashboard = () => {
   }, [uid, role]);
 
 
-    const prescriptiveInsights = getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, "...");
+    const prescriptiveInsights = getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsersCount);
 
     if (loading) {
         return <div className="loading-container"><p>Loading...</p></div>;
@@ -1201,6 +1357,29 @@ const Dashboard = () => {
                         </div>
                     </div>
 
+                    <section className="dashboard-insights-panel" aria-labelledby="dashboard-insights-heading">
+                        <div className="dashboard-insights-panel-header">
+                            <h3 id="dashboard-insights-heading" className="dashboard-insights-title">
+                                Prescriptive insights
+                            </h3>
+                            <span className="dashboard-insights-badge">Updates with live metrics</span>
+                        </div>
+                        <p className="dashboard-insights-lede">
+                            Condensed observations derived from KPIs shown above. Exported PDFs mirror this wording at time of download.
+                        </p>
+                        {prescriptiveInsights.length > 0 ? (
+                            <ol className="dashboard-insights-ordered-list">
+                                {prescriptiveInsights.map((line, idx) => (
+                                    <li key={`insight-${idx}`} className="dashboard-insights-li">
+                                        {line}
+                                    </li>
+                                ))}
+                            </ol>
+                        ) : (
+                            <p className="dashboard-insights-empty">Insights will appear once registration and engagement data load.</p>
+                        )}
+                    </section>
+
                     <div id="charts-container" className="charts-container">
                         <div className="chart-card" id="chart-active-users">
                             <h3 className="chart-title">Monthly Active Users</h3>
@@ -1299,6 +1478,44 @@ const Dashboard = () => {
                                     <div className="chart-empty-icon">📈</div>
                                     <div className="chart-empty-text">No New User Data</div>
                                     <div className="chart-empty-subtext">New user registration data will appear here</div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="chart-card" id="chart-plant-types">
+                            <h3 className="chart-title">Hydroponic Plant Types Distribution</h3>
+                            {plantTypeDistribution && plantTypeDistribution.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <PieChart>
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                border: '1px solid rgba(46, 125, 50, 0.2)',
+                                                borderRadius: '8px',
+                                            }}
+                                        />
+                                        <Pie
+                                            data={plantTypeDistribution.map((p) => ({ name: p.name, value: p.count }))}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%"
+                                            cy="50%"
+                                            outerRadius={88}
+                                            label={({ name, percent }) =>
+                                                `${name ?? ''} ${typeof percent === 'number' ? (percent * 100).toFixed(0) : '0'}%`
+                                            }
+                                        >
+                                            {plantTypeDistribution.map((_, i) => (
+                                                <Cell key={i} fill={PLANT_CHART_COLORS[i % PLANT_CHART_COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="chart-empty">
+                                    <div className="chart-empty-icon">🌱</div>
+                                    <div className="chart-empty-text">No Plant Type Data</div>
+                                    <div className="chart-empty-subtext">Linked sensor kits with plant names will appear here</div>
                                 </div>
                             )}
                         </div>
