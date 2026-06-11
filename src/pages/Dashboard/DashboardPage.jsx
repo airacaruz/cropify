@@ -137,16 +137,17 @@ const exportChartsAndPrescriptivePDF = async ({
     prescriptiveInsights,
     sensorChartData,
     plantTypeDistribution,
-    appReportTickets
+    appReportTickets,
+    newWindow
 }) => {
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
-    
+
     let yPosition = margin;
-    
+
     // Helper function to check if we need a new page
     const checkPageBreak = (requiredSpace = 20) => {
         if (yPosition + requiredSpace > pageHeight - margin) {
@@ -161,7 +162,7 @@ const exportChartsAndPrescriptivePDF = async ({
     doc.setFontSize(24);
     doc.text('Cropify Dashboard Analytics Report', margin, yPosition);
     yPosition += 15;
-    
+
     doc.setFontSize(12);
     doc.text('Comprehensive analytics and insights for Cropify hydroponic management system', margin, yPosition);
     yPosition += 30;
@@ -170,7 +171,7 @@ const exportChartsAndPrescriptivePDF = async ({
     doc.setFontSize(16);
     doc.text('Executive Summary', 20, yPosition);
     yPosition += 15;
-    
+
     doc.setFontSize(11);
     const summaryText = [
         'This report provides a comprehensive analysis of the Cropify platform performance,',
@@ -178,19 +179,19 @@ const exportChartsAndPrescriptivePDF = async ({
         'Key findings include user acquisition trends, system performance indicators,',
         'and actionable insights for optimizing hydroponic operations.'
     ];
-    
+
     summaryText.forEach(line => {
         doc.text(line, 20, yPosition);
         yPosition += 6;
     });
-    
+
     yPosition += 15;
 
     // Add Key Performance Indicators (KPIs) Section
     doc.setFontSize(16);
     doc.text('Key Performance Indicators (KPIs)', 20, yPosition);
     yPosition += 15;
-    
+
     const kpiTableData = [
         ['Metric', 'Current Value', 'Trend', 'Status'],
         ['New Users (Current Month)', kpiData.newUsersCount?.toLocaleString?.() ?? String(kpiData.newUsersCount ?? '0'), kpiData.newUsersTrend || 'N/A', 'Recorded'],
@@ -198,7 +199,7 @@ const exportChartsAndPrescriptivePDF = async ({
         ['Active Users', activeUsersCount?.toLocaleString?.() ?? String(activeUsersCount ?? 0), '—', 'Recorded'],
         ['Sensor Logs', sensorChartData.length.toString(), '—', 'Recorded'],
     ];
-    
+
     autoTable(doc, {
         head: [kpiTableData[0]],
         body: kpiTableData.slice(1),
@@ -207,7 +208,7 @@ const exportChartsAndPrescriptivePDF = async ({
         headStyles: { fillColor: [76, 175, 80] },
         alternateRowStyles: { fillColor: [245, 245, 245] }
     });
-    
+
     yPosition = doc.lastAutoTable.finalY + 20;
 
     // Add User Analytics Section
@@ -215,32 +216,32 @@ const exportChartsAndPrescriptivePDF = async ({
     doc.setFontSize(16);
     doc.text('User Analytics & Growth Metrics', margin, yPosition);
     yPosition += 15;
-    
+
     if (newUsersData && newUsersData.length > 0) {
         // Calculate growth metrics
         const totalNewUsers = newUsersData.reduce((sum, month) => sum + month.newUsers, 0);
         const avgMonthlyGrowth = totalNewUsers / newUsersData.length;
         const highestMonth = newUsersData.reduce((max, month) => month.newUsers > max.newUsers ? month : max, newUsersData[0]);
-        
+
         doc.setFontSize(12);
         doc.text('Monthly User Growth Analysis:', margin, yPosition);
         yPosition += 10;
-        
+
         const growthMetrics = [
             `• Total new users tracked: ${totalNewUsers}`,
             `• Average monthly growth: ${avgMonthlyGrowth.toFixed(1)} users`,
             `• Highest growth month: ${highestMonth.month} (${highestMonth.newUsers} users)`,
             `• Growth period: ${newUsersData.length} months`
         ];
-        
+
         growthMetrics.forEach(metric => {
             checkPageBreak(8);
             doc.text(metric, margin + 5, yPosition);
             yPosition += 7;
         });
-        
+
         yPosition += 15;
-        
+
         // Enhanced monthly data table
         const monthlyData = newUsersData.map(month => [
             month.month,
@@ -252,7 +253,7 @@ const exportChartsAndPrescriptivePDF = async ({
                 ? 'Above Avg'
                 : month.newUsers < avgMonthlyGrowth ? 'Below Avg' : 'At Avg'
         ]);
-        
+
         autoTable(doc, {
             head: [['Month', 'New Users', 'Percentage', 'Performance']],
             body: monthlyData,
@@ -261,7 +262,7 @@ const exportChartsAndPrescriptivePDF = async ({
             headStyles: { fillColor: [76, 175, 80] },
             alternateRowStyles: { fillColor: [245, 245, 245] }
         });
-        
+
         yPosition = doc.lastAutoTable.finalY + 20;
     }
 
@@ -270,18 +271,18 @@ const exportChartsAndPrescriptivePDF = async ({
         doc.setFontSize(16);
         doc.text('Sensor Data Analytics', 20, yPosition);
         yPosition += 15;
-        
+
         // Calculate sensor statistics
         const avgPH = (sensorChartData.reduce((sum, s) => sum + s.ph, 0) / sensorChartData.length).toFixed(2);
         const avgTDS = (sensorChartData.reduce((sum, s) => sum + s.tds, 0) / sensorChartData.length).toFixed(0);
         const avgWaterTemp = (sensorChartData.reduce((sum, s) => sum + s.waterTemp, 0) / sensorChartData.length).toFixed(1);
         const avgAirTemp = (sensorChartData.reduce((sum, s) => sum + s.airTemp, 0) / sensorChartData.length).toFixed(1);
         const avgHumidity = (sensorChartData.reduce((sum, s) => sum + s.humidity, 0) / sensorChartData.length).toFixed(1);
-        
+
         doc.setFontSize(12);
         doc.text('Sensor Performance Summary:', 20, yPosition);
         yPosition += 10;
-        
+
         const sensorMetrics = [
             `• Total sensor readings: ${sensorChartData.length}`,
             `• Average pH Level: ${avgPH} (Optimal: 5.5-7.5)`,
@@ -290,14 +291,14 @@ const exportChartsAndPrescriptivePDF = async ({
             `• Average Air Temperature: ${avgAirTemp}°C (Optimal: 20-26°C)`,
             `• Average Humidity: ${avgHumidity}% (Optimal: 40-70%)`
         ];
-        
+
         sensorMetrics.forEach(metric => {
             doc.text(metric, 25, yPosition);
             yPosition += 7;
         });
-        
+
         yPosition += 10;
-        
+
         const sensorTableData = sensorChartData.map(session => [
             session.timestamp ? new Date(session.timestamp).toLocaleString() : '—',
             Number(session.ph ?? 0).toFixed(2),
@@ -431,7 +432,7 @@ const exportChartsAndPrescriptivePDF = async ({
             doc.addPage();
             yPosition = margin;
         }
-        
+
         doc.setFontSize(16);
         doc.text('Visual Analytics Charts', margin, yPosition);
         yPosition += 20;
@@ -445,7 +446,7 @@ const exportChartsAndPrescriptivePDF = async ({
             doc.setFontSize(12);
             doc.text(chart.title, margin, yPosition);
             yPosition += 10;
-            
+
             if (chart.img) {
                 doc.addImage(chart.img, 'PNG', margin, yPosition, chartWidth, chartHeight);
                 yPosition += chartHeight + 20;
@@ -505,7 +506,7 @@ const exportChartsAndPrescriptivePDF = async ({
     // Add footer to all pages
     const pageCount = doc.internal.getNumberOfPages();
     const generatedDateTime = `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
-    
+
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
@@ -514,16 +515,29 @@ const exportChartsAndPrescriptivePDF = async ({
         doc.text(generatedDateTime, margin, pageHeight - 20);
     }
 
-    doc.save('Cropify_Dashboard_Analytics_Report.pdf');
+    try {
+        const pdfBlob = doc.output('blob');
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        if (newWindow) {
+            newWindow.location.href = blobUrl;
+        } else {
+            window.open(blobUrl, '_blank');
+        }
+    } catch (error) {
+        console.error("Error displaying PDF in new tab:", error);
+        if (newWindow) newWindow.close();
+        // Fallback: save PDF directly
+        doc.save('Cropify_Dashboard_Analytics_Report.pdf');
+    }
 };
 
 const PLANT_CHART_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#009688', '#F44336', '#795548'];
 
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
-    const [role, setRole] = useState(null); 
+    const [role, setRole] = useState(null);
     const [adminName, setAdminName] = useState("");
-    const [uid, setUid] = useState(null); 
+    const [uid, setUid] = useState(null);
     const navigate = useNavigate();
 
     const [newUsersData, setNewUsersData] = useState([]);
@@ -549,10 +563,10 @@ const Dashboard = () => {
         try {
             setReportsLoading(true);
             const reportsSnapshot = await getDocs(collection(db, 'reports'));
-            
+
             const reports = reportsSnapshot.docs.map(doc => {
                 const data = doc.data();
-                
+
                 // Handle timestamp properly - it might be a string or Firestore timestamp
                 let timestamp;
                 if (data.timestamp) {
@@ -566,7 +580,7 @@ const Dashboard = () => {
                 } else {
                     timestamp = new Date();
                 }
-                
+
                 return {
                     id: doc.id,
                     title: data.message || 'No title',
@@ -578,11 +592,11 @@ const Dashboard = () => {
                     fullUserId: data.userId || '' // Keep full user ID for modal
                 };
             });
-            
+
             // Sort by timestamp (newest first)
             const sortedReports = reports.sort((a, b) => b.timestamp - a.timestamp);
             setAllReportTickets(sortedReports);
-            
+
             // Take first 3 for the dashboard card
             setReportTickets(sortedReports.slice(0, 3));
             setReportsLoading(false);
@@ -600,18 +614,18 @@ const Dashboard = () => {
             setSensorLoading(true);
             const activeKits = [];
             const archivedKits = [];
-            
+
             // Fetch from Firestore SensorKits collection
             try {
                 const sensorKitsRef = collection(db, 'SensorKits');
                 const sensorKitsSnapshot = await getDocs(sensorKitsRef);
-                
+
                 sensorKitsSnapshot.forEach((doc) => {
                     const data = doc.data();
-                    
+
                     // Filter out hardcoded/system entries
                     const isHardcodedEntry = (
-                        data.plantName === 'plantName' || 
+                        data.plantName === 'plantName' ||
                         data.userId === 'userId' ||
                         data.plantName === 'userId' ||
                         data.userId === 'plantName' ||
@@ -621,7 +635,7 @@ const Dashboard = () => {
                         data.plantName === 'N/A' ||
                         data.userId === 'N/A'
                     );
-                    
+
                     if (!isHardcodedEntry) {
                         const kit = {
                             id: doc.id,
@@ -637,7 +651,7 @@ const Dashboard = () => {
                             humidity: 0,
                             ph: 0
                         };
-                        
+
                         // Separate active and archived kits
                         if (data.linked === true) {
                             activeKits.push(kit);
@@ -646,32 +660,32 @@ const Dashboard = () => {
                         }
                     }
                 });
-                
+
             } catch {
                 console.log('Firestore sensor kits fetch completed');
             }
-            
+
             // Fetch from Realtime Database Sensors path with timeout
             try {
                 const sensorsRef = ref(realtimeDb, 'Sensors');
-                
+
                 // Add timeout to prevent hanging
                 const timeoutPromise = new Promise((_, reject) => {
                     setTimeout(() => reject(new Error('Realtime Database fetch timeout')), 5000); // 5 second timeout
                 });
-                
+
                 const snapshot = await Promise.race([get(sensorsRef), timeoutPromise]);
-                
+
                 if (snapshot.exists()) {
                     const sensorsData = snapshot.val();
-                    
+
                     // Process each sensor from Realtime Database
                     Object.keys(sensorsData).forEach(sensorId => {
                         const sensorData = sensorsData[sensorId];
-                        
+
                         // Check if this sensor kit already exists in Firestore data
                         const existingKit = activeKits.find(kit => kit.id === sensorId);
-                        
+
                         if (existingKit) {
                             // Update existing kit with real-time data
                             existingKit.code = sensorData.sensorCode || existingKit.code;
@@ -684,7 +698,7 @@ const Dashboard = () => {
                         } else {
                             // Only create new kit entry if it has a real userId (not system) AND is linked AND not hardcoded
                             const isHardcodedEntry = (
-                                sensorData.plantName === 'plantName' || 
+                                sensorData.plantName === 'plantName' ||
                                 sensorData.userId === 'userId' ||
                                 sensorData.plantName === 'userId' ||
                                 sensorData.userId === 'plantName' ||
@@ -694,7 +708,7 @@ const Dashboard = () => {
                                 sensorData.plantName === 'N/A' ||
                                 sensorData.userId === 'N/A'
                             );
-                            
+
                             if (sensorData.userId && sensorData.userId !== 'system' && !isHardcodedEntry) {
                                 const kit = {
                                     id: sensorId,
@@ -710,7 +724,7 @@ const Dashboard = () => {
                                     humidity: sensorData.humidity || 0,
                                     ph: sensorData.ph || 0
                                 };
-                                
+
                                 // Add to appropriate array based on linked status
                                 if (sensorData.linked === true) {
                                     activeKits.push(kit);
@@ -720,7 +734,7 @@ const Dashboard = () => {
                             }
                         }
                     });
-                    
+
                 } else {
                     console.log('No realtime sensor data found');
                 }
@@ -740,18 +754,18 @@ const Dashboard = () => {
                 .sort((a, b) => b[1] - a[1])
                 .map(([name, count]) => ({ name, count }));
             setPlantTypeDistribution(plantDistribution);
-            
+
             // Sort by lastLinkTimestamp (most recent first) and limit to 3 for dashboard
             const sortedActiveKits = activeKits
                 .sort((a, b) => new Date(b.lastLinkTimestamp) - new Date(a.lastLinkTimestamp))
                 .slice(0, 3);
-            
+
             const sortedArchivedKits = archivedKits
                 .sort((a, b) => new Date(b.lastLinkTimestamp) - new Date(a.lastLinkTimestamp));
-            
+
             setRecentSensorKits(sortedActiveKits);
             setArchivedSensorKits(sortedArchivedKits);
-            
+
         } catch (error) {
             console.error('Error fetching recent sensor data for dashboard:', error);
             setRecentSensorKits([]);
@@ -767,7 +781,7 @@ const Dashboard = () => {
             console.log('fetchAnalyticsData called');
             // Clean up expired sessions before calculating active users
             await userSessionManager.cleanupExpiredSessions();
-            
+
             const usersCollection = collection(db, 'users');
             const snapshot = await getDocs(usersCollection);
 
@@ -780,7 +794,7 @@ const Dashboard = () => {
                 userCountsByMonth[month] = (userCountsByMonth[month] || 0) + 1;
             });
 
-            const orderedMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const orderedMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const chartData = orderedMonths.map((month) => ({
                 month,
                 newUsers: userCountsByMonth[month] || 0,
@@ -791,7 +805,7 @@ const Dashboard = () => {
             const prevMonthCount = chartData[currentMonthIndex - 1]?.newUsers || 0;
             const trend =
                 prevMonthCount === 0 ? '0%' :
-                `${(((lastMonthCount - prevMonthCount) / prevMonthCount) * 100).toFixed(0)}%`;
+                    `${(((lastMonthCount - prevMonthCount) / prevMonthCount) * 100).toFixed(0)}%`;
 
             setNewUsersData(chartData);
             setKpiData({ newUsersCount: lastMonthCount, newUsersTrend: trend });
@@ -845,23 +859,23 @@ const Dashboard = () => {
             });
 
             setDailyActiveUsersData(monthlyActiveUsersArray);
-            
+
             // Fix: Calculate truly active users (not just all users who ever logged in)
             const now = new Date();
             const ACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
-            
+
             const activeSessions = logSnapshot.docs.filter(doc => {
                 const data = doc.data();
-                
+
                 // Must have a userId
                 if (!data.userId) return false;
-                
+
                 // Check if session is marked as active (if field exists)
                 if (data.isActive === false) return false;
-                
+
                 // Check if user has logged out (if logoutTime exists)
                 if (data.logoutTime) return false;
-                
+
                 // Check if user has recent activity (if lastActivity exists)
                 if (data.lastActivity) {
                     try {
@@ -873,7 +887,7 @@ const Dashboard = () => {
                         return false;
                     }
                 }
-                
+
                 // If no lastActivity field, check loginTime as fallback
                 if (data.loginTime) {
                     try {
@@ -885,16 +899,16 @@ const Dashboard = () => {
                         return false;
                     }
                 }
-                
+
                 return true;
             });
-            
+
             // Count unique active users
             const uniqueActiveUsers = new Set(activeSessions.map(doc => doc.data().userId));
             const activeUserCount = uniqueActiveUsers.size;
-            
+
             console.log(`Active users calculation: ${activeSessions.length} active sessions, ${activeUserCount} unique active users`);
-            
+
             setActiveUsersCount(activeUserCount);
 
             // Fetch recent sensor data for dashboard
@@ -934,26 +948,49 @@ const Dashboard = () => {
     }, [fetchRecentSensorData, fetchReportTickets]);
 
     const handlePrintConfirm = async () => {
+        // Open a new blank tab immediately to prevent browser popup blockers from stopping it
+        const newWindow = window.open('about:blank', '_blank');
+        if (newWindow) {
+            newWindow.document.write(
+                '<div style="font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #333; background: #f8f9fa;">' +
+                '  <div style="text-align: center; padding: 24px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">' +
+                '    <div style="width: 40px; height: 40px; border: 3px solid #e9ecef; border-top: 3px solid #2e7d32; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>' +
+                '    <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px;">Generating Dashboard Summary...</div>' +
+                '    <div style="font-size: 13px; color: #666;">This will open the PDF in this tab once ready.</div>' +
+                '  </div>' +
+                '  <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>' +
+                '</div>'
+            );
+        }
+
         // Log the print dashboard action
         if (uid && adminName) {
             await adminAuditActions.printDashboard(uid, adminName);
         }
-        
-        await exportChartsAndPrescriptivePDF({
-            kpiData,
-            newUsersData,
-            totalUsersFormatted: totalUsersCount.toLocaleString(),
-            activeUsersCount,
-            prescriptiveInsights,
-            sensorChartData,
-            plantTypeDistribution,
-            appReportTickets: allReportTickets
-        });
+
+        try {
+            await exportChartsAndPrescriptivePDF({
+                kpiData,
+                newUsersData,
+                totalUsersFormatted: totalUsersCount.toLocaleString(),
+                activeUsersCount,
+                prescriptiveInsights,
+                sensorChartData,
+                plantTypeDistribution,
+                appReportTickets: allReportTickets,
+                newWindow
+            });
+        } catch (error) {
+            console.error("Error generating report:", error);
+            if (newWindow) {
+                newWindow.close();
+            }
+        }
         setShowPrintConfirmModal(false);
-        
+
         // Show download success modal
         setShowDownloadSuccessModal(true);
-        
+
         // Auto-hide success modal after 3 seconds
         setTimeout(() => {
             setShowDownloadSuccessModal(false);
@@ -975,7 +1012,7 @@ const Dashboard = () => {
                 navigate('/', { replace: true });
             } else {
                 try {
-                    setUid(user.uid); 
+                    setUid(user.uid);
                 } catch (err) {
                     console.error("Error setting uid:", err);
                 }
@@ -998,7 +1035,7 @@ const Dashboard = () => {
         const fetchRole = async () => {
             try {
                 const q = query(
-                    collection(db, "admins"), 
+                    collection(db, "admins"),
                     where("adminId", "==", uid)
                 );
                 const querySnapshot = await getDocs(q);
@@ -1038,110 +1075,110 @@ const Dashboard = () => {
         }
     }, [uid, role, adminName, fetchAnalyticsData]);
 
-  // Separate useEffect to fetch report tickets when user is authenticated
-  useEffect(() => {
-    if (uid && role && (role === 'admin' || role === 'superadmin')) {
-      console.log('User authenticated, fetching report tickets...');
-      fetchReportTickets();
-    }
-  }, [uid, role, fetchReportTickets]);
+    // Separate useEffect to fetch report tickets when user is authenticated
+    useEffect(() => {
+        if (uid && role && (role === 'admin' || role === 'superadmin')) {
+            console.log('User authenticated, fetching report tickets...');
+            fetchReportTickets();
+        }
+    }, [uid, role, fetchReportTickets]);
 
-  // Real-time listener for sensor status changes (linked/unlinked)
-  useEffect(() => {
-    if (!uid || !role || (role !== 'admin' && role !== 'superadmin')) return;
-    
-    console.log('Setting up real-time sensor status listener for Dashboard...');
-    const sensorsRef = ref(realtimeDb, 'Sensors');
-    
-    const unsubscribeRealtime = onValue(sensorsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        console.log('Dashboard: Real-time sensor status update received');
-        const sensorsData = snapshot.val();
-        
-        // Update recent sensor kits based on linked status
-        setRecentSensorKits(prevKits => {
-          const updatedKits = [...prevKits];
-          
-          Object.keys(sensorsData).forEach(sensorId => {
-            const sensorData = sensorsData[sensorId];
-            const existingKitIndex = updatedKits.findIndex(kit => kit.id === sensorId);
-            
-            if (existingKitIndex !== -1) {
-              // Check if sensor is now unlinked - if so, remove it from recent kits
-              if (sensorData.linked === false) {
-                console.log(`Dashboard: Archiving unlinked sensor ${sensorId} from Recent Sensor Kits`);
-                updatedKits.splice(existingKitIndex, 1);
-              } else {
-                // Update existing kit with latest data
-                updatedKits[existingKitIndex] = {
-                  ...updatedKits[existingKitIndex],
-                  code: sensorData.code || sensorData.sensorCode || updatedKits[existingKitIndex].code,
-                  linked: sensorData.linked !== undefined ? sensorData.linked : updatedKits[existingKitIndex].linked,
-                  linkedPlantId: sensorData.linkedPlantId || updatedKits[existingKitIndex].linkedPlantId,
-                  plantName: sensorData.plantName || updatedKits[existingKitIndex].plantName,
-                  userId: sensorData.userId || updatedKits[existingKitIndex].userId,
-                  lastLinkTimestamp: new Date().toISOString(),
-                  status: sensorData.linked ? 'Active' : 'Archived',
-                  temperature: sensorData.temperature || 0,
-                  humidity: sensorData.humidity || 0,
-                  ph: sensorData.ph || 0
-                };
-              }
-            } else {
-              // Check if this is a newly linked sensor that should be added
-              if (sensorData.linked === true && sensorData.userId && sensorData.userId !== 'system') {
-                // Filter out hardcoded/system entries
-                const isHardcodedEntry = (
-                  sensorData.plantName === 'plantName' || 
-                  sensorData.userId === 'userId' ||
-                  sensorData.plantName === 'userId' ||
-                  sensorData.userId === 'plantName' ||
-                  sensorData.userId === 'system' ||
-                  !sensorData.userId ||
-                  !sensorData.plantName ||
-                  sensorData.plantName === 'N/A' ||
-                  sensorData.userId === 'N/A'
-                );
-                
-                if (!isHardcodedEntry) {
-                  console.log(`Dashboard: Adding newly linked sensor ${sensorId} to Recent Sensor Kits`);
-                  const newKit = {
-                    id: sensorId,
-                    code: sensorData.code || sensorData.sensorCode || 'N/A',
-                    linked: sensorData.linked || false,
-                    linkedPlantId: sensorData.linkedPlantId || null,
-                    plantName: sensorData.plantName || 'N/A',
-                    userId: sensorData.userId || 'system',
-                    lastLinkTimestamp: new Date().toISOString(),
-                    status: 'Active',
-                    user: sensorData.userId || 'system',
-                    temperature: sensorData.temperature || 0,
-                    humidity: sensorData.humidity || 0,
-                    ph: sensorData.ph || 0
-                  };
-                  
-                  // Add to the beginning and keep only the 3 most recent
-                  updatedKits.unshift(newKit);
-                  if (updatedKits.length > 3) {
-                    updatedKits.splice(3);
-                  }
-                }
-              }
+    // Real-time listener for sensor status changes (linked/unlinked)
+    useEffect(() => {
+        if (!uid || !role || (role !== 'admin' && role !== 'superadmin')) return;
+
+        console.log('Setting up real-time sensor status listener for Dashboard...');
+        const sensorsRef = ref(realtimeDb, 'Sensors');
+
+        const unsubscribeRealtime = onValue(sensorsRef, (snapshot) => {
+            if (snapshot.exists()) {
+                console.log('Dashboard: Real-time sensor status update received');
+                const sensorsData = snapshot.val();
+
+                // Update recent sensor kits based on linked status
+                setRecentSensorKits(prevKits => {
+                    const updatedKits = [...prevKits];
+
+                    Object.keys(sensorsData).forEach(sensorId => {
+                        const sensorData = sensorsData[sensorId];
+                        const existingKitIndex = updatedKits.findIndex(kit => kit.id === sensorId);
+
+                        if (existingKitIndex !== -1) {
+                            // Check if sensor is now unlinked - if so, remove it from recent kits
+                            if (sensorData.linked === false) {
+                                console.log(`Dashboard: Archiving unlinked sensor ${sensorId} from Recent Sensor Kits`);
+                                updatedKits.splice(existingKitIndex, 1);
+                            } else {
+                                // Update existing kit with latest data
+                                updatedKits[existingKitIndex] = {
+                                    ...updatedKits[existingKitIndex],
+                                    code: sensorData.code || sensorData.sensorCode || updatedKits[existingKitIndex].code,
+                                    linked: sensorData.linked !== undefined ? sensorData.linked : updatedKits[existingKitIndex].linked,
+                                    linkedPlantId: sensorData.linkedPlantId || updatedKits[existingKitIndex].linkedPlantId,
+                                    plantName: sensorData.plantName || updatedKits[existingKitIndex].plantName,
+                                    userId: sensorData.userId || updatedKits[existingKitIndex].userId,
+                                    lastLinkTimestamp: new Date().toISOString(),
+                                    status: sensorData.linked ? 'Active' : 'Archived',
+                                    temperature: sensorData.temperature || 0,
+                                    humidity: sensorData.humidity || 0,
+                                    ph: sensorData.ph || 0
+                                };
+                            }
+                        } else {
+                            // Check if this is a newly linked sensor that should be added
+                            if (sensorData.linked === true && sensorData.userId && sensorData.userId !== 'system') {
+                                // Filter out hardcoded/system entries
+                                const isHardcodedEntry = (
+                                    sensorData.plantName === 'plantName' ||
+                                    sensorData.userId === 'userId' ||
+                                    sensorData.plantName === 'userId' ||
+                                    sensorData.userId === 'plantName' ||
+                                    sensorData.userId === 'system' ||
+                                    !sensorData.userId ||
+                                    !sensorData.plantName ||
+                                    sensorData.plantName === 'N/A' ||
+                                    sensorData.userId === 'N/A'
+                                );
+
+                                if (!isHardcodedEntry) {
+                                    console.log(`Dashboard: Adding newly linked sensor ${sensorId} to Recent Sensor Kits`);
+                                    const newKit = {
+                                        id: sensorId,
+                                        code: sensorData.code || sensorData.sensorCode || 'N/A',
+                                        linked: sensorData.linked || false,
+                                        linkedPlantId: sensorData.linkedPlantId || null,
+                                        plantName: sensorData.plantName || 'N/A',
+                                        userId: sensorData.userId || 'system',
+                                        lastLinkTimestamp: new Date().toISOString(),
+                                        status: 'Active',
+                                        user: sensorData.userId || 'system',
+                                        temperature: sensorData.temperature || 0,
+                                        humidity: sensorData.humidity || 0,
+                                        ph: sensorData.ph || 0
+                                    };
+
+                                    // Add to the beginning and keep only the 3 most recent
+                                    updatedKits.unshift(newKit);
+                                    if (updatedKits.length > 3) {
+                                        updatedKits.splice(3);
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    return updatedKits;
+                });
             }
-          });
-          
-          return updatedKits;
+        }, (error) => {
+            console.error('Dashboard: Real-time sensor status listener error:', error);
         });
-      }
-    }, (error) => {
-      console.error('Dashboard: Real-time sensor status listener error:', error);
-    });
-    
-    return () => {
-      console.log('Dashboard: Cleaning up real-time sensor status listener');
-      off(sensorsRef, 'value', unsubscribeRealtime);
-    };
-  }, [uid, role]);
+
+        return () => {
+            console.log('Dashboard: Cleaning up real-time sensor status listener');
+            off(sensorsRef, 'value', unsubscribeRealtime);
+        };
+    }, [uid, role]);
 
 
     const prescriptiveInsights = getPrescriptiveInsights(kpiData, newUsersData, activeUsersCount, totalUsersCount);
@@ -1189,10 +1226,10 @@ const Dashboard = () => {
                     <h1 className="sr-only">Dashboard Overview</h1>
                     <div className="kpi-cards-container">
                         <div className="kpi-card">
-                                <h4 className="kpi-card-title">
+                            <h4 className="kpi-card-title">
                                 <FaUserPlus color="#4CAF50" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                 New Users (Current Month)
-                                </h4>
+                            </h4>
                             <h2 className="kpi-value">{kpiData.newUsersCount.toLocaleString()}</h2>
                             <p className="kpi-trend">
                                 <span className={parseFloat(kpiData.newUsersTrend) > 0 ? 'text-green' : 'text-red'}>
@@ -1201,31 +1238,17 @@ const Dashboard = () => {
                                 vs. last month
                             </p>
                         </div>
-                        
+
                         <div className="kpi-card app-reports-card">
                             <div className="app-reports-header">
                                 <h4 className="kpi-card-title">
-                                    <FaMicrochip color="#FF9800" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                                    <FaMicrochip color="#4CAF50" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                     App Report Tickets
                                 </h4>
-                                <button 
-                                    className="refresh-btn-small" 
+                                <button
+                                    className="refresh-btn-small"
                                     onClick={fetchReportTickets}
                                     disabled={reportsLoading}
-                                    style={{
-                                        backgroundColor: reportsLoading ? '#ccc' : '#FF9800',
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '6px 10px',
-                                        borderRadius: '4px',
-                                        cursor: reportsLoading ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '12px',
-                                        fontWeight: '500',
-                                        transition: 'all 0.3s ease'
-                                    }}
                                 >
                                     <FaRedo className={reportsLoading ? 'spin' : ''} />
                                     {reportsLoading ? 'Refreshing...' : 'Refresh'}
@@ -1244,12 +1267,7 @@ const Dashboard = () => {
                                                 <span className={`ticket-status ${ticket.type.toLowerCase().replace(' ', '-')}`}>
                                                     {ticket.type}
                                                 </span>
-                                            </div>
-                                            <div className="ticket-details">
-                                                <span className="ticket-user">
-                                                    {ticket.userId.substring(0, 8)}...
-                                                </span>
-                                                <span className="ticket-title">{ticket.title}</span>
+                                                <span className="ticket-title">"{ticket.title}"</span>
                                             </div>
                                         </div>
                                     ))
@@ -1265,31 +1283,17 @@ const Dashboard = () => {
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div className="kpi-card sensor-kits-card">
                             <div className="sensor-kits-header">
                                 <h4 className="kpi-card-title">
-                                    <FaMicrochip color="#2196F3" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                                    <FaMicrochip color="#4CAF50" size={24} style={{ marginRight: 8, verticalAlign: "middle" }} />
                                     Recent Sensor Kits
                                 </h4>
-                                <button 
-                                    className="refresh-btn-small" 
+                                <button
+                                    className="refresh-btn-small"
                                     onClick={fetchRecentSensorData}
                                     disabled={sensorLoading}
-                                    style={{
-                                        backgroundColor: sensorLoading ? '#ccc' : '#2196F3',
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '6px 10px',
-                                        borderRadius: '4px',
-                                        cursor: sensorLoading ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '12px',
-                                        fontWeight: '500',
-                                        transition: 'all 0.3s ease'
-                                    }}
                                 >
                                     <FaRedo className={sensorLoading ? 'spin' : ''} />
                                     {sensorLoading ? 'Refreshing...' : 'Refresh'}
@@ -1312,20 +1316,12 @@ const Dashboard = () => {
                                 ) : recentSensorKits.length > 0 ? (
                                     recentSensorKits.map((kit) => (
                                         <div key={kit.id} className="sensor-kit-item">
-                                            <div className="kit-main-row">
-                                                <div className="kit-left-main">
-                                                    <span className="kit-id">{kit.id}</span>
-                                                    <div className="kit-status-row">
-                                                        <span className={`kit-status ${kit.status.toLowerCase()}`}>
-                                                            {kit.status}
-                                                        </span>
-                                                        {kit.linked && <span className="kit-linked">🔗 Linked</span>}
-                                                    </div>
-                                                </div>
-                                                <div className="kit-right">
-                                                    <span className="kit-user" title={`Original UID: ${kit.user}`}>{hashUID(kit.user)}</span>
-                                                    {kit.plantName && <span className="kit-plant">🌱 {kit.plantName}</span>}
-                                                </div>
+                                            <div className="kit-info">
+                                                <span className="kit-id">{kit.id}</span>
+                                                <span className={`kit-status-badge ${kit.linked ? 'linked' : 'unlinked'}`}>
+                                                    {kit.linked ? 'Linked' : 'Unlinked'}
+                                                </span>
+                                                {kit.plantName && <span className="kit-plant">"{kit.plantName}"</span>}
                                             </div>
                                         </div>
                                     ))
@@ -1387,16 +1383,16 @@ const Dashboard = () => {
                                 <ResponsiveContainer width="100%" height={250}>
                                     <BarChart data={dailyActiveUsersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(46, 125, 50, 0.1)" />
-                                        <XAxis 
-                                            dataKey="month" 
+                                        <XAxis
+                                            dataKey="month"
                                             tick={{ fontSize: 12, fill: '#6b7280' }}
                                             axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
                                         />
-                                        <YAxis 
+                                        <YAxis
                                             tick={{ fontSize: 12, fill: '#6b7280' }}
                                             axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
                                         />
-                                        <Tooltip 
+                                        <Tooltip
                                             contentStyle={{
                                                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                                 border: '1px solid rgba(46, 125, 50, 0.2)',
@@ -1407,9 +1403,9 @@ const Dashboard = () => {
                                             labelStyle={{ color: '#374151', fontWeight: 600 }}
                                             itemStyle={{ color: '#4CAF50', fontWeight: 500 }}
                                         />
-                                        <Bar 
-                                            dataKey="users" 
-                                            fill="url(#activeUsersGradient)" 
+                                        <Bar
+                                            dataKey="users"
+                                            fill="url(#activeUsersGradient)"
                                             radius={[4, 4, 0, 0]}
                                             stroke="#4CAF50"
                                             strokeWidth={1}
@@ -1437,16 +1433,16 @@ const Dashboard = () => {
                                 <ResponsiveContainer width="100%" height={250}>
                                     <LineChart data={newUsersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="5 5" stroke="rgba(46, 125, 50, 0.1)" />
-                                        <XAxis 
-                                            dataKey="month" 
+                                        <XAxis
+                                            dataKey="month"
                                             tick={{ fontSize: 12, fill: '#6b7280' }}
                                             axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
                                         />
-                                        <YAxis 
+                                        <YAxis
                                             tick={{ fontSize: 12, fill: '#6b7280' }}
                                             axisLine={{ stroke: 'rgba(46, 125, 50, 0.2)' }}
                                         />
-                                        <Tooltip 
+                                        <Tooltip
                                             contentStyle={{
                                                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                                 border: '1px solid rgba(46, 125, 50, 0.2)',
@@ -1520,8 +1516,8 @@ const Dashboard = () => {
                             )}
                         </div>
                     </div>
-                        
-                        </div>
+
+                </div>
             )}
 
 
@@ -1537,7 +1533,7 @@ const Dashboard = () => {
                                 <span className="reports-modal-count">({allReportTickets.length})</span>
                             </div>
                             <div className="reports-modal-actions">
-                                <button 
+                                <button
                                     className="reports-refresh-btn"
                                     onClick={fetchReportTickets}
                                     disabled={reportsLoading}
@@ -1545,8 +1541,8 @@ const Dashboard = () => {
                                     <FaRedo className={reportsLoading ? 'spinning' : ''} />
                                     {reportsLoading ? 'Loading...' : 'Refresh'}
                                 </button>
-                                <button 
-                                    className="reports-close-btn" 
+                                <button
+                                    className="reports-close-btn"
                                     onClick={() => setShowReportsModal(false)}
                                 >
                                     <FaTimes />
@@ -1618,7 +1614,7 @@ const Dashboard = () => {
                                                     </td>
                                                     <td className="col-actions">
                                                         <div className="action-buttons">
-                                                            <button 
+                                                            <button
                                                                 className={`action-btn ${ticket.type.toLowerCase().includes('resolved') ? 'resolved-btn' : 'resolve-btn'}`}
                                                                 onClick={() => {
                                                                     if (ticket.type.toLowerCase().includes('resolved')) {
@@ -1651,7 +1647,7 @@ const Dashboard = () => {
                                     <FaMicrochip className="empty-icon" />
                                     <h3>No Report Tickets Found</h3>
                                     <p>There are currently no report tickets to display.</p>
-                                    <button 
+                                    <button
                                         className="refresh-empty-btn"
                                         onClick={fetchReportTickets}
                                     >
@@ -1665,14 +1661,6 @@ const Dashboard = () => {
                         <div className="reports-modal-footer">
                             <div className="footer-info">
                                 <span>Total: {allReportTickets.length} ticket{allReportTickets.length !== 1 ? 's' : ''}</span>
-                            </div>
-                            <div className="footer-actions">
-                                <button 
-                                    className="footer-close-btn"
-                                    onClick={() => setShowReportsModal(false)}
-                                >
-                                    Close
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -1699,8 +1687,8 @@ const Dashboard = () => {
                             <button className="cancel-btn" onClick={handlePrintCancel}>
                                 <FaTimes style={{ marginRight: 4 }} /> Cancel
                             </button>
-                            <button 
-                                className="submit-btn" 
+                            <button
+                                className="submit-btn"
                                 onClick={handlePrintConfirm}
                                 style={{
                                     background: '#4CAF50',
@@ -1730,8 +1718,8 @@ const Dashboard = () => {
                         <div className="success-icon">
                             <FaCheck />
                         </div>
-                        <h3>Download Successful!</h3>
-                        <p>Dashboard summary has been downloaded successfully.</p>
+                        <h3>Report Generated!</h3>
+                        <p>Dashboard summary has been opened in a new tab.</p>
                     </div>
                 </div>
             )}
